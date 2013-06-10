@@ -183,7 +183,6 @@ class Category implements GradebookItem
             $cats[] = Category::create_root_category();
             return $cats;
         }
-
         $tbl_grade_categories = Database :: get_main_table(TABLE_MAIN_GRADEBOOK_CATEGORY);
         $sql = 'SELECT * FROM '.$tbl_grade_categories;
         $paramcount = 0;
@@ -231,8 +230,8 @@ class Category implements GradebookItem
                 }
             //}
             $paramcount ++;
-        }
 
+       }
         if (isset($parent_id)) {
             $parent_id = Database::escape_string($parent_id);
             if ($paramcount != 0) {
@@ -253,7 +252,7 @@ class Category implements GradebookItem
             $sql .= ' visible = '.intval($visible);
             $paramcount ++;
         }
-
+        
         if (!empty($order_by)) {
             if (!empty($order_by) && $order_by != '') {
                 $sql .= ' '.$order_by;
@@ -267,7 +266,7 @@ class Category implements GradebookItem
         return $allcat;
     }
 
-    private function create_root_category() {
+    private static function create_root_category() {
         $cat= new Category();
         $cat->set_id(0);
         $cat->set_name(get_lang('RootCat'));
@@ -752,74 +751,7 @@ class Category implements GradebookItem
     public function get_root_categories_for_student ($stud_id, $course_code = null, $session_id = null) {
         // courses
 
-        $main_course_user_table = Database :: get_main_table(TABLE_MAIN_COURSE_USER);
-        $tbl_grade_categories = Database :: get_main_table(TABLE_MAIN_GRADEBOOK_CATEGORY);
-
-        $sql = 'SELECT *'
-                .' FROM '.$tbl_grade_categories
-                .' WHERE parent_id = 0';
-        if (!api_is_allowed_to_edit()) {
-            $sql .= ' AND visible = 1';
-            //proceed with checks on optional parameters course & session
-            if (!empty($course_code)) {
-                // TODO: considering it highly improbable that a user would get here
-                // if he doesn't have the rights to view this course and this
-                // session, we don't check his registration to these, but this
-                // could be an improvement
-                if (!empty($session_id)) {
-                    $sql .= " AND course_code  = '".Database::escape_string($course_code)."'"
-                            ." AND session_id = ".(int)$session_id;
-                } else {
-                    $sql .= " AND course_code  = '".Database::escape_string($course_code)."' AND session_id is null OR session_id=0";
-                }
-            } else {
-                //no optional parameter, proceed as usual
-                $sql .= ' AND course_code in'
-                    .' (SELECT course_code'
-                    .' FROM '.$main_course_user_table
-                    .' WHERE user_id = '.intval($stud_id)
-                    .' AND status = '.STUDENT
-                    .')';
-            }
-        } elseif (api_is_allowed_to_edit() && !api_is_platform_admin()) {
-            //proceed with checks on optional parameters course & session
-            if (!empty($course_code)) {
-                // TODO: considering it highly improbable that a user would get here
-                // if he doesn't have the rights to view this course and this
-                // session, we don't check his registration to these, but this
-                // could be an improvement
-                $sql .= " AND course_code  = '".Database::escape_string($course_code)."'";
-                if (!empty($session_id)) {
-                    $sql .= " AND session_id = ".(int)$session_id;
-                } else {
-                    $sql .="AND session_id IS NULL OR session_id=0";
-                }
-            } else {
-                $sql .= ' AND course_code in'
-                        .' (SELECT course_code'
-                        .' FROM '.$main_course_user_table
-                        .' WHERE user_id = '.api_get_user_id()
-                        .' AND status = '.COURSEMANAGER
-                        .')';
-            }
-        }elseif (api_is_platform_admin()) {
-            if (isset($session_id) && $session_id!=0) {
-                $sql.=' AND session_id='.intval($session_id);
-            } else {
-                $sql.=' AND coalesce(session_id,0)=0';
-            }
-
-
-        }
-        $result = Database::query($sql);
-        $cats = Category::create_category_objects_from_sql_result($result);
-
-        // course independent categories
-        if (empty($course_code)) {
-          $cats = Category::get_independent_categories_with_result_for_student (0, $stud_id, $cats);
-        }
-        return $cats;
-
+        
     }
 
     /**
@@ -1176,6 +1108,16 @@ class Category implements GradebookItem
      * @return  array   Array of subcategories
      */
     public function get_subcategories ($stud_id = null, $course_code = null, $session_id = null, $order = null) {
+         if (!empty ($session_id)) {
+             $tbl_grade_categories = Database :: get_main_table(TABLE_MAIN_GRADEBOOK_CATEGORY);
+             $sql_session = 'SELECT * FROM '.$tbl_grade_categories. 'WHERE session_id = '.$session_id;
+             $result_session = Database::query($sql_session);
+             if (Database::num_rows($result_session) > 0) {
+                 $data_session = Database::fetch_array($result_session);
+                 $parent_id = $data_session['id'];
+                 return Category::load(null, null, null, $parent_id, null, null, $order);
+             }
+         }
         // 1 student
          if (isset($stud_id)) {
             // special case: this is the root
@@ -1186,6 +1128,7 @@ class Category implements GradebookItem
             }
         } else {// all students
             // course admin
+           
             if (api_is_allowed_to_edit() && !api_is_platform_admin()) {
                 // root
                 if ($this->id == 0) {
