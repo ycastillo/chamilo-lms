@@ -541,11 +541,14 @@ class UserManager
                 
         $sql_active = "SELECT * FROM $table_user WHERE user_id='$user_id' ";
         $return_active = Database::query($sql_active);
-        if (Database::num_rows($return_active) > 0)
+
+        if (Database::num_rows($return_active) > 0) {
             $result_active = Database::fetch_array($return_active);
             if ($result_active['active'] != $active) {    
                 $activate = 1;
             }
+      }
+
         $sql = "UPDATE $table_user SET
                 lastname='".Database::escape_string($lastname)."',
                 firstname='".Database::escape_string($firstname)."',
@@ -593,7 +596,7 @@ class UserManager
            } else {
                 $event_title = LOG_USER_OFF;
            }
-           event_system(LOG_USER_CREATE, $event_title, $user_id, api_get_utc_datetime(), $user_id_manager, null, $user_info); 
+           event_system($event_title, LOG_USER_ID, $user_id, api_get_utc_datetime(), $user_id_manager, null, $user_info); 
         }
         if (is_array($extra) && count($extra) > 0) {
             $res = true;
