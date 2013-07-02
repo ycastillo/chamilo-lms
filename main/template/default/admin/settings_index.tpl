@@ -26,18 +26,8 @@ $(document).ready(function() {
     <div class="row">
     {% for block_item in blocks %}
         <div id="tabs-{{loop.index}}" class="span6">
-<<<<<<< HEAD
-        
-=======
-        {% if block_item.label == 'VersionCheck'|get_lang %}
-               <div id="tabs-{{loop.index}}" class="admin-block-version">  
-        {% endif %}  
->>>>>>> chamilo.1.9.x/1.9.x
             <div class="well_border">
-               {% if block_item.label == 'VersionCheck'|get_lang %}
-                      <div id="tabs-{{loop.index}}" class="admin-block-version">
-                      <input id="admin_name" style="border:none;"/>  
-               {% endif %}
+               
                 <h4>{{block_item.icon}} {{block_item.label}}</h4>   
                              
                 <div style="list-style-type:none">
@@ -52,22 +42,22 @@ $(document).ready(function() {
                     </ul>    	
                 {% endif %}
                 
-                {% if block_item.extra is not null %}
-                    <div>
-                    {{ block_item.extra }}
-                    </div>
+                {% if block_item.label == 'VersionCheck'|get_lang %}
+                    <div class="admin-block-version"> 
                 {% endif %}
                 
                 {% if block_item.extra is not null %}
                     <div>
                     {{ block_item.extra }}
                     </div>
-                {% endif %}  
+                {% endif %}
+                
+                {% if block_item.label == 'VersionCheck'|get_lang %}
+                    </div>  
+                {% endif %}
                                
             </div>
-        {% if block_item.label == 'VersionCheck'|get_lang %}
-               </div>  
-        {% endif %}
+        
         </div>        
     {% endfor %}
     </div>
