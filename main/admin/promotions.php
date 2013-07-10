@@ -131,7 +131,6 @@ switch ($action) {
                 $values = $form->exportValues();                    
                 $res    = $promotion->update($values);
                 $promotion->update_all_sessions_status_by_promotion_id($values['id'], $values['status']);  
-                  
                 if ($res) {
                     Display::display_confirmation_message(get_lang('PromotionUpdated'), $values['name']);
                 }
