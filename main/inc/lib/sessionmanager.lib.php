@@ -1870,17 +1870,32 @@ class SessionManager
      * @param $logger
      * @param array convert a file row to an extra field. Example in CSV file there's a SessionID then it will
      * converted to extra_external_session_id if you set this: array('SessionId' => 'extra_external_session_id')
+     * @param array extra fields
+     * @param string extra field id
+     * @param int $daysCoachAccessBeforeBeginning
+     * @param int $daysCoachAccessAfterBeginning
+     * @param int $sessionVisibility
      * @return array
      */
-    static function importCSV($file, $updatesession, $user_id = null, $logger = null, $extraFields = array(), $extraFieldId = null)
+    static function importCSV(
+        $file,
+        $updatesession,
+        $defaultUserId = null,
+        $logger = null,
+        $extraFields = array(),
+        $extraFieldId = null,
+        $daysCoachAccessBeforeBeginning = null,
+        $daysCoachAccessAfterBeginning = null,
+        $sessionVisibility = 1
+    )
     {
         $content = file($file);
 
         $error_message = null;
         $session_counter = 0;
 
-        if (empty($user_id)) {
-            $user_id = api_get_user_id();
+        if (empty($defaultUserId)) {
+            $defaultUserId = api_get_user_id();
         }
 
         $eol = PHP_EOL;
@@ -1891,6 +1906,13 @@ class SessionManager
         $debug = false;
         if (isset($logger)) {
             $debug = true;
+        }
+
+        $extraParameters = null;
+
+        if (!empty($daysCoachAccessBeforeBeginning) && !empty($daysCoachAccessAfterBeginning)) {
+            $extraParameters .= ' , nb_days_access_before_beginning = '.intval($daysCoachAccessBeforeBeginning);
+            $extraParameters .= ' , nb_days_access_after_end = '.intval($daysCoachAccessAfterBeginning);
         }
 
         $tbl_session = Database::get_main_table(TABLE_MAIN_SESSION);
@@ -1937,7 +1959,7 @@ class SessionManager
                 $session_name           = Database::escape_string($enreg['SessionName']);
                 $date_start             = $enreg['DateStart'];
                 $date_end               = $enreg['DateEnd'];
-                $visibility             = $enreg['Visibility'];
+                $visibility             = isset($enreg['Visibility']) ? $enreg['Visibility'] : $sessionVisibility;
                 $session_category_id    = $enreg['SessionCategory'];
 
                 // Searching a coach.
@@ -1945,10 +1967,10 @@ class SessionManager
                     $coach_id = UserManager::get_user_id_from_username($enreg['Coach']);
                     if ($coach_id === false) {
                         // If the coach-user does not exist - I'm the coach.
-                        $coach_id = api_get_user_id();
+                        $coach_id = $defaultUserId;
                     }
                 } else {
-                    $coach_id = api_get_user_id();
+                    $coach_id = $defaultUserId;
                 }
 
                 if (!$updatesession) {
@@ -1979,7 +2001,7 @@ class SessionManager
                             date_end = '$date_end',
                             visibility = '$visibility',
                             session_category_id = '$session_category_id',
-                            session_admin_id=".intval($user_id);
+                            session_admin_id=".intval($defaultUserId).$extraParameters;
                     Database::query($sql_session);
                     $session_id = Database::insert_id();
 
@@ -2002,7 +2024,8 @@ class SessionManager
                     $sessionId = null;
 
                     if (isset($extraFields) && !empty($extraFields)) {
-                        $sessionId = self::get_session_id_from_original_id($enreg['extra_'.$extraFieldId], 'extra_'.$extraFieldId);
+                        $sessionId = self::get_session_id_from_original_id($enreg['extra_'.$extraFieldId], $extraFieldId);
+
                         if (empty($sessionId)) {
                             $my_session_result = false;
                         } else {
@@ -2021,7 +2044,7 @@ class SessionManager
                                 date_start = '$date_start',
                                 date_end = '$date_end',
                                 visibility = '$visibility',
-                                session_category_id = '$session_category_id'";
+                                session_category_id = '$session_category_id'".$extraParameters;
 
                         Database::query($sql_session);
                         // We get the last insert id.
@@ -2091,7 +2114,7 @@ class SessionManager
                         if ($user_id !== false) {
                             // Insert new users.
                             $sql = "INSERT IGNORE INTO $tbl_session_user SET
-                                    id_user='$user_id',
+                                    id_user = '$user_id',
                                     id_session = '$session_id'";
                             Database::query($sql);
                             if ($debug) {
@@ -2108,9 +2131,6 @@ class SessionManager
                     $course_code = api_strtoupper(api_substr($course, 0, api_strpos($course, '[')));
 
                     if (CourseManager::course_exists($course_code)) {
-
-                        // If the course exists we continue.
-                        $course_info = CourseManager::get_course_information($course_code);
 
                         $coach = api_strstr($course, '[');
                         $coach = api_substr($coach, 1, api_strpos($coach,']') - 1);
