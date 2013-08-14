@@ -442,15 +442,18 @@ class Answer {
 	 * @param	integer	Answer weighting
 	 * @param	integer	Answer position
 	 */
-	function updateAnswers($answer,$comment,$weighting,$position,$destination) {
+	function updateAnswers($answer,$correct,$comment,$weighting,$position,$destination,$hotspot_coordinates, $hotspot_type) {
 		$TBL_REPONSES = Database :: get_course_table(TABLE_QUIZ_ANSWER);
 
 		$questionId=$this->questionId;
 		$sql = "UPDATE $TBL_REPONSES SET 
                 answer = '".Database::escape_string($answer)."',
+                correct = '".Database::escape_string($correct)."',
 				comment = '".Database::escape_string($comment)."', 
 				ponderation = '".Database::escape_string($weighting)."', 
-				position = '".Database::escape_string($position)."', 
+				position = '".Database::escape_string($position)."',
+                hotspot_coordinates = '".Database::escape_string($hotspot_coordinates)."',
+                hotspot_type = '".Database::escape_string($hotspot_type)."', 
 				destination = '".Database::escape_string($destination)."'
 				WHERE c_id = {$this->course_id} AND id = '".Database::escape_string($position)."'
 				AND question_id = '".Database::escape_string($questionId)."'";
@@ -486,7 +489,7 @@ class Answer {
                 $flag = 1;
 			    $sql.="($c_id, '$i','$questionId','$answer','$correct','$comment','$weighting','$position','$hotspot_coordinates','$hotspot_type','$destination'),";
             } else {
-                $this->updateAnswers($answer, $comment, $weighting, $position, $destination);
+                $this->updateAnswers($answer, $correct, $comment, $weighting, $position, $destination, $hotspot_coordinates, $hotspot_type);
             }
         }
 		if ($flag == 1) {
