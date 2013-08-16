@@ -442,7 +442,7 @@ class Answer {
 	 * @param	integer	Answer weighting
 	 * @param	integer	Answer position
 	 */
-	function updateAnswers($answer,$comment, $correct, $weighting,$position,$destination) {
+	function updateAnswers($answer,$comment, $correct, $weighting,$position,$destination,$hotspot_coordinates,$hotspot_type) {
 		$TBL_REPONSES = Database :: get_course_table(TABLE_QUIZ_ANSWER);
 
 		$questionId=$this->questionId;
@@ -488,7 +488,7 @@ class Answer {
             } else {
                 // https://support.chamilo.org/issues/6558
                 // function updateAnswers already escape_string, error if we do it twice. Feed function updateAnswers with none escaped strings
-                $this->updateAnswers($this->new_answer[$i], $this->new_comment[$i], $this->new_correct[$i], $this->new_weighting[$i], $this->new_position[$i], $this->new_destination[$i]);
+                $this->updateAnswers($this->new_answer[$i], $this->new_comment[$i], $this->new_correct[$i], $this->new_weighting[$i], $this->new_position[$i], $this->new_destination[$i], $this->new_hotspot_coordinates[$i], $this->new_hotspot_type[$i]);
             }
         }
 		if ($flag == 1) {
