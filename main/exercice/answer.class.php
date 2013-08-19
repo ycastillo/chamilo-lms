@@ -443,7 +443,7 @@ class Answer {
 	 * @param	integer	Answer weighting
 	 * @param	integer	Answer position
 	 */
-	function updateAnswers($answer,$comment, $correct, $weighting, $position, $destination, $hotspot_coordinates, $hotspot_type)
+	function updateAnswers($answer,$comment, $correct, $weighting, $position, $destination)
     {
 		$TBL_REPONSES = Database :: get_course_table(TABLE_QUIZ_ANSWER);
         $id = $this->getQuestionType() == 3 ? intval($_REQUEST['myid']) : Database::escape_string($position);
@@ -453,9 +453,7 @@ class Answer {
 				comment = '".Database::escape_string($comment)."',
                 correct = '".Database::escape_string($correct)."',
 				ponderation = '".Database::escape_string($weighting)."',
-                hotspot_coordinates = '".Database::escape_string($hotspot_coordinates)."',
-                hotspot_type = '".Database::escape_string($hotspot_type)."',
-				position = '".Database::escape_string($position)."',
+                position = '".Database::escape_string($position)."',
 				destination = '".Database::escape_string($destination)."'
 				WHERE c_id = {$this->course_id} AND id = '$id'
 				AND question_id = '".Database::escape_string($questionId)."'";
