@@ -497,8 +497,6 @@ class Answer {
                     $this->new_correct[$i],
                     $this->new_weighting[$i],
                     $this->new_position[$i],
-                    $this->new_hotspot_coordinates[$i],
-                    $this->new_hotspot_type[$i],
                     $this->new_destination[$i]
                 );
             }
