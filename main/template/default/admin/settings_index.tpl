@@ -26,7 +26,7 @@ $(document).ready(function() {
     {% for block_item in blocks %}
         <div id="tabs-{{loop.index}}" class="span6">
         {% if block_item.label == 'VersionCheck'|get_lang %}
-               <div id="tabs-{{loop.index}}" class="admin-block-version">  
+               <div id="tabs-{{loop.index}}" class="">  
         {% endif %}  
             <div class="well_border">
                 <h4>{{block_item.icon}} {{block_item.label}}</h4>                

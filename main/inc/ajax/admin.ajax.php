@@ -54,7 +54,7 @@ function version_check() {
     $return = '';
     if ($row['selected_value'] == 'false') {
         $return .= get_lang('VersionCheckExplanation');
-        $return .= '<form class="well" action="'.api_get_self().'" id="VersionCheck" name="VersionCheck" method="post">';
+        $return .= '<form class="well" action="'.api_get_path(WEB_PATH).'main/admin/index.php'.'" id="VersionCheck" name="VersionCheck" method="post">';
         $return .= '<label class="checkbox"><input type="checkbox" name="donotlistcampus" value="1" id="checkbox" />'.get_lang('HideCampusFromPublicPlatformsList');
         $return .= '</label><button type="submit" class="btn btn-primary" name="Register" value="'.get_lang('EnableVersionCheck').'" id="register" >'.get_lang('EnableVersionCheck').'</button>';
         $return .= '</form>';
