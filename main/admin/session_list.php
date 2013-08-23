@@ -66,11 +66,11 @@ $column_model   = array(
     array('name'=>'date_start',     'index'=>'date_start',    'width'=>'40',   'align'=>'left', 'search' => 'true'),
     array('name'=>'date_end',       'index'=>'date_end',      'width'=>'40',   'align'=>'left', 'search' => 'true'),
     array('name'=>'coach_name',     'index'=>'coach_name',    'width'=>'80',   'align'=>'left', 'search' => 'false'),
-    array('name'=>'status',         'index'=>'session_active','width'=>'40',   'align'=>'left', 'search' => 'true', 'stype'=>'select',
+    array('name'=>'status',         'index'=>'session_active','width'=>'50',   'align'=>'left', 'search' => 'true', 'stype'=>'select',
       //for the bottom bar
       'searchoptions' => array(
-                        'defaultValue'  => '1',
-                        'value'         => '1:'.get_lang('Active').';0:'.get_lang('Inactive')),
+                        'defaultValue'  => ':',
+                        'value'         => ':'.get_lang('All').';1:'.get_lang('Active').';0:'.get_lang('Inactive')),
       //for the top bar
       'editoptions' => array('value' => ':'.get_lang('All').';1:'.get_lang('Active').';0:'.get_lang('Inactive'))),
     array('name'=>'visibility',     'index'=>'visibility',      'width'=>'40',   'align'=>'left', 'search' => 'false'),
@@ -101,7 +101,7 @@ $action_links = 'function action_formatter(cellvalue, options, rowObject) {
     {
        searchoptions:{
             dataInit:function(el){
-                $("option[value='2']",el).attr("selected", "selected");
+                $("option[value='1']",el).attr("selected", "selected");
                 setTimeout(function(){
                     $(el).trigger('change');
                 },1000);
