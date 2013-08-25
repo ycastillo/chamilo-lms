@@ -443,7 +443,7 @@ class Answer {
 	 * @param	integer	Answer weighting
 	 * @param	integer	Answer position
 	 */
-	function updateAnswers($answer,$comment, $correct, $weighting, $position, $destination)
+	function updateAnswers($answer,$comment, $correct, $weighting, $position, $destination, $hotspot_coordinates, $hotspot_type)
     {
 		$TBL_REPONSES = Database :: get_course_table(TABLE_QUIZ_ANSWER);
 
