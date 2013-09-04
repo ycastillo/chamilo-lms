@@ -446,7 +446,7 @@ class Answer {
 	function updateAnswers($answer,$comment, $correct, $weighting, $position, $destination, $hotspot_coordinates, $hotspot_type)
     {
 		$TBL_REPONSES = Database :: get_course_table(TABLE_QUIZ_ANSWER);
-
+        $id = $this->getQuestionType() == 3 ? intval($_REQUEST['myid']) : Database::escape_string($position);
 		$questionId=$this->questionId;
 		$sql = "UPDATE $TBL_REPONSES SET
                 answer = '".Database::escape_string($answer)."',
@@ -457,7 +457,7 @@ class Answer {
 				destination = '".Database::escape_string($destination)."',
 				hotspot_coordinates = '".Database::escape_string($hotspot_coordinates)."',
                 hotspot_type = '".Database::escape_string($hotspot_type)."'
-				WHERE c_id = {$this->course_id} AND id = '".Database::escape_string($position)."'
+				WHERE c_id = {$this->course_id} AND id = '$id'
 				AND question_id = '".Database::escape_string($questionId)."'";
         Database::query($sql);
 	}
