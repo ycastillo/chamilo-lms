@@ -449,9 +449,9 @@ class Answer {
         $id = $this->getQuestionType() == 3 ? intval($_REQUEST['myid']) : Database::escape_string($position);
 		    $questionId=$this->questionId;
 		    $sql = "UPDATE $TBL_REPONSES SET
-                answer = '".Database::escape_string($answer)."',
+        answer = '".Database::escape_string($answer)."',
 				comment = '".Database::escape_string($comment)."',
-                correct = '".Database::escape_string($correct)."',
+        correct = '".Database::escape_string($correct)."',
 				ponderation = '".Database::escape_string($weighting)."',
 				position = '".Database::escape_string($position)."',
 				destination = '".Database::escape_string($destination)."',
