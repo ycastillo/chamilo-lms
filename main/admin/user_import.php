@@ -125,11 +125,6 @@ function save_data($users) {
     $send_mail = $_POST['sendMail'] ? 1 : 0;
     if (is_array($users)) {
         foreach ($users as $index => $user)	{
-            if (!empty($user['ClassName'])) {
-                $name = $user['ClassName'];
-            } else {
-                $name = 'castillo';
-            }
             $user = complete_missing_data($user);
             $user['Status'] = api_status_key($user['Status']);
             $user_id = UserManager :: create_user($user['FirstName'], $user['LastName'], $user['Status'], $user['Email'], $user['UserName'], $user['Password'], $user['OfficialCode'], $user['language'], $user['PhoneNumber'], '', $user['AuthSource'], null, 1, 0, null, null, $send_mail);
