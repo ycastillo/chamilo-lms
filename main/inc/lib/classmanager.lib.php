@@ -95,8 +95,8 @@ class ClassManager
 	 */
 	function add_user($user_id, $class_id) {
 	    $table_class_user = Database :: get_main_table(TABLE_USERGROUP_REL_USER);
-        $user_id  = intval($user_id);
-        $class_id = intval($class_id);
+    $user_id  = intval($user_id);
+    $class_id = intval($class_id);
 		$sql = "INSERT INTO $table_class_user SET user_id = '".$user_id."', usergroup_id='".$class_id."'";
 		Database::query($sql);
 		
