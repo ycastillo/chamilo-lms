@@ -423,8 +423,8 @@ if ($count_fields > 0) {
 
     <blockquote>
 <pre>
-<b>LastName</b>;<b>FirstName</b>;<b>Email</b>;UserName;Password;AuthSource;OfficialCode;PhoneNumber;Status;<font style="color:red;"><?php if (count($list) > 0) echo implode(';', $list).';'; ?></font>Courses;
-<b>xxx</b>;<b>xxx</b>;<b>xxx</b>;xxx;xxx;ClassName;<b>xxx</b>;<b>xxx</b>;<b>xxx</b>;xxx;xxx;<?php echo implode('/', $defined_auth_sources); ?>;xxx;xxx;user/teacher/drh;<font style="color:red;"><?php if (count($list_reponse) > 0) echo implode(';', $list_reponse).';'; ?></font>xxx1|xxx2|xxx3;<br />
+<b>LastName</b>;<b>FirstName</b>;<b>Email</b>;UserName;Password;AuthSource;OfficialCode;PhoneNumber;Status;<font style="color:red;"><?php if (count($list) > 0) echo implode(';', $list).';'; ?></font>Courses;ClassName;
+<b>xxx</b>;<b>xxx</b>;<b>xxx</b>;xxx;xxx;<?php echo implode('/', $defined_auth_sources); ?>;xxx;xxx;user/teacher/drh;<font style="color:red;"><?php if (count($list_reponse) > 0) echo implode(';', $list_reponse).';'; ?></font>xxx1|xxx2|xxx3;xxx1|xxx2|xxx3;<br />
 </pre>
     </blockquote>
 
