@@ -17,6 +17,7 @@ require '../inc/global.inc.php';
 require_once api_get_path(LIBRARY_PATH).'mail.lib.inc.php';
 require_once api_get_path(LIBRARY_PATH).'fileManage.lib.php';
 require_once api_get_path(LIBRARY_PATH).'classmanager.lib.php';
+require_once api_get_path(LIBRARY_PATH).'usergroup.lib.php';
 require_once api_get_path(LIBRARY_PATH).'import.lib.php';
 
 // Set this option to true to enforce strict purification for usenames.
@@ -124,6 +125,11 @@ function save_data($users) {
     $send_mail = $_POST['sendMail'] ? 1 : 0;
     if (is_array($users)) {
         foreach ($users as $index => $user)	{
+            if (!empty($user['ClassName'])) {
+                $name = $user['ClassName'];
+            } else {
+                $name = 'castillo';
+            }
             $user = complete_missing_data($user);
             $user['Status'] = api_status_key($user['Status']);
             $user_id = UserManager :: create_user($user['FirstName'], $user['LastName'], $user['Status'], $user['Email'], $user['UserName'], $user['Password'], $user['OfficialCode'], $user['language'], $user['PhoneNumber'], '', $user['AuthSource'], null, 1, 0, null, null, $send_mail);
@@ -152,8 +158,12 @@ function save_data($users) {
                 }
             }
             if (!empty($user['ClassName'])) {
-                $class_id = ClassManager :: get_class_id($user['ClassName']);
-                ClassManager :: add_user($user_id, $class_id);
+                $class_name = explode('|', trim($user['ClassName']));
+                foreach ($class_name as $class) {
+                    $class_id = UserGroup :: get_class_id($class);
+                    UserGroup :: add_user($user_id, $class_id);
+                }
+                
             }
 
             // Saving extra fields.
@@ -414,7 +424,7 @@ if ($count_fields > 0) {
     <blockquote>
 <pre>
 <b>LastName</b>;<b>FirstName</b>;<b>Email</b>;UserName;Password;AuthSource;OfficialCode;PhoneNumber;Status;<font style="color:red;"><?php if (count($list) > 0) echo implode(';', $list).';'; ?></font>Courses;
-<b>xxx</b>;<b>xxx</b>;<b>xxx</b>;xxx;xxx;<?php echo implode('/', $defined_auth_sources); ?>;xxx;xxx;user/teacher/drh;<font style="color:red;"><?php if (count($list_reponse) > 0) echo implode(';', $list_reponse).';'; ?></font>xxx1|xxx2|xxx3;<br />
+<b>xxx</b>;<b>xxx</b>;<b>xxx</b>;xxx;xxx;ClassName;<b>xxx</b>;<b>xxx</b>;<b>xxx</b>;xxx;xxx;<?php echo implode('/', $defined_auth_sources); ?>;xxx;xxx;user/teacher/drh;<font style="color:red;"><?php if (count($list_reponse) > 0) echo implode(';', $list_reponse).';'; ?></font>xxx1|xxx2|xxx3;<br />
 </pre>
     </blockquote>
 
