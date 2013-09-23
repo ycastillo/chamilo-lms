@@ -13,6 +13,7 @@ $(document).ready(function() {
     <div class="row">
     {% for block_item in blocks %}
         <div id="tabs-{{ loop.index }}" class="span6">
+                   
             <div class="well_border {{ block_item.class }}">
                 <h4>{{ block_item.icon }} {{ block_item.label }}</h4>
                 <div style="list-style-type:none">
@@ -29,8 +30,16 @@ $(document).ready(function() {
     				{% endfor %}
                     </ul>
                 {% endif %}
+                
+                {% if block_item.label == 'VersionCheck'|get_lang %}
+                    <div class="admin-block-version"> 
+                {% endif %}
+                
+                {% if block_item.label == 'VersionCheck'|get_lang %}
+                    </div> 
+                {% endif %}                                
 
-                {% if block_item.extra is not null %}
+                {% if block_item.extra is not null and block_item.label != 'VersionCheck'|get_lang %}
                     <div>
                     {{ block_item.extra }}
                     </div>
