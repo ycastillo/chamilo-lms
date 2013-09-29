@@ -3941,7 +3941,7 @@ class CourseManager {
             $course = api_get_course_info($course['code']);
         }
 
-        if ($course['visibility'] == COURSE_VISIBILITY_HIDDEN) {
+        if ($course['visibility'] != COURSE_VISIBILITY_HIDDEN) {
             return array();
         }
 
