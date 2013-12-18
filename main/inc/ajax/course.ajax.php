@@ -12,7 +12,6 @@ $user_id = api_get_user_id();
 
 switch ($action) {
     case 'add_course_vote':
-
         $course_id = intval($_REQUEST['course_id']);
         $star      = intval($_REQUEST['star']);
 
@@ -41,9 +40,8 @@ switch ($action) {
         break;
     case 'search_category':
         require_once api_get_path(LIBRARY_PATH).'course_category.lib.php';
-        if (api_is_platform_admin()) {
+        if (api_is_platform_admin() || api_is_allowed_to_create_course()) {
             $results = searchCategoryByKeyword($_REQUEST['q']);
-
             if (!empty($results)) {
                 foreach ($results as &$item) {
                     $item['id'] = $item['code'];
@@ -52,7 +50,44 @@ switch ($action) {
             } else {
                 echo json_encode(array());
             }
+        }
+        break;
+    case 'search_course':
+        if (api_is_platform_admin()) {
+            $courseList = Coursemanager::get_courses_list(
+                0,
+                10,
+                1, //$orderby = 1,
+                'ASC',
+                -1,
+                $_REQUEST['q']
+            );
+            $results = array();
 
+            require_once api_get_path(LIBRARY_PATH).'course_category.lib.php';
+
+            foreach ($courseList as $courseInfo) {
+                $title = $courseInfo['title'];
+
+                if (!empty($courseInfo['category_code'])) {
+                    $parents = getParentsToString($courseInfo['category_code']);
+                    $title = $parents.$courseInfo['title'];
+                }
+
+                $results[] = array(
+                    'id' => $courseInfo['id'],
+                    'text' => $title
+                );
+            }
+
+            if (!empty($results)) {
+                /*foreach ($results as &$item) {
+                    $item['id'] = $item['code'];
+                }*/
+                echo json_encode($results);
+            } else {
+                echo json_encode(array());
+            }
         }
         break;
     default:

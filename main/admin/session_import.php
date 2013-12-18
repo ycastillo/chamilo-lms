@@ -49,8 +49,8 @@ if ($_POST['formSent']) {
         $form_sent = $_POST['formSent'];
         $file_type = $_POST['file_type'];
         $send_mail = $_POST['sendMail'] ? 1 : 0;
-        //$updatesession = $_POST['updatesession'] ? 1 : 0;
-        $updatesession = 0;
+        $isOverwrite = $_POST['overwrite'] ? 1 : 0;
+        $deleteUsersNotInList = isset($_POST['delete_users_not_in_list']) ? true : false;
         $sessions = array();
 
         $session_counter = 0;
@@ -324,6 +324,8 @@ if ($_POST['formSent']) {
                                             course_code = '$course_code',
                                             id_session='$session_id'";
                                     $rs_course = Database::query($sql_course);
+                                    $course_info = api_get_course_info($course['code']);
+                                    SessionManager::installCourse($id_session, $course_info['real_id']);
                                 }
 
                                 $course_coaches = explode(',', $node_course->Coach);
@@ -387,6 +389,8 @@ if ($_POST['formSent']) {
                                                 course_code = '".$vcourse['code']."',
                                                 id_session='$session_id'";
                                         $rs_course = Database::query($sql_course);
+                                        $course_info = api_get_course_info($course['code']);
+                                        SessionManager::installCourse($id_session, $course_info['real_id']);
 
                                         $course_coaches = explode(",",$node_course->Coach);
 
@@ -454,10 +458,20 @@ if ($_POST['formSent']) {
                 $error_message .= get_lang('XMLNotValid');
             }
         } else {
-
             // CSV
-
-            $result = SessionManager::importCSV($_FILES['import_file']['tmp_name'], $updatesession, api_get_user_id());
+            $result = SessionManager::importCSV(
+                $_FILES['import_file']['tmp_name'],
+                $isOverwrite,
+                api_get_user_id(),
+                null,
+                array(),
+                null,
+                null,
+                null,
+                1,
+                array(),
+                $deleteUsersNotInList
+            );
             $error_message = $result['error_message'];
             $session_counter = $result['session_counter'];
         }
@@ -508,10 +522,11 @@ if (!empty($error_message)) {
 $form = new FormValidator('import_sessions', 'post', api_get_self(), null, array('enctype' => 'multipart/form-data'));
 $form->addElement('hidden', 'formSent', 1);
 $form->addElement('file', 'import_file', get_lang('ImportFileLocation'));
-
 $form->addElement('radio', 'file_type', array(get_lang('FileType'), '<a href="example_session.csv" target="_blank">'.get_lang('ExampleCSVFile').'</a>'), 'CSV', 'csv');
 $form->addElement('radio', 'file_type', array(null, '<a href="example_session.xml" target="_blank">'.get_lang('ExampleXMLFile').'</a>'), 'XML', 'xml');
 
+$form->addElement('checkbox', 'overwrite', null, get_lang('IfSessionExistsUpdate'));
+$form->addElement('checkbox', 'delete_users_not_in_list', null, get_lang('DeleteUsersNotInList'));
 $form->addElement('checkbox', 'sendMail', null, get_lang('SendMailToUsers'));
 $form->addElement('button', 'submit', get_lang('ImportSession'));
 
