@@ -1940,7 +1940,7 @@ class CourseManager
             UrlManager::delete_url_rel_course($code, $url_id);
             $count = UrlManager::getcountUrlRelCourse($code);
         }
-
+        if ($count == 0) {
         self::create_database_dump($code);
         if (!self::is_virtual_course_from_system_code($code)) {
             // If this is not a virtual course, look for virtual courses that depend on this one, if any
@@ -2108,7 +2108,7 @@ class CourseManager
         // Add event to system log
         $user_id = api_get_user_id();
         event_system(LOG_COURSE_DELETE, LOG_COURSE_CODE, $code, api_get_utc_datetime(), $user_id, $code);
-
+        }
     }
 
     /**
