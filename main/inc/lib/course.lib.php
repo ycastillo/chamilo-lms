@@ -1929,6 +1929,17 @@ class CourseManager
             return;
         }
         $this_course = Database::fetch_array($res);
+        
+        $count = 0;
+        if ($_configuration['multiple_access_urls']) {
+            require_once api_get_path(LIBRARY_PATH).'urlmanager.lib.php';
+            $url_id = 1;
+            if (api_get_current_access_url_id() != -1) {
+                $url_id = api_get_current_access_url_id();
+            }
+            UrlManager::delete_url_rel_course($code, $url_id);
+            $count = UrlManager::getcountUrlRelCourse($code);
+        }
 
         self::create_database_dump($code);
         if (!self::is_virtual_course_from_system_code($code)) {
@@ -2052,16 +2063,6 @@ class CourseManager
         Database::query($sql);
         $sql = "DELETE FROM $table_stats_uploads WHERE upload_cours_id = '".$code."'";
         Database::query($sql);
-
-        global $_configuration;
-        if ($_configuration['multiple_access_urls']) {
-            require_once api_get_path(LIBRARY_PATH).'urlmanager.lib.php';
-            $url_id = 1;
-            if (api_get_current_access_url_id() != -1) {
-                $url_id = api_get_current_access_url_id();
-            }
-            UrlManager::delete_url_rel_course($code, $url_id);
-        }
 
         // Delete the course from the database
         $sql = "DELETE FROM $table_course WHERE code='".$code."'";
