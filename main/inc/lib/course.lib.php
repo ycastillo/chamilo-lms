@@ -142,12 +142,15 @@ class CourseManager
 
     /**
      * Returns a list of courses. Should work with quickform syntax
-     * @param    integer    Offset (from the 7th = '6'). Optional.
-     * @param    integer    Number of results we want. Optional.
-     * @param    string    The column we want to order it by. Optional, defaults to first column.
-     * @param    string    The direction of the order (ASC or DESC). Optional, defaults to ASC.
-     * @param    string    The visibility of the course, or all by default.
-     * @param    string    If defined, only return results for which the course *title* begins with this string
+     * @param    integer   $from Offset (from the 7th = '6'). Optional.
+     * @param    integer   $howmany Number of results we want. Optional.
+     * @param    string    $orderby The column we want to order it by. Optional, defaults to first column.
+     * @param    string    $orderdirection The direction of the order (ASC or DESC). Optional, defaults to ASC.
+     * @param    string    $visibility The visibility of the course, or all by default.
+     * @param    string    $startwith If defined, only return results for which the course *title* begins with this string
+     * @param    string    $urlId The Access URL ID, if using multiple URLs
+     * @param    string    $alsoSearchCode An extension option to indicate that we also want to search for course codes (not *only* titles)
+     * @param array $conditions
      * @return array
      */
     public static function get_courses_list(
@@ -157,7 +160,9 @@ class CourseManager
         $orderdirection = 'ASC',
         $visibility = -1,
         $startwith = '',
-        $urlId = null
+        $urlId = null,
+        $alsoSearchCode = false,
+        $conditionsLike = array()
     ) {
 
         $sql = "SELECT course.* FROM ".Database::get_main_table(TABLE_MAIN_COURSE)." course ";
@@ -168,7 +173,11 @@ class CourseManager
         }
 
         if (!empty($startwith)) {
-            $sql .= "WHERE title LIKE '".Database::escape_string($startwith)."%' ";
+            $sql .= "WHERE (title LIKE '".Database::escape_string($startwith)."%' ";
+            if ($alsoSearchCode) {
+                $sql .= "OR code LIKE '".Database::escape_string($startwith)."%' ";
+            }
+            $sql .= ') ';
             if ($visibility !== -1 && $visibility == strval(intval($visibility))) {
                 $sql .= " AND visibility = $visibility ";
             }
@@ -182,6 +191,33 @@ class CourseManager
         if (!empty($urlId)) {
             $urlId = intval($urlId);
             $sql .= " AND access_url_id= $urlId";
+        }
+
+        $allowedFields = array(
+          'title',
+           'code'
+        );
+
+        if (count($conditionsLike) > 0) {
+            $sql .= ' AND ';
+            $temp_conditions = array();
+            foreach ($conditionsLike as $field => $value) {
+                if (!in_array($field, $allowedFields)) {
+                    continue;
+                }
+                $field = Database::escape_string($field);
+                $value = Database::escape_string($value);
+                $simple_like = false;
+                if ($simple_like) {
+                    $temp_conditions[] = $field." LIKE '$value%'";
+                } else {
+                    $temp_conditions[] = $field.' LIKE \'%'.$value.'%\'';
+                }
+            }
+            $condition = ' AND ';
+            if (!empty($temp_conditions)) {
+                $sql .= implode(' '.$condition.' ', $temp_conditions);
+            }
         }
 
         if (!empty($orderby)) {
@@ -1022,7 +1058,12 @@ class CourseManager
      * @param    bool    True for checking inside sessions too, by default is not checked
      * @return     bool     true if the user is registered in the course, false otherwise
      */
-    public static function is_user_subscribed_in_course($user_id, $course_code = null, $in_a_session = false, $session_id = null) {
+    public static function is_user_subscribed_in_course(
+        $user_id,
+        $course_code = null,
+        $in_a_session = false,
+        $session_id = null
+    ) {
 
         $user_id = intval($user_id);
 
@@ -1044,25 +1085,31 @@ class CourseManager
         $result = Database::fetch_array(Database::query($sql));
 
         if (!empty($result)) {
-            return true; // The user has been registered in this course.
+            // The user has been registered in this course.
+            return true;
         }
 
         if (!$in_a_session) {
-            return false; // The user has not been registered in this course.
+            // The user has not been registered in this course.
+            return false;
         }
 
-        if (Database::num_rows(Database::query('SELECT 1 FROM '.Database::get_main_table(TABLE_MAIN_SESSION_COURSE_USER).
-                ' WHERE id_user = '.$user_id.' '.$condition_course.' ')) > 0) {
+        $sql = 'SELECT 1 FROM '.Database::get_main_table(TABLE_MAIN_SESSION_COURSE_USER).
+               ' WHERE id_user = '.$user_id.' '.$condition_course;
+        if (Database::num_rows(Database::query($sql)) > 0) {
             return true;
         }
 
-        if (Database::num_rows(Database::query('SELECT 1 FROM '.Database::get_main_table(TABLE_MAIN_SESSION_COURSE_USER).
-                ' WHERE id_user = '.$user_id.' AND status=2 '.$condition_course.' ')) > 0) {
+        $sql = 'SELECT 1 FROM '.Database::get_main_table(TABLE_MAIN_SESSION_COURSE_USER).
+               ' WHERE id_user = '.$user_id.' AND status=2 '.$condition_course;
+        if (Database::num_rows(Database::query($sql)) > 0) {
             return true;
         }
 
-        if (Database::num_rows(Database::query('SELECT 1 FROM '.Database::get_main_table(TABLE_MAIN_SESSION).
-                ' WHERE id='.$session_id.' AND id_coach='.$user_id)) > 0) {
+        $sql = 'SELECT 1 FROM '.Database::get_main_table(TABLE_MAIN_SESSION).
+        ' WHERE id='.$session_id.' AND id_coach='.$user_id;
+
+        if (Database::num_rows(Database::query($sql)) > 0) {
             return true;
         }
 
@@ -1896,9 +1943,8 @@ class CourseManager
      * that real course.
      * @todo Remove globals
      */
-    public static function delete_course($code) {
-        global $_configuration;
-
+    public static function delete_course($code)
+    {
         $table_course                       = Database::get_main_table(TABLE_MAIN_COURSE);
         $table_course_user                  = Database::get_main_table(TABLE_MAIN_COURSE_USER);
         $table_course_class                 = Database::get_main_table(TABLE_MAIN_COURSE_CLASS);
@@ -1908,6 +1954,7 @@ class CourseManager
         $table_course_survey                = Database::get_main_table(TABLE_MAIN_SHARED_SURVEY);
         $table_course_survey_question       = Database::get_main_table(TABLE_MAIN_SHARED_SURVEY_QUESTION);
         $table_course_survey_question_option= Database::get_main_table(TABLE_MAIN_SHARED_SURVEY_QUESTION_OPTION);
+        $table_course_rel_url               = Database::get_main_table(TABLE_MAIN_ACCESS_URL_REL_COURSE);
 
         $table_stats_hotpots        = Database::get_statistic_table(TABLE_STATISTIC_TRACK_E_HOTPOTATOES);
         $table_stats_attempt        = Database::get_statistic_table(TABLE_STATISTIC_TRACK_E_ATTEMPT);
@@ -1921,7 +1968,6 @@ class CourseManager
         $table_stats_links          = Database::get_statistic_table(TABLE_STATISTIC_TRACK_E_LINKS);
         $table_stats_uploads        = Database::get_statistic_table(TABLE_STATISTIC_TRACK_E_UPLOADS);
 
-
         $code = Database::escape_string($code);
         $sql = "SELECT * FROM $table_course WHERE code='".$code."'";
         $res = Database::query($sql);
@@ -1929,131 +1975,8 @@ class CourseManager
             return;
         }
         $this_course = Database::fetch_array($res);
-
-        self::create_database_dump($code);
-        if (!self::is_virtual_course_from_system_code($code)) {
-            // If this is not a virtual course, look for virtual courses that depend on this one, if any
-            $virtual_courses = self::get_virtual_courses_linked_to_real_course($code);
-            foreach ($virtual_courses as $index => $virtual_course) {
-                // Unsubscribe all classes from the virtual course
-                $sql = "DELETE FROM $table_course_class WHERE course_code='".$virtual_course['code']."'";
-                Database::query($sql);
-                // Unsubscribe all users from the virtual course
-                $sql = "DELETE FROM $table_course_user WHERE course_code='".$virtual_course['code']."'";
-                Database::query($sql);
-                // Delete the course from the sessions tables
-                $sql = "DELETE FROM $table_session_course WHERE course_code='".$virtual_course['code']."'";
-                Database::query($sql);
-                $sql = "DELETE FROM $table_session_course_user WHERE course_code='".$virtual_course['code']."'";
-                Database::query($sql);
-                // Delete the course from the survey tables
-                $sql = "DELETE FROM $table_course_survey WHERE course_code='".$virtual_course['code']."'";
-                Database::query($sql);
-                $sql = "DELETE FROM $table_course_survey_user WHERE db_name='".$virtual_course['db_name']."'";
-                Database::query($sql);
-                $sql = "DELETE FROM $table_course_survey_reminder WHERE db_name='".$virtual_course['db_name']."'";
-                Database::query($sql);
-
-                // Delete the course from the stats tables
-
-                $sql = "DELETE FROM $table_stats_hotpots WHERE exe_cours_id = '".$virtual_course['code']."'";
-                Database::query($sql);
-                $sql = "DELETE FROM $table_stats_attempt WHERE course_code = '".$virtual_course['code']."'";
-                Database::query($sql);
-                $sql = "DELETE FROM $table_stats_exercises WHERE exe_cours_id = '".$virtual_course['code']."'";
-                Database::query($sql);
-                $sql = "DELETE FROM $table_stats_access WHERE access_cours_code = '".$virtual_course['code']."'";
-                Database::query($sql);
-                $sql = "DELETE FROM $table_stats_lastaccess WHERE access_cours_code = '".$virtual_course['code']."'";
-                Database::query($sql);
-                $sql = "DELETE FROM $table_stats_course_access WHERE course_code = '".$virtual_course['code']."'";
-                Database::query($sql);
-                $sql = "DELETE FROM $table_stats_online WHERE course = '".$virtual_course['code']."'";
-                Database::query($sql);
-                $sql = "DELETE FROM $table_stats_default WHERE default_cours_code = '".$virtual_course['code']."'";
-                Database::query($sql);
-                $sql = "DELETE FROM $table_stats_downloads WHERE down_cours_id = '".$virtual_course['code']."'";
-                Database::query($sql);
-                $sql = "DELETE FROM $table_stats_links WHERE links_cours_id = '".$virtual_course['code']."'";
-                Database::query($sql);
-                $sql = "DELETE FROM $table_stats_uploads WHERE upload_cours_id = '".$virtual_course['code']."'";
-                Database::query($sql);
-
-                // Delete the course from the course table
-                $sql = "DELETE FROM $table_course WHERE code='".$virtual_course['code']."'";
-                Database::query($sql);
-            }
-
-            $sql = "SELECT * FROM $table_course WHERE code='".$code."'";
-            $res = Database::query($sql);
-            $course = Database::fetch_array($res);
-            $course_tables = get_course_tables();
-
-            //Cleaning c_x tables
-            if (!empty($course['id'])) {
-                foreach($course_tables as $table) {
-                    $table = Database::get_course_table($table);
-                    $sql = "DELETE FROM $table WHERE c_id = {$course['id']} ";
-                    Database::query($sql);
-                }
-            }
-            $course_dir = api_get_path(SYS_COURSE_PATH).$course['directory'];
-            $archive_dir = api_get_path(SYS_ARCHIVE_PATH).$course['directory'].'_'.time();
-            if (is_dir($course_dir)) {
-                rename($course_dir, $archive_dir);
-            }
-        }
-
-        // Unsubscribe all classes from the course
-        $sql = "DELETE FROM $table_course_class WHERE course_code='".$code."'";
-        Database::query($sql);
-        // Unsubscribe all users from the course
-        $sql = "DELETE FROM $table_course_user WHERE course_code='".$code."'";
-        Database::query($sql);
-        // Delete the course from the sessions tables
-        $sql = "DELETE FROM $table_session_course WHERE course_code='".$code."'";
-        Database::query($sql);
-        $sql = "DELETE FROM $table_session_course_user WHERE course_code='".$code."'";
-        Database::query($sql);
-
-        $sql = 'SELECT survey_id FROM '.$table_course_survey.' WHERE course_code="'.$code.'"';
-        $result_surveys = Database::query($sql);
-        while($surveys = Database::fetch_array($result_surveys)) {
-            $survey_id = $surveys[0];
-            $sql = 'DELETE FROM '.$table_course_survey_question.' WHERE survey_id="'.$survey_id.'"';
-            Database::query($sql);
-            $sql = 'DELETE FROM '.$table_course_survey_question_option.' WHERE survey_id="'.$survey_id.'"';
-            Database::query($sql);
-            $sql = 'DELETE FROM '.$table_course_survey.' WHERE survey_id="'.$survey_id.'"';
-            Database::query($sql);
-        }
-
-        // Delete the course from the stats tables
-
-        $sql = "DELETE FROM $table_stats_hotpots WHERE exe_cours_id = '".$code."'";
-        Database::query($sql);
-        $sql = "DELETE FROM $table_stats_attempt WHERE course_code = '".$code."'";
-        Database::query($sql);
-        $sql = "DELETE FROM $table_stats_exercises WHERE exe_cours_id = '".$code."'";
-        Database::query($sql);
-        $sql = "DELETE FROM $table_stats_access WHERE access_cours_code = '".$code."'";
-        Database::query($sql);
-        $sql = "DELETE FROM $table_stats_lastaccess WHERE access_cours_code = '".$code."'";
-        Database::query($sql);
-        $sql = "DELETE FROM $table_stats_course_access WHERE course_code = '".$code."'";
-        Database::query($sql);
-        $sql = "DELETE FROM $table_stats_online WHERE course = '".$code."'";
-        Database::query($sql);
-        $sql = "DELETE FROM $table_stats_default WHERE default_cours_code = '".$code."'";
-        Database::query($sql);
-        $sql = "DELETE FROM $table_stats_downloads WHERE down_cours_id = '".$code."'";
-        Database::query($sql);
-        $sql = "DELETE FROM $table_stats_links WHERE links_cours_id = '".$code."'";
-        Database::query($sql);
-        $sql = "DELETE FROM $table_stats_uploads WHERE upload_cours_id = '".$code."'";
-        Database::query($sql);
-
-        global $_configuration;
+        
+        $count = 0;
         if ($_configuration['multiple_access_urls']) {
             require_once api_get_path(LIBRARY_PATH).'urlmanager.lib.php';
             $url_id = 1;
@@ -2061,53 +1984,191 @@ class CourseManager
                 $url_id = api_get_current_access_url_id();
             }
             UrlManager::delete_url_rel_course($code, $url_id);
+            $count = UrlManager::getcountUrlRelCourse($code);
         }
-
-        // Delete the course from the database
-        $sql = "DELETE FROM $table_course WHERE code='".$code."'";
-        Database::query($sql);
-
-        // delete extra course fields
-        $t_cf         = Database::get_main_table(TABLE_MAIN_COURSE_FIELD);
-        $t_cfv         = Database::get_main_table(TABLE_MAIN_COURSE_FIELD_VALUES);
-
-        $sql = "SELECT distinct field_id FROM $t_cfv WHERE course_code = '$code'";
-        $res_field_ids = @Database::query($sql);
-
-        while($row_field_id = Database::fetch_row($res_field_ids)){
-            $field_ids[] = $row_field_id[0];
-        }
-
-        //delete from table_course_field_value from a given course_code
-
-        $sql_course_field_value = "DELETE FROM $t_cfv WHERE course_code = '$code'";
-        @Database::query($sql_course_field_value);
-
-        $sql = "SELECT distinct field_id FROM $t_cfv";
-        $res_field_all_ids = @Database::query($sql);
-
-        while($row_field_all_id = Database::fetch_row($res_field_all_ids)){
-            $field_all_ids[] = $row_field_all_id[0];
-        }
-
-        if (is_array($field_ids) && count($field_ids) > 0) {
-            foreach ($field_ids as $field_id) {
-                // check if field id is used into table field value
-                if (is_array($field_all_ids)) {
-                    if (in_array($field_id, $field_all_ids)) {
-                        continue;
-                    } else {
-                        $sql_course_field = "DELETE FROM $t_cf WHERE id = '$field_id'";
-                        Database::query($sql_course_field);
+        if ($count == 0) {
+            self::create_database_dump($code);
+            if (!self::is_virtual_course_from_system_code($code)) {
+                // If this is not a virtual course, look for virtual courses that depend on this one, if any
+                $virtual_courses = self::get_virtual_courses_linked_to_real_course($code);
+                foreach ($virtual_courses as $index => $virtual_course) {
+                    // Unsubscribe all classes from the virtual course
+                    $sql = "DELETE FROM $table_course_class WHERE course_code='".$virtual_course['code']."'";
+                    Database::query($sql);
+                    // Unsubscribe all users from the virtual course
+                    $sql = "DELETE FROM $table_course_user WHERE course_code='".$virtual_course['code']."'";
+                    Database::query($sql);
+                    // Delete the course from the sessions tables
+                    $sql = "DELETE FROM $table_session_course WHERE course_code='".$virtual_course['code']."'";
+                    Database::query($sql);
+                    $sql = "DELETE FROM $table_session_course_user WHERE course_code='".$virtual_course['code']."'";
+                    Database::query($sql);
+                    // Delete the course from the survey tables
+                    $sql = "DELETE FROM $table_course_survey WHERE course_code='".$virtual_course['code']."'";
+                    Database::query($sql);
+                    $sql = "DELETE FROM $table_course_survey_user WHERE db_name='".$virtual_course['db_name']."'";
+                    Database::query($sql);
+                    $sql = "DELETE FROM $table_course_survey_reminder WHERE db_name='".$virtual_course['db_name']."'";
+                    Database::query($sql);
+    
+                    // Delete the course from the stats tables
+    
+                    $sql = "DELETE FROM $table_stats_hotpots WHERE exe_cours_id = '".$virtual_course['code']."'";
+                    Database::query($sql);
+                    $sql = "DELETE FROM $table_stats_attempt WHERE course_code = '".$virtual_course['code']."'";
+                    Database::query($sql);
+                    $sql = "DELETE FROM $table_stats_exercises WHERE exe_cours_id = '".$virtual_course['code']."'";
+                    Database::query($sql);
+                    $sql = "DELETE FROM $table_stats_access WHERE access_cours_code = '".$virtual_course['code']."'";
+                    Database::query($sql);
+                    $sql = "DELETE FROM $table_stats_lastaccess WHERE access_cours_code = '".$virtual_course['code']."'";
+                    Database::query($sql);
+                    $sql = "DELETE FROM $table_stats_course_access WHERE course_code = '".$virtual_course['code']."'";
+                    Database::query($sql);
+                    $sql = "DELETE FROM $table_stats_online WHERE course = '".$virtual_course['code']."'";
+                    Database::query($sql);
+                    $sql = "DELETE FROM $table_stats_default WHERE default_cours_code = '".$virtual_course['code']."'";
+                    Database::query($sql);
+                    $sql = "DELETE FROM $table_stats_downloads WHERE down_cours_id = '".$virtual_course['code']."'";
+                    Database::query($sql);
+                    $sql = "DELETE FROM $table_stats_links WHERE links_cours_id = '".$virtual_course['code']."'";
+                    Database::query($sql);
+                    $sql = "DELETE FROM $table_stats_uploads WHERE upload_cours_id = '".$virtual_course['code']."'";
+                    Database::query($sql);
+    
+                    // Delete the course from the course table
+                    $sql = "DELETE FROM $table_course WHERE code='".$virtual_course['code']."'";
+                    Database::query($sql);
+                }
+    
+                $sql = "SELECT * FROM $table_course WHERE code='".$code."'";
+                $res = Database::query($sql);
+                $course = Database::fetch_array($res);
+                $course_tables = get_course_tables();
+    
+                //Cleaning c_x tables
+                if (!empty($course['id'])) {
+                    foreach($course_tables as $table) {
+                        $table = Database::get_course_table($table);
+                        $sql = "DELETE FROM $table WHERE c_id = {$course['id']} ";
+                        Database::query($sql);
+                    }
+                }
+                $course_dir = api_get_path(SYS_COURSE_PATH).$course['directory'];
+                $archive_dir = api_get_path(SYS_ARCHIVE_PATH).$course['directory'].'_'.time();
+                if (is_dir($course_dir)) {
+                    rename($course_dir, $archive_dir);
+                }
+            }
+    
+            // Unsubscribe all classes from the course
+            $sql = "DELETE FROM $table_course_class WHERE course_code='".$code."'";
+            Database::query($sql);
+            // Unsubscribe all users from the course
+            $sql = "DELETE FROM $table_course_user WHERE course_code='".$code."'";
+            Database::query($sql);
+            // Delete the course from the sessions tables
+            $sql = "DELETE FROM $table_session_course WHERE course_code='".$code."'";
+            Database::query($sql);
+            $sql = "DELETE FROM $table_session_course_user WHERE course_code='".$code."'";
+            Database::query($sql);
+    
+            // Delete from Course - URL
+            $sql = "DELETE FROM $table_course_rel_url WHERE course_code = '".$code."'";
+            Database::query($sql);
+    
+            $sql = 'SELECT survey_id FROM '.$table_course_survey.' WHERE course_code="'.$code.'"';
+            $result_surveys = Database::query($sql);
+            while($surveys = Database::fetch_array($result_surveys)) {
+                $survey_id = $surveys[0];
+                $sql = 'DELETE FROM '.$table_course_survey_question.' WHERE survey_id="'.$survey_id.'"';
+                Database::query($sql);
+                $sql = 'DELETE FROM '.$table_course_survey_question_option.' WHERE survey_id="'.$survey_id.'"';
+                Database::query($sql);
+                $sql = 'DELETE FROM '.$table_course_survey.' WHERE survey_id="'.$survey_id.'"';
+                Database::query($sql);
+            }
+    
+    
+            // Delete the course from the stats tables
+    
+            $sql = "DELETE FROM $table_stats_hotpots WHERE exe_cours_id = '".$code."'";
+            Database::query($sql);
+            $sql = "DELETE FROM $table_stats_attempt WHERE course_code = '".$code."'";
+            Database::query($sql);
+            $sql = "DELETE FROM $table_stats_exercises WHERE exe_cours_id = '".$code."'";
+            Database::query($sql);
+            $sql = "DELETE FROM $table_stats_access WHERE access_cours_code = '".$code."'";
+            Database::query($sql);
+            $sql = "DELETE FROM $table_stats_lastaccess WHERE access_cours_code = '".$code."'";
+            Database::query($sql);
+            $sql = "DELETE FROM $table_stats_course_access WHERE course_code = '".$code."'";
+            Database::query($sql);
+            $sql = "DELETE FROM $table_stats_online WHERE course = '".$code."'";
+            Database::query($sql);
+            $sql = "DELETE FROM $table_stats_default WHERE default_cours_code = '".$code."'";
+            Database::query($sql);
+            $sql = "DELETE FROM $table_stats_downloads WHERE down_cours_id = '".$code."'";
+            Database::query($sql);
+            $sql = "DELETE FROM $table_stats_links WHERE links_cours_id = '".$code."'";
+            Database::query($sql);
+            $sql = "DELETE FROM $table_stats_uploads WHERE upload_cours_id = '".$code."'";
+            Database::query($sql);
+    
+            if (api_is_multiple_url_enabled()) {
+                require_once api_get_path(LIBRARY_PATH).'urlmanager.lib.php';
+                $url_id = 1;
+                if (api_get_current_access_url_id() != -1) {
+                    $url_id = api_get_current_access_url_id();
+                }
+                UrlManager::delete_url_rel_course($code, $url_id);
+            }
+    
+            // Delete the course from the database
+            $sql = "DELETE FROM $table_course WHERE code='".$code."'";
+            Database::query($sql);
+    
+            // delete extra course fields
+            $t_cf         = Database::get_main_table(TABLE_MAIN_COURSE_FIELD);
+            $t_cfv         = Database::get_main_table(TABLE_MAIN_COURSE_FIELD_VALUES);
+    
+            $sql = "SELECT distinct field_id FROM $t_cfv WHERE course_code = '$code'";
+            $res_field_ids = @Database::query($sql);
+    
+            while($row_field_id = Database::fetch_row($res_field_ids)){
+                $field_ids[] = $row_field_id[0];
+            }
+    
+            //delete from table_course_field_value from a given course_code
+    
+            $sql_course_field_value = "DELETE FROM $t_cfv WHERE course_code = '$code'";
+            @Database::query($sql_course_field_value);
+    
+            $sql = "SELECT distinct field_id FROM $t_cfv";
+            $res_field_all_ids = @Database::query($sql);
+    
+            while($row_field_all_id = Database::fetch_row($res_field_all_ids)){
+                $field_all_ids[] = $row_field_all_id[0];
+            }
+    
+            if (is_array($field_ids) && count($field_ids) > 0) {
+                foreach ($field_ids as $field_id) {
+                    // check if field id is used into table field value
+                    if (is_array($field_all_ids)) {
+                        if (in_array($field_id, $field_all_ids)) {
+                            continue;
+                        } else {
+                            $sql_course_field = "DELETE FROM $t_cf WHERE id = '$field_id'";
+                            Database::query($sql_course_field);
+                        }
                     }
                 }
             }
-        }
-
-        // Add event to system log
-        $user_id = api_get_user_id();
-        event_system(LOG_COURSE_DELETE, LOG_COURSE_CODE, $code, api_get_utc_datetime(), $user_id, $code);
-
+    
+            // Add event to system log
+            $user_id = api_get_user_id();
+            event_system(LOG_COURSE_DELETE, LOG_COURSE_CODE, $code, api_get_utc_datetime(), $user_id, $code);
+       }
     }
 
     /**
@@ -3191,7 +3252,8 @@ class CourseManager
      * @param bool      Whether to show the document quick-loader or not
      * @return void
      */
-    public static function display_courses($user_id, $load_dirs = false) {
+    public static function display_courses($user_id, $load_dirs = false)
+    {
         $user_id = intval($user_id);
         if (empty($user_id)) {
             $user_id = api_get_user_id();
@@ -3203,12 +3265,16 @@ class CourseManager
         $result = Database::query($sql);
         $html = null;
         while ($row = Database::fetch_array($result)) {
-            $params = array();
             // We simply display the title of the category.
-            $params['icon'] = Display::return_icon('folder_yellow.png', $row['title'], array(), ICON_SIZE_LARGE);
-            $params['title'] = $row['title'];
-            $params['class'] = 'table_user_course_category';
-            $html .= self::course_item_parent(self::course_item_html($params, true), self :: display_courses_in_category($row['id'], $load_dirs));
+            $params = array(
+               'icon' => Display::return_icon('folder_yellow.png', $row['title'], array(), ICON_SIZE_LARGE),
+               'title' => $row['title'],
+               'class' => 'table_user_course_category'
+            );
+            $html .= self::course_item_parent(
+                self::course_item_html($params, true),
+                self :: display_courses_in_category($row['id'], $load_dirs)
+            );
         }
 
         // Step 2: We display the course without a user category.
@@ -3223,7 +3289,8 @@ class CourseManager
      * @param bool      Whether to show the document quick-loader or not
      *  @return void
      */
-    public static function display_courses_in_category($user_category_id, $load_dirs = false) {
+    public static function display_courses_in_category($user_category_id, $load_dirs = false)
+    {
         $user_id = api_get_user_id();
         // Table definitions
         $TABLECOURS                     = Database :: get_main_table(TABLE_MAIN_COURSE);
@@ -3240,17 +3307,29 @@ class CourseManager
         }
 
         //AND course_rel_user.relation_type<>".COURSE_RELATION_TYPE_RRHH."
-        $sql = "SELECT course.id, course.title, course.code, course.subscribe subscr, course.unsubscribe unsubscr, course_rel_user.status status,
-                                        course_rel_user.sort sort, course_rel_user.user_course_cat user_course_cat
-                                        FROM    $TABLECOURS      course,
-                                                $TABLECOURSUSER  course_rel_user, ".$TABLE_ACCESS_URL_REL_COURSE." url
-                                        WHERE   course.code = course_rel_user.course_code AND url.course_code = course.code AND
-                                                course_rel_user.user_id = '".$user_id."' AND
-                                                course_rel_user.user_course_cat='".$user_category_id."' $without_special_courses ";
+        $sql = "SELECT
+                course.id,
+                course.title,
+                course.code,
+                course.subscribe subscr,
+                course.unsubscribe unsubscr,
+                course_rel_user.status status,
+                course_rel_user.sort sort,
+                course_rel_user.user_course_cat user_course_cat
+                FROM $TABLECOURS      course,
+                     $TABLECOURSUSER  course_rel_user,
+                     $TABLE_ACCESS_URL_REL_COURSE url
+                WHERE
+                    course.code = course_rel_user.course_code AND
+                    url.course_code = course.code AND
+                    course_rel_user.user_id = '".$user_id."' AND
+                    course_rel_user.user_course_cat='".$user_category_id."'
+                    $without_special_courses ";
+
         // If multiple URL access mode is enabled, only fetch courses
         // corresponding to the current URL.
         if (api_get_multiple_access_url() && $current_url_id != -1) {
-            $sql .= " AND url.course_code=course.code AND access_url_id='".$current_url_id."'";
+            $sql .= " AND url.course_code = course.code AND access_url_id='".$current_url_id."'";
         }
         // Use user's classification for courses (if any).
         $sql .= " ORDER BY course_rel_user.user_course_cat, course_rel_user.sort ASC";
@@ -3267,7 +3346,6 @@ class CourseManager
             if ($course_info['visibility'] == COURSE_VISIBILITY_HIDDEN) {
                 continue;
             }
-            //$course['id_session'] = null;
             $course_info['id_session'] = null;
             $course_info['status'] = $course['status'];
 
@@ -3280,7 +3358,7 @@ class CourseManager
 
             // For each course, get if there is any notification icon to show
             // (something that would have changed since the user's last visit).
-            $show_notification = Display :: show_notification($course_info);
+            $show_notification = Display::show_notification($course_info);
 
             // New code displaying the user's status in respect to this course.
             $status_icon = Display::return_icon('blackboard.png', $course_info['title'], array(), ICON_SIZE_LARGE);
@@ -3742,11 +3820,18 @@ class CourseManager
         return false;
     }
 
+    /**
+     * @param int $course_id
+     * @param int $session_id
+     * @param int $url_id
+     * @return array
+     */
     public static function get_course_ranking($course_id, $session_id = null, $url_id = null) {
         $table_course_ranking       = Database::get_main_table(TABLE_STATISTIC_TRACK_COURSE_RANKING);
 
         $session_id = !isset($session_id)   ? api_get_session_id() : intval($session_id);
         $url_id     = empty($url_id)        ? api_get_current_access_url_id() : intval($url_id);
+        $now = api_get_utc_datetime();
 
         $params = array(
             'c_id'          => $course_id,
@@ -3755,7 +3840,12 @@ class CourseManager
             'creation_date' => $now,
         );
 
-        $result = Database::select('c_id, accesses, total_score, users', $table_course_ranking, array('where' => array('c_id = ? AND session_id = ? AND url_id = ?' => $params)), 'first');
+        $result = Database::select(
+            'c_id, accesses, total_score, users',
+            $table_course_ranking,
+            array('where' => array('c_id = ? AND session_id = ? AND url_id = ?' => $params)),
+            'first'
+        );
 
         $point_average_in_percentage = 0;
         $point_average_in_star = 0;
