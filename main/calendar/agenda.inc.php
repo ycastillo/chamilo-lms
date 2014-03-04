@@ -1215,10 +1215,10 @@ function store_agenda_item_as_announcement($item_id)
     //get the agenda item
 
     $item_id = Database::escape_string($item_id);
-    $sql = "SELECT * FROM $table_agenda WHERE id = ".$item_id;
-    $res = Database::query($sql);
     $course_id = api_get_course_int_id();
-
+    $sql = "SELECT * FROM $table_agenda WHERE id = ".$item_id." AND c_id = $course_id";
+    $res = Database::query($sql);
+    
     if (Database::num_rows($res) > 0) {
         $row = Database::fetch_array($res);
 
@@ -1242,7 +1242,7 @@ function store_agenda_item_as_announcement($item_id)
             //Now also get the list of item_properties rows for this agenda_item (calendar_event)
             //and copy them into announcement item_properties
             $table_props = Database::get_course_table(TABLE_ITEM_PROPERTY);
-            $sql_props = "SELECT * FROM $table_props WHERE tool = 'calendar_event' AND ref='$item_id'";
+            $sql_props = "SELECT * FROM $table_props WHERE tool = 'calendar_event' AND ref='$item_id' AND c_id = '$course_id'";
             $res_props = Database::query($sql_props);
             if (Database::num_rows($res_props) > 0) {
                 while ($row_props = Database::fetch_array($res_props)) {
