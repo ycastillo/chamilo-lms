@@ -227,6 +227,7 @@ if (api_is_allowed_to_edit(false, true) OR
     ) {
     switch ($action) {
         case 'add':
+        //echo count($_POST['selected_form']);
             if (isset($_POST['submit_event']) && $_POST['submit_event']) {
                 $event_start = (int) $_POST['fyear'].'-'.(int) $_POST['fmonth'].'-'.(int) $_POST['fday'].' '.(int) $_POST['fhour'].':'.(int) $_POST['fminute'].':00';
                 $event_stop = (int) $_POST['end_fyear'].'-'.(int) $_POST['end_fmonth'].'-'.(int) $_POST['end_fday'].' '.(int) $_POST['end_fhour'].':'.(int) $_POST['end_fminute'].':00';
@@ -237,6 +238,12 @@ if (api_is_allowed_to_edit(false, true) OR
                     $event_stop = '0000-00-00 00:00:00';
                 }
                 $id = agenda_add_item($course_info, $safe_title, $_POST['content'], $event_start, $event_stop, $_POST['selected_form'], false, $safe_file_comment);
+                $mailSent = 0;
+                if (isset($_POST['add_announcement'])) {
+                    $agenda = new Agenda();
+                    $ann_id = $agenda->store_agenda_item_as_announcement($id, $_POST['selected_form']);
+                    $mailSent = 1;                    
+                }
                 if (!empty($_POST['repeat'])) {
                     $end_y = intval($_POST['repeat_end_year']);
                     $end_m = intval($_POST['repeat_end_month']);
@@ -244,13 +251,7 @@ if (api_is_allowed_to_edit(false, true) OR
                     $end = mktime(23, 59, 59, $end_m, $end_d, $end_y);
                     $res = agenda_add_repeat_item($course_info, $id, $_POST['repeat_type'], $end, $_POST['selected_form'], $safe_file_comment);
                 }
-                $mailSent = 0;
-                if (isset($_POST['add_announcement'])) {
-                    $ann_id = store_agenda_item_as_announcement($id);
-                    AnnouncementManager::send_email($ann_id);
-                    $mailSent = 1;
-                    
-                }
+                
                 Display::display_confirmation_message(get_lang('AddSuccess'));
                 if ($mailSent == 1) {
                     Display::display_confirmation_message(get_lang('AdditionalMailWasSentToSelectedUsers'));
