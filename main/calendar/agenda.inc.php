@@ -1215,9 +1215,10 @@ function store_agenda_item_as_announcement($item_id)
     //get the agenda item
 
     $item_id = Database::escape_string($item_id);
-    $course_id = api_get_course_int_id();
     $sql = "SELECT * FROM $table_agenda WHERE id = ".$item_id;
     $res = Database::query($sql);
+    $course_id = api_get_course_int_id();
+    
     if (Database::num_rows($res) > 0) {
         $row = Database::fetch_array($res);
 
