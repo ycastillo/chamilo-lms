@@ -227,7 +227,6 @@ if (api_is_allowed_to_edit(false, true) OR
     ) {
     switch ($action) {
         case 'add':
-        //echo count($_POST['selected_form']);
             if (isset($_POST['submit_event']) && $_POST['submit_event']) {
                 $event_start = (int) $_POST['fyear'].'-'.(int) $_POST['fmonth'].'-'.(int) $_POST['fday'].' '.(int) $_POST['fhour'].':'.(int) $_POST['fminute'].':00';
                 $event_stop = (int) $_POST['end_fyear'].'-'.(int) $_POST['end_fmonth'].'-'.(int) $_POST['end_fday'].' '.(int) $_POST['end_fhour'].':'.(int) $_POST['end_fminute'].':00';
