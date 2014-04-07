@@ -237,6 +237,12 @@ if (api_is_allowed_to_edit(false, true) OR
                     $event_stop = '0000-00-00 00:00:00';
                 }
                 $id = agenda_add_item($course_info, $safe_title, $_POST['content'], $event_start, $event_stop, $_POST['selected_form'], false, $safe_file_comment);
+                $mailSent = 0;
+                if (isset($_POST['add_announcement'])) {
+                    $agenda = new Agenda();
+                    $ann_id = $agenda->store_agenda_item_as_announcement($id, $_POST['selected_form']);
+                    $mailSent = 1;                    
+                }
                 if (!empty($_POST['repeat'])) {
                     $end_y = intval($_POST['repeat_end_year']);
                     $end_m = intval($_POST['repeat_end_month']);
