@@ -763,9 +763,9 @@ function selectAll(cbList,bSelect,showwarning) {
 		msg_err2 = document.getElementById(\"err_start_date\");
 		msg_err3 = document.getElementById(\"err_end_date\");
 		msg_err4 = document.getElementById(\"err_title\");
-        msg_err5 = document.getElementById(\"content\");
-        var oEditor = FCKeditorAPI.GetInstance('content');
-        oEditor = oEditor.GetHTML();
+               msg_err5 = document.getElementById(\"content\");
+               var oEditor = FCKeditorAPI.GetInstance('content');
+               oEditor = oEditor.GetHTML();
 
 
 		var error = false;
@@ -808,10 +808,10 @@ function selectAll(cbList,bSelect,showwarning) {
 		}
         
         
-        if (oEditor == '') {
+               if (oEditor == '') {
 			msg_err5.style.display =\"block\";
 			error = true;
-		}
+		       }
 		if (error == false) {
             if (cbList) {
     			if (cbList.length <	1) {
@@ -2706,9 +2706,9 @@ function show_add_form($id = '', $type = null)
                 // the main area of the agenda item: the wysiwyg editor
                 echo '	<div class="control-group">
 				<label class="control-label">
-                    <div id="content" style="display:none;color:red;">
-                        <span class="form_required">'.get_lang('FieldRequired').'</span>
-                    </div>
+                       <div id="content" style="display:none;color:red;">
+                           <span class="form_required">'.get_lang('FieldRequired').'</span>
+                       </div>
 					<span class="form_required">*</span>'.get_lang('Description').'
 				</label>
 				<div class="controls">';
