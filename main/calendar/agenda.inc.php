@@ -809,9 +809,9 @@ function selectAll(cbList,bSelect,showwarning) {
         
         
                if (oEditor == '') {
-			msg_err5.style.display =\"block\";
-			error = true;
-		       }
+		msg_err5.style.display =\"block\";
+		error = true;
+		}
 		if (error == false) {
             if (cbList) {
     			if (cbList.length <	1) {
