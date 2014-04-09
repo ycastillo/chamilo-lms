@@ -763,6 +763,9 @@ function selectAll(cbList,bSelect,showwarning) {
 		msg_err2 = document.getElementById(\"err_start_date\");
 		msg_err3 = document.getElementById(\"err_end_date\");
 		msg_err4 = document.getElementById(\"err_title\");
+        msg_err5 = document.getElementById(\"content\");
+        var oEditor = FCKeditorAPI.GetInstance('content');
+        oEditor = oEditor.GetHTML();
 
 
 		var error = false;
@@ -801,6 +804,12 @@ function selectAll(cbList,bSelect,showwarning) {
 			msg_err4.style.display =\"block\";
 			msg_err4.innerHTML=\"".get_lang('FieldRequired')."\";
 			msg_err1.innerHTML=\"\";msg_err2.innerHTML=\"\";msg_err3.innerHTML=\"\";
+			error = true;
+		}
+        
+        
+        if (oEditor == '') {
+			msg_err5.style.display =\"block\";
 			error = true;
 		}
 		if (error == false) {
@@ -2697,6 +2706,9 @@ function show_add_form($id = '', $type = null)
                 // the main area of the agenda item: the wysiwyg editor
                 echo '	<div class="control-group">
 				<label class="control-label">
+                    <div id="content" style="display:none;color:red;">
+                        <span class="form_required">'.get_lang('FieldRequired').'</span>
+                    </div>
 					<span class="form_required">*</span>'.get_lang('Description').'
 				</label>
 				<div class="controls">';
@@ -2720,7 +2732,7 @@ function show_add_form($id = '', $type = null)
                     </label>
                 </div>
 			</div>';
-
+           
             if ($agendaObj->type == 'course') {
                         // File attachment
                         echo '	<div class="control-group">
