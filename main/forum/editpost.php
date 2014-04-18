@@ -28,11 +28,11 @@ $language_file = array('forum', 'group', 'gradebook');
 
 // Including the global initialization file.
 require_once '../inc/global.inc.php';
-require_once '../gradebook/lib/gradebook_functions.inc.php';
-require_once '../gradebook/lib/be/gradebookitem.class.php';
-require_once '../gradebook/lib/be/evaluation.class.php';
-require_once '../gradebook/lib/be/abstractlink.class.php';
-require_once '../gradebook/lib/gradebook_functions.inc.php';
+require_once api_get_path(SYS_CODE_PATH).'gradebook/lib/gradebook_functions.inc.php';
+require_once api_get_path(SYS_CODE_PATH).'gradebook/lib/be/gradebookitem.class.php';
+require_once api_get_path(SYS_CODE_PATH).'gradebook/lib/be/evaluation.class.php';
+require_once api_get_path(SYS_CODE_PATH).'gradebook/lib/be/abstractlink.class.php';
+require_once api_get_path(SYS_CODE_PATH).'gradebook/lib/gradebook_functions.inc.php';
 
 // The section (tabs).
 $this_section = SECTION_COURSES;
@@ -50,20 +50,6 @@ $origin = '';
 if (isset($_GET['origin'])) {
     $origin = Security::remove_XSS($_GET['origin']);
 }
-
-// javascript
-$htmlHeadXtra[] = '<script>
-    function advanced_parameters() {
-        if(document.getElementById(\'id_qualify\').style.display == \'none\') {
-            document.getElementById(\'id_qualify\').style.display = \'block\';
-            document.getElementById(\'img_plus_and_minus\').innerHTML=\'&nbsp;'.Display::return_icon('div_hide.gif', get_lang('Hide'), array('style' => 'vertical-align:middle')).'&nbsp;'.get_lang('AdvancedParameters').'\';
-
-        } else {
-            document.getElementById(\'id_qualify\').style.display = \'none\';
-            document.getElementById(\'img_plus_and_minus\').innerHTML=\'&nbsp;'.Display::return_icon('div_show.gif', get_lang('Show'), array('style' => 'vertical-align:middle')).'&nbsp;'.get_lang('AdvancedParameters').'\';
-        }
-    }
-</script>';
 
 /* MAIN DISPLAY SECTION */
 

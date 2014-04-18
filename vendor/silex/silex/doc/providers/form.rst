@@ -37,12 +37,11 @@ Registering
 .. note::
 
     If you don't want to create your own form layout, it's fine: a default one
-    will be used. But you will have to register the
-    :doc:`translation provider <providers/translation>` as the default form
-    layout requires it.
+    will be used. But you will have to register the :doc:`translation provider
+    <translation>` as the default form layout requires it.
 
     If you want to use validation with forms, do not forget to register the
-    :doc:`Validator provider <providers/validator>`.
+    :doc:`Validator provider <validator>`.
 
 .. note::
 
@@ -55,7 +54,7 @@ Registering
     .. code-block:: json
 
         "require": {
-            "symfony/form": "~2.1.4"
+            "symfony/form": "~2.3"
         }
 
     If you are going to use the validation extension with forms, you must also
@@ -65,9 +64,9 @@ Registering
     .. code-block:: json
 
         "require": {
-            "symfony/validator": "~2.1",
-            "symfony/config": "~2.1",
-            "symfony/translation": "~2.1"
+            "symfony/validator": "~2.3",
+            "symfony/config": "~2.3",
+            "symfony/translation": "~2.3"
         }
 
     The Symfony Form Component relies on the PHP intl extension. If you don't have
@@ -76,7 +75,15 @@ Registering
     .. code-block:: json
 
         "require": {
-            "symfony/locale": "~2.1"
+            "symfony/locale": "~2.3"
+        }
+        
+    The Symfony Security CSRF component is used to protect forms against CSRF attacks:
+
+    .. code-block:: json
+    
+        "require": {
+            "symfony/security-csrf": "~2.4"
         }
 
     If you want to use forms in your Twig templates, make sure to install the
@@ -85,7 +92,7 @@ Registering
     .. code-block:: json
 
         "require": {
-            "symfony/twig-bridge": "~2.1"
+            "symfony/twig-bridge": "~2.3"
         }
 
 Usage
@@ -110,17 +117,15 @@ example::
             ))
             ->getForm();
 
-        if ('POST' == $request->getMethod()) {
-            $form->bind($request);
+        $form->handleRequest($request);
 
-            if ($form->isValid()) {
-                $data = $form->getData();
+        if ($form->isValid()) {
+            $data = $form->getData();
 
-                // do something with the data
+            // do something with the data
 
-                // redirect somewhere
-                return $app->redirect('...');
-            }
+            // redirect somewhere
+            return $app->redirect('...');
         }
 
         // display the form
@@ -145,7 +150,7 @@ form by adding constraints on the fields::
 
     $app->register(new Silex\Provider\ValidatorServiceProvider());
     $app->register(new Silex\Provider\TranslationServiceProvider(), array(
-        'translator.messages' => array(),
+        'translator.domains' => array(),
     ));
 
     $form = $app['form.factory']->createBuilder('form')
@@ -199,4 +204,4 @@ Traits
     $app->form($data);
 
 For more information, consult the `Symfony2 Forms documentation
-<http://symfony.com/doc/2.1/book/forms.html>`_.
+<http://symfony.com/doc/2.3/book/forms.html>`_.

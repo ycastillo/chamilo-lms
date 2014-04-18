@@ -11,7 +11,7 @@ $language_file = array('userInfo', 'index');
 $cidReset = true;
 require_once '../inc/global.inc.php';
 
-if (api_get_setting('allow_social_tool') !='true') {
+if (api_get_setting('allow_social_tool') != 'true') {
     $url = api_get_path(WEB_CODE_PATH).'social/profile.php?u='.intval($_GET['u']);
     header('Location: '.$url);
     exit;
@@ -85,7 +85,7 @@ function send_message_to_user(user_id) {
         modal:true,
         height:350,
         buttons: {
-            "'.  addslashes(get_lang('Sent')).'": function() {
+            "'.  addslashes(get_lang('Send')).'": function() {
                 var bValid = true;
                 bValid = bValid && checkLength( subject, "subject", 1, 255 );
                 bValid = bValid && checkLength( content, "content", 1, 255 );
@@ -162,23 +162,22 @@ function toogle_course (element_html, course_code){
     my_image=image_show[2];
     var content = \'social_content\' + id_elem[1];
     if (my_image=="nolines_plus.gif") {
-        $(id_button).attr("src","../img/nolines_minus.gif"); var action = "load_course";
+        $(id_button).attr("src","'.api_get_path(WEB_IMG_PATH).'nolines_minus.gif");
+        var action = "load_course";
         $("div#"+content).show("fast");
     } else {
         $("div#"+content).hide("fast");
-        $(id_button).attr("src","../img/nolines_plus.gif"); var action = "unload";
+        $(id_button).attr("src","'.api_get_path(WEB_IMG_PATH).'nolines_plus.gif");
+        var action = "unload";
         return false;
     }
 
      $.ajax({
         contentType: "application/x-www-form-urlencoded",
-        beforeSend: function(objeto) {
-        $("div#"+content).html("<img src=\'../inc/lib/javascript/indicator.gif\' />"); },
         type: "POST",
         url: "'.api_get_path(WEB_AJAX_PATH).'social.ajax.php?a=toogle_course",
         data: "load_ajax="+id_elem+"&action="+action+"&course_code="+course_code,
         success: function(datos) {
-         $("div#"+content).html(datos);
         }
     });
 }
@@ -227,9 +226,6 @@ function register_friend(element_input) {
         user_friend_id=user_id[1];
         $.ajax({
             contentType: "application/x-www-form-urlencoded",
-            beforeSend: function(objeto) {
-                $("div#dpending_"+user_friend_id).html("<img src=\'../inc/lib/javascript/indicator.gif\' />");
-            },
             type: "POST",
             url: "'.api_get_path(WEB_AJAX_PATH).'social.ajax.php?a=add_friend",
             data: "friend_id="+user_friend_id+"&is_my_friend="+"friend",
@@ -376,7 +372,7 @@ if ($show_full_profile) {
                 $friend_html.= '<img src="'.$friends_profile['file'].'"  id="imgfriend_'.$friend['friend_user_id'].'" title="'.$name_user.'" />';
 
                 $friend_html.= '<div class="caption">';
-                $friend_html.= $status_icon.'<a href="profile.php?u='.$friend['friend_user_id'].'&amp;'.$link_shared.'">';
+                $friend_html.= $status_icon.'<a href="'.$user_info_friend['profile_url'].'">';
                 $friend_html.= $name_user;
                 $friend_html.= '</a></div>';
                 $friend_html.= '</div>';
@@ -605,7 +601,7 @@ if ($show_full_profile) {
 
                         $invitations .=  '<div style="padding-left:70px;">';
                             $user_invitation_info = api_get_user_info($user_invitation_id);
-                            $invitations .=  '<a href="'.api_get_path(WEB_PATH).'main/social/profile.php?u='.$user_invitation_id.'">'.api_get_person_name($user_invitation_info['firstname'], $user_invitation_info['lastname']).'</a>';
+                            $invitations .=  '<a href="'.$user_invitation_info['profile_url'].'">'.$user_invitation_info['complete_name'].'</a>';
                             $invitations .=  '<br />';
                             $invitations .=  Security::remove_XSS(Text::cut($pending_invitations[$i]['content'], 50), STUDENT, true);
                             $invitations .=  '<br />';
@@ -672,8 +668,4 @@ $social_right_content .= MessageManager::generate_invitation_form('send_invitati
 
 $app['title'] = get_lang('Social');
 $tpl = $app['template'];
-
-$tpl->assign('social_left_content', $social_left_content);
-$tpl->assign('social_right_content', $social_right_content);
-$social_layout = $tpl->get_template('layout/social_layout.tpl');
-$tpl->display($social_layout);
+$tpl->assign('content', $social_right_content);

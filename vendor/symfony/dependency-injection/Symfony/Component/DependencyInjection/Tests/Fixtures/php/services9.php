@@ -6,8 +6,6 @@ use Symfony\Component\DependencyInjection\Exception\InactiveScopeException;
 use Symfony\Component\DependencyInjection\Exception\InvalidArgumentException;
 use Symfony\Component\DependencyInjection\Exception\LogicException;
 use Symfony\Component\DependencyInjection\Exception\RuntimeException;
-use Symfony\Component\DependencyInjection\Reference;
-use Symfony\Component\DependencyInjection\Parameter;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBag;
 
 /**
@@ -24,6 +22,23 @@ class ProjectServiceContainer extends Container
     public function __construct()
     {
         parent::__construct(new ParameterBag($this->getDefaultParameters()));
+        $this->methodMap = array(
+            'bar' => 'getBarService',
+            'baz' => 'getBazService',
+            'depends_on_request' => 'getDependsOnRequestService',
+            'factory_service' => 'getFactoryServiceService',
+            'foo' => 'getFooService',
+            'foo.baz' => 'getFoo_BazService',
+            'foo_bar' => 'getFooBarService',
+            'foo_with_inline' => 'getFooWithInlineService',
+            'inlined' => 'getInlinedService',
+            'method_call1' => 'getMethodCall1Service',
+            'request' => 'getRequestService',
+        );
+        $this->aliases = array(
+            'alias_for_alias' => 'foo',
+            'alias_for_foo' => 'foo',
+        );
     }
 
     /**
@@ -108,6 +123,7 @@ class ProjectServiceContainer extends Container
         $instance->initialize();
         $instance->foo = 'bar';
         $instance->moo = $a;
+        $instance->qux = array($this->getParameter('foo') => 'foo is '.$this->getParameter('foo').'', 'foobar' => $this->getParameter('foo'));
         sc_configure($instance);
 
         return $instance;
@@ -181,6 +197,7 @@ class ProjectServiceContainer extends Container
         if ($this->has('foobaz')) {
             $instance->setBar($this->get('foobaz', ContainerInterface::NULL_ON_INVALID_REFERENCE));
         }
+        $instance->setBar(($this->get("foo")->foo() . $this->getParameter("foo")));
 
         return $instance;
     }
@@ -196,16 +213,6 @@ class ProjectServiceContainer extends Container
     protected function getRequestService()
     {
         throw new RuntimeException('You have requested a synthetic service ("request"). The DIC does not know how to construct this service.');
-    }
-
-    /**
-     * Gets the alias_for_foo service alias.
-     *
-     * @return FooClass An instance of the foo service
-     */
-    protected function getAliasForFooService()
-    {
-        return $this->get('foo');
     }
 
     /**

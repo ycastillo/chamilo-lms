@@ -16,7 +16,7 @@
 	Libraries
 */
 
-//many useful functions in main_api.lib.php, by default included
+//many useful functions in api.lib.php, by default included
 if (!function_exists('api_get_path')) {
     header('location: upload.php');
     die;
@@ -146,7 +146,7 @@ if (isset($_POST['submit_image'])) {
 //they want to create a directory
 if (isset($_POST['create_dir']) && $_POST['dirname'] != '') {
     $added_slash = ($path == '/') ? '' : '/';
-    $dir_name = $path.$added_slash.replace_dangerous_char($_POST['dirname']);
+    $dir_name = $path.$added_slash.api_replace_dangerous_char($_POST['dirname']);
     $created_dir = FileManager::create_unexisting_directory(
         $_course,
         $_user['user_id'],
@@ -178,21 +178,20 @@ if (isset($_GET['createdir'])) {
     Display::display_normal_message($new_folder_text);
 } else { //give them a link to create a directory
     ?>
-<p><a href="<?php echo api_get_self(); ?>?path=<?php echo $path; ?>&amp;createdir=1"><img src="../img/new_folder.gif"
-                                                                                          border="0" align="absmiddle"
-                                                                                          alt=""/> <?php echo(get_lang(
-    'CreateDir'
-));?></a></p>
+<p>
+    <a href="<?php echo api_get_self(); ?>?path=<?php echo $path; ?>&amp;createdir=1">
+        <?php echo Display::return_icon('new_folder.gif').get_lang('CreateDir'); ?>
+    </a>
+</p>
 <?php
 }
 ?>
-
 <div id="folderselector">
-    <?php
+<?php
 //form to select directory
 //$folders = DocumentManager::get_all_document_folders($_course,$to_group_id,$is_allowed_to_edit);
 //echo(build_directory_selector($folders,$path,$group_properties['directory']));
-    ?>
+?>
 </div>
 
 <!-- start upload form -->

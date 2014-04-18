@@ -390,18 +390,45 @@ class AbstractGeneratorTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals($expected, $r->invokeArgs($media, array($binary, $url, $path, $options)));
     }
 
+    private function getPHPExecutableFromPath() {
+        if (isset($_SERVER["_"])) {
+            return $_SERVER["_"];
+        }
+
+        if (@defined(PHP_BINARY)) {
+            return PHP_BINARY;
+        }
+
+        $paths = explode(PATH_SEPARATOR, getenv('PATH'));
+        foreach ($paths as $path) {
+            // we need this for XAMPP (Windows)
+            if (strstr($path, 'php.exe') && isset($_SERVER["WINDIR"]) && file_exists($path) && is_file($path)) {
+                return $path;
+            }
+            else {
+                $php_executable = $path . DIRECTORY_SEPARATOR . "php" . (isset($_SERVER["WINDIR"]) ? ".exe" : "");
+                if (file_exists($php_executable) && is_file($php_executable)) {
+                    return $php_executable;
+                }
+            }
+        }
+        return FALSE; // not found
+    }
+
     public function dataForBuildCommand()
     {
+        $theBinary = $this->getPHPExecutableFromPath() . ' -v'; // i.e.: '/usr/bin/php -v'
+
         return array(
             array(
-                'thebinary',
+                $theBinary,
                 'http://the.url/',
                 '/the/path',
                 array(),
-                "thebinary 'http://the.url/' '/the/path'"
+                "{$theBinary} 'http://the.url/' '/the/path'"
             ),
             array(
-                'thebinary',
+                $theBinary,
                 'http://the.url/',
                 '/the/path',
                 array(
@@ -409,10 +436,10 @@ class AbstractGeneratorTest extends \PHPUnit_Framework_TestCase
                     'bar'   => false,
                     'baz'   => array()
                 ),
-                "thebinary 'http://the.url/' '/the/path'"
+                "{$theBinary} 'http://the.url/' '/the/path'"
             ),
             array(
-                'thebinary',
+                $theBinary,
                 'http://the.url/',
                 '/the/path',
                 array(
@@ -420,27 +447,27 @@ class AbstractGeneratorTest extends \PHPUnit_Framework_TestCase
                     'bar'   => array('barvalue1', 'barvalue2'),
                     'baz'   => true
                 ),
-                "thebinary --foo 'foovalue' --bar 'barvalue1' --bar 'barvalue2' --baz 'http://the.url/' '/the/path'"
+                "{$theBinary} --foo 'foovalue' --bar 'barvalue1' --bar 'barvalue2' --baz 'http://the.url/' '/the/path'"
             ),
             array(
-                'thebinary',
+                $theBinary,
                 'http://the.url/',
                 '/the/path',
                 array(
                     'cookie'   => array('session' => 'bla', 'phpsess' => 12),
                     'no-background'   => '1',
                 ),
-                "thebinary --cookie 'session' 'bla' --cookie 'phpsess' '12' --no-background '1' 'http://the.url/' '/the/path'"
+                "{$theBinary} --cookie 'session' 'bla' --cookie 'phpsess' '12' --no-background '1' 'http://the.url/' '/the/path'"
             ),
             array(
-                'thebinary',
+                $theBinary,
                 'http://the.url/',
                 '/the/path',
                 array(
                     'allow'   => array('/path1', '/path2'),
                     'no-background'   => '1',
                 ),
-                "thebinary --allow '/path1' --allow '/path2' --no-background '1' 'http://the.url/' '/the/path'"
+                "{$theBinary} --allow '/path1' --allow '/path2' --no-background '1' 'http://the.url/' '/the/path'"
             ),
         );
     }
@@ -586,6 +613,7 @@ class AbstractGeneratorTest extends \PHPUnit_Framework_TestCase
             $r->invokeArgs($media, array(1, '', 'Could not connect to X', 'the command'));
             $this->fail('1 status means failure');
         } catch (\RuntimeException $e) {
+            $this->assertEquals(1, $e->getCode());
             $this->anything('1 status means failure');
         }
     }
@@ -600,6 +628,38 @@ class AbstractGeneratorTest extends \PHPUnit_Framework_TestCase
         $r = new \ReflectionMethod($generator, 'isAssociativeArray');
         $r->setAccessible(true);
         $this->assertEquals($isAssociativeArray, $r->invokeArgs($generator, array($array)));
+    }
+
+    /**
+     * @expectedException Knp\Snappy\Exception\FileAlreadyExistsException
+     */
+    public function testItThrowsTheProperExceptionWhenFileExistsAndNotOverwritting()
+    {
+        $media = $this->getMock(
+            'Knp\Snappy\AbstractGenerator',
+            array(
+                'configure',
+                'fileExists',
+                'isFile'
+            ),
+            array(),
+            '',
+            false
+        );
+        $media
+            ->expects($this->any())
+            ->method('fileExists')
+            ->will($this->returnValue(true))
+        ;
+        $media
+            ->expects($this->any())
+            ->method('isFile')
+            ->will($this->returnValue(true))
+        ;
+        $r = new \ReflectionMethod($media, 'prepareOutput');
+        $r->setAccessible(true);
+
+        $r->invokeArgs($media, array('', false));
     }
 
     public function dataForIsAssociativeArray()

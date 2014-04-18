@@ -8,28 +8,13 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
 use Symfony\Component\Finder\Finder;
+
 /**
  * @package ChamiloLMS.Controller
  * @author Julio Montoya <gugli100@gmail.com>
  */
 class IndexController extends CommonController
 {
-    public $section;
-    public $languageFiles = array('courses', 'index', 'admin');
-
-    /**
-     * Logouts a user
-     * @param Application $app
-     */
-    public function logoutAction(Application $app)
-    {
-        $userId = api_get_user_id();
-
-        \Online::logout($userId, true);
-        // the Online::logout function already does a redirect
-        //return $app->redirect($app['url_generator']->generate('index'));
-    }
-
     /**
      * @param \Silex\Application $app
      *
@@ -37,63 +22,69 @@ class IndexController extends CommonController
      */
     public function indexAction(Application $app)
     {
-        $this->cidReset();
+        $template = $this->getTemplate();
+
+        /*$user = $this->getManager()->getRepository('ChamiloLMS\Entity\User')->find(1);
+        foreach($user->getPortals() as $portal) {
+            var_dump($portal->getUrl());
+        }*/
 
         /*
-        var_dump($app['request']->getBaseUrl());
-        var_dump($app['request']->getHttpHost());
-        var_dump($app['request']->getRequestUri());
-        */
+        $token = $app['security']->getToken();
+        if (null !== $token) {
+            $user = $token->getUser();
+        }*/
 
-        $loginError = $app['request']->get('error');
+        /*\ChamiloSession::write('name', 'clara');
+        var_dump(\ChamiloSession::read('name'));
+        var_dump($_SESSION['name']);*/
 
-        $extraJS = array();
+        //var_dump(\ChamiloSession::read('aaa'));
 
-        //@todo improve this JS includes should be added using twig
-        $extraJS[] = api_get_jquery_libraries_js(array('bxslider'));
-        $extraJS[] = '<script>
-            $(document).ready(function(){
-                $("#slider").bxSlider({
-                    infiniteLoop	: true,
-                    auto			: true,
-                    pager			: true,
-                    autoHover		: true,
-                pause			: 10000
-                });
-            });
-        </script>';
+        /*\ChamiloSession::write('name', 'clar');
+        echo \ChamiloSession::read('name');
+        $app['session']->set('name', 'julio');
+        echo $app['session']->get('name');*/
+        /*
+        $token = $app['security']->getToken();
+        if (null !== $token) {
+            $user = $token->getUser();
+            var_dump($user );
+        }
+        if ($app['security']->isGranted('ROLE_ADMIN')) {
+        }*/
+
+        /** @var \ChamiloLMS\Entity\User $user */
+        /*$em = $app['orm.ems']['db_write'];
+        $user = $em->getRepository('ChamiloLMS\Entity\User')->find(6);
+        $role = $em->getRepository('ChamiloLMS\Entity\Role')->findOneByRole('ROLE_STUDENT');
+        $user->getRolesObj()->add($role);
+        $em->persist($user);
+        $em->flush();*/
+
+        //$user->roles->add($status);
+        /*$roles = $user->getRolesObj();
+        foreach ($roles as $role) {
+        }*/
+
+        // $countries = Intl::getRegionBundle()->getCountryNames('es');
+        //var_dump($countries);
+
+        /*$formatter = new \IntlDateFormatter(\Locale::getDefault(), \IntlDateFormatter::NONE, \IntlDateFormatter::NONE);
+        //http://userguide.icu-project.org/formatparse/datetime for date formats
+        $formatter->setPattern("EEEE d MMMM Y");
+        echo $formatter->format(time());*/
+        $extra = array();
+        if (api_get_setting('use_virtual_keyboard') == 'true') {
+            $extra[] = api_get_css(api_get_path(WEB_LIBRARY_JS_PATH).'keyboard/keyboard.css');
+            $extra[] = api_get_js('keyboard/jquery.keyboard.js');
+        }
+
+        $app['template']->addResource(api_get_jqgrid_js(), 'string');
+
 
         $app['this_section'] = SECTION_CAMPUS;
-        $app['extraJS'] = $extraJS;
         $request = $app['request'];
-        $app['languages_file'] = array('courses', 'index', 'admin');
-        $app['cidReset'] = true;
-
-        // Testing translation using translator
-        //echo $app['translator']->trans('Wiki Search Results');
-        //echo $app['translator']->trans('Profile');
-
-        //$token = $app['security']->getToken();
-
-        //$article = $app['orm.em']->getRepository('Entity\Course');
-        //$courses_query = $app['orm.em']->createQuery('SELECT a FROM Entity\Course a');
-        //$a = new Course();
-        //$article = $app['orm.em']->getRepository('Course');
-        //var_dump($article);
-        //$courses_query = $app['orm.em']->createQuery('SELECT a FROM Entity\Course a');
-        /*
-          $paginator = new Doctrine\ORM\Tools\Pagination\Paginator($courses_query, $fetchJoinCollection = true);
-          $c = count($paginator);
-          foreach ($paginator as $course) {
-          echo $course->getCode() . "\n";
-          }
-          exit; */
-
-        //$app['orm.em']->find('Course', 1);
-        //var_dump($app['orm.ems']['mysql']);
-        // Defines wether or not anonymous visitors can see a list of the courses on the Chamilo homepage that are open to the world.
-        //$_setting['display_courses_to_anonymous_users'] = 'true';
-        // Delete session neccesary for legal terms
 
         if (api_get_setting('allow_terms_conditions') == 'true') {
             unset($_SESSION['term_and_condition']);
@@ -108,9 +99,11 @@ class IndexController extends CommonController
                 \CustomPages::display(\CustomPages::INDEX_UNLOGGED);
             }
         }
+        /** @var \PageController $pageController */
+        $pageController = $app['page_controller'];
 
         if (api_get_setting('display_categories_on_homepage') == 'true') {
-            $app['template']->assign('course_category_block', $app['page_controller']->return_courses_in_categories());
+            $template->assign('course_category_block', $pageController->return_courses_in_categories());
         }
 
         // @todo Custom Facebook connection lib could be replaced with opauth
@@ -122,13 +115,13 @@ class IndexController extends CommonController
         $this->setLoginForm($app);
 
         if (!api_is_anonymous()) {
-            $app['page_controller']->return_profile_block();
-            $app['page_controller']->return_user_image_block();
+            //$pageController->setProfileBlock();
+            //$pageController->setUserImageBlock();
 
             if (api_is_platform_admin()) {
-                $app['page_controller']->return_course_block();
+                $pageController->setCourseBlock();
             } else {
-                $app['page_controller']->return_teacher_link();
+                $pageController->return_teacher_link();
             }
         }
 
@@ -139,37 +132,27 @@ class IndexController extends CommonController
         // When loading a chamilo page do not include the hot courses and news
         if (!isset($_REQUEST['include'])) {
             if (api_get_setting('show_hot_courses') == 'true') {
-                $hotCourses = $app['page_controller']->return_hot_courses();
+                $hotCourses = $pageController->returnHotCourses();
             }
-            $announcementsBlock = $app['page_controller']->return_announcements();
+            $announcementsBlock = $pageController->getAnnouncements();
         }
 
-        $app['template']->assign('hot_courses', $hotCourses);
-        $app['template']->assign('announcements_block', $announcementsBlock);
+        $template->assign('hot_courses', $hotCourses);
+        $template->assign('announcements_block', $announcementsBlock);
 
         // Homepage
-        $app['template']->assign('home_page_block', $app['page_controller']->returnHomePage());
+        $template->assign('home_page_block', $pageController->returnHomePage());
 
         // Navigation links
-        $navLinks = $app['template']->returnNavigationLinks();
-
-        $app['template']->assign('navigation_course_links', $navLinks);
-        $app['template']->assign('main_navigation_block', $navLinks);
-
-        $app['page_controller']->return_notice();
-        $app['page_controller']->return_help();
+        $pageController->returnNavigationLinks($template->getNavigationLinks());
+        $pageController->returnNotice();
+        $pageController->returnHelp();
 
         if (api_is_platform_admin() || api_is_drh()) {
-            $app['page_controller']->return_skills_links();
+            $pageController->returnSkillsLinks();
         }
 
-        if (!empty($loginError)) {
-            $app['template']->assign('login_failed', $this->handleLoginFailed($loginError));
-        }
-
-        $response = $app['template']->render_layout('layout_2_col.tpl');
-
-        //return new Response($response, 200, array('Cache-Control' => 's-maxage=3600, public'));
+        $response = $template->renderLayout('layout_2_col.tpl');
         return new Response($response, 200, array());
     }
 
@@ -179,63 +162,16 @@ class IndexController extends CommonController
      */
     public function loginAction(Application $app)
     {
-        /*$username = $app['request']->get('login');
-        $password = $app['request']->get('password');
-
-        $user_table = \Database::get_main_table(TABLE_MAIN_USER);
-        $sql = "SELECT * FROM $user_table WHERE username = ?";
-        $userInfo = $app['db']->fetchAssoc($sql, array($username));
-
-        if ($userInfo) {
-            if ($userInfo['auth_source'] == PLATFORM_AUTH_SOURCE) {
-                if ($password == $userInfo['password'] AND trim($username) == $userInfo['username']) {
-                    unset($userInfo['password']);
-
-                }
-            }
-        }*/
-        $response = null;
-        return new Response($response, 200, array());
-    }
-
-    /**
-     *
-     * @todo This piece of code should probably move to local.inc.php where the actual login procedure is handled.
-     * @todo Check if this code is used. I think this code is never executed because after clicking the submit button
-     *       the code does the stuff in local.inc.php and then redirects to index.php or user_portal.php depending
-     *       on api_get_setting('page_after_login').
-     * @deprecated seems not to be used
-     */
-    function check_last_login()
-    {
-        if (!empty($_POST['submitAuth'])) {
-            // The user has been already authenticated, we are now to find the last login of the user.
-            if (!empty($this->user_id)) {
-                $track_login_table = Database::get_statistic_table(TABLE_STATISTIC_TRACK_E_LOGIN);
-                $sql_last_login = "SELECT login_date
-                                    FROM $track_login_table
-                                    WHERE login_user_id = '".$this->user_id."'
-                                    ORDER BY login_date DESC LIMIT 1";
-                $result_last_login = Database::query($sql_last_login);
-                if (!$result_last_login) {
-                    if (Database::num_rows($result_last_login) > 0) {
-                        $user_last_login_datetime = Database::fetch_array($result_last_login);
-                        $user_last_login_datetime = $user_last_login_datetime[0];
-                        Session::write('user_last_login_datetime', $user_last_login_datetime);
-                    }
-                }
-                Database::free_result($result_last_login);
-
-                if (api_is_platform_admin()) {
-                    // Decode all open event informations and fill the track_c_* tables
-                    include api_get_path(LIBRARY_PATH).'stats.lib.inc.php';
-                    decodeOpenInfos();
-                }
-            }
-        } else {
-            // Only if login form was not sent because if the form is sent the user was already on the page.
-            event_open();
+        $request = $this->getRequest();
+        $app['template']->assign('error', $app['security.last_error']($request));
+        $extra = array();
+        if (api_get_setting('use_virtual_keyboard') == 'true') {
+            $extra[] = api_get_css(api_get_path(WEB_LIBRARY_JS_PATH).'keyboard/keyboard.css');
+            $extra[] = api_get_js('keyboard/jquery.keyboard.js');
         }
+        $app['template']->addResource($extra, 'string');
+        $response = $app['template']->render_template('auth/login.tpl');
+        return new Response($response, 200, array('Cache-Control' => 's-maxage=3600, public'));
     }
 
     /**
@@ -284,26 +220,65 @@ class IndexController extends CommonController
           ->getForm();
           return $app['template']->assign('form', $form->createView());
          */
+        $form = new \FormValidator(
+            'formLogin',
+            'POST',
+            $app['url_generator']->generate('secured_login_check'),
+            null,
+            array('class'=> 'form-signin-block')
+        );
 
-        $form = new \FormValidator('formLogin', 'POST', $app['url_generator']->generate('index'), null, array('class' => 'form-vertical'));
+        $renderer =& $form->defaultRenderer();
+        $renderer->setElementTemplate('{element}');
         $form->addElement(
             'text',
-            'login',
-            get_lang('UserName'),
-            array('class' => 'input-medium autocapitalize_off', 'autofocus' => 'autofocus')
+            'username',
+            null,
+            array(
+                'class' => 'input-medium autocapitalize_off virtualkey',
+                'placeholder' => get_lang('UserName'),
+                'autofocus' => 'autofocus',
+                'icon' => 'fa fa-user fa-fw'
+            )
         );
-        $form->addElement('password', 'password', get_lang('Pass'), array('class' => 'input-medium '));
-        $form->addElement('style_submit_button', 'submitAuth', get_lang('LoginEnter'), array('class' => 'btn'));
+        $form->addElement(
+            'password',
+            'password',
+            null,
+            array(
+                'placeholder' => get_lang('Pass'),
+                'class' => 'input-medium virtualkey',
+                'icon' => 'fa fa-key fa-fw'
+            )
+        );
+        $form->addElement('style_submit_button', 'submitAuth', get_lang('LoginEnter'), array('class' => 'btn btn-primary btn-block'));
         $html = $form->return_form();
-        if (api_get_setting('openid_authentication') == 'true') {
-            include_once 'main/auth/openid/login.php';
-            $html .= '<div>'.openid_form().'</div>';
+
+        /** Verify if settings is active to set keyboard. Included extra class in form input elements */
+
+        if (api_get_setting('use_virtual_keyboard') == 'true') {
+            $html .= "<script>
+                $(function(){
+                    $('.virtualkey').keyboard({
+                        layout:'custom',
+                        customLayout: {
+                        'default': [
+                            '1 2 3 4 5 6 7 8 9 0 {bksp}',
+                            'q w e r t y u i o p',
+                            'a s d f g h j k l',
+                            'z x c v b n m',
+                            '{cancel} {accept}'
+                        ]
+                        }
+                    });
+                });
+            </script>";
         }
         return $html;
     }
 
     /**
-     * @todo move all this getDocument* Actions into another controller
+     * @todo move all this getDocument* actions into another controller
      * @param Application $app
      * @return \Symfony\Component\HttpFoundation\BinaryFileResponse|void
      */
@@ -337,6 +312,42 @@ class IndexController extends CommonController
     }
 
     /**
+     * Gets a document from the data/courses/MATHS/document/file.jpg to the user
+     * @todo check permissions
+     * @param Application $app
+     * @param string $courseCode
+     * @param string $file
+     * @return \Symfony\Component\HttpFoundation\BinaryFileResponse|void
+     */
+    public function getCourseUploadFileAction(Application $app, $courseCode, $file)
+    {
+        try {
+            $file = $app['chamilo.filesystem']->getCourseUploadFile($courseCode, $file);
+            return $app->sendFile($file->getPathname());
+        } catch (\InvalidArgumentException $e) {
+            return $app->abort(404, 'File not found');
+        }
+    }
+
+    /**
+     * Gets a document from the data/courses/MATHS/scorm/file.jpg to the user
+     * @todo check permissions
+     * @param Application $app
+     * @param string $courseCode
+     * @param string $file
+     * @return \Symfony\Component\HttpFoundation\BinaryFileResponse|void
+     */
+    public function getScormDocumentAction(Application $app, $courseCode, $file)
+    {
+        try {
+            $file = $app['chamilo.filesystem']->getCourseScormDocument($courseCode, $file);
+            return $app->sendFile($file->getPathname());
+        } catch (\InvalidArgumentException $e) {
+            return $app->abort(404, 'File not found');
+        }
+    }
+
+    /**
      * Gets a document from the data/default_platform_document/* folder
      * @param Application $app
      * @param string $file
@@ -346,6 +357,22 @@ class IndexController extends CommonController
     {
         try {
             $file = $app['chamilo.filesystem']->get('default_platform_document/'.$file);
+            return $app->sendFile($file->getPathname());
+        } catch (\InvalidArgumentException $e) {
+            return $app->abort(404, 'File not found');
+        }
+    }
+
+     /**
+     * Gets a document from the data/default_platform_document/* folder
+     * @param Application $app
+     * @param string $file
+     * @return \Symfony\Component\HttpFoundation\BinaryFileResponse|void
+     */
+    public function getDefaultCourseDocumentAction(Application $app, $file)
+    {
+        try {
+            $file = $app['chamilo.filesystem']->get('default_course_document/'.$file);
             return $app->sendFile($file->getPathname());
         } catch (\InvalidArgumentException $e) {
             return $app->abort(404, 'File not found');
@@ -382,7 +409,6 @@ class IndexController extends CommonController
             return $app->abort(404, 'File not found');
         }
     }
-
 
     /**
      * Reacts on a failed login.
@@ -423,5 +449,20 @@ class IndexController extends CommonController
             }
         }
         return \Display::return_message($message, 'error');
+    }
+
+    /**
+     * @param Application $app
+     * @return Response
+     */
+    function dashboardAction(Application $app)
+    {
+        $template = $this->getTemplate();
+
+        $template->assign('content', 'welcome!');
+        $response = $template->renderLayout('layout_2_col.tpl');
+
+        //return new Response($response, 200, array('Cache-Control' => 's-maxage=3600, public'));
+        return new Response($response, 200, array());
     }
 }

@@ -11,13 +11,19 @@
 
 namespace Imagine\Gd;
 
+use Imagine\Image\AbstractImage;
 use Imagine\Image\ImageInterface;
 use Imagine\Image\Box;
 use Imagine\Image\BoxInterface;
-use Imagine\Image\Color;
+use Imagine\Image\Metadata\MetadataBag;
+use Imagine\Image\Palette\Color\ColorInterface;
 use Imagine\Image\Fill\FillInterface;
 use Imagine\Image\Point;
 use Imagine\Image\PointInterface;
+use Imagine\Image\Palette\PaletteInterface;
+use Imagine\Image\Palette\Color\RGB as RGBColor;
+use Imagine\Image\ProfileInterface;
+use Imagine\Image\Palette\RGB;
 use Imagine\Exception\InvalidArgumentException;
 use Imagine\Exception\OutOfBoundsException;
 use Imagine\Exception\RuntimeException;
@@ -25,22 +31,35 @@ use Imagine\Exception\RuntimeException;
 /**
  * Image implementation using the GD library
  */
-final class Image implements ImageInterface
+final class Image extends AbstractImage
 {
     /**
      * @var resource
      */
     private $resource;
+
+    /**
+     * @var Layers|null
+     */
     private $layers;
 
     /**
-     * Constructs a new Image instance using the result of
-     * imagecreatetruecolor()
      *
-     * @param resource $resource
+     * @var PaletteInterface
      */
-    public function __construct($resource)
+    private $palette;
+
+    /**
+     * Constructs a new Image instance
+     *
+     * @param resource         $resource
+     * @param PaletteInterface $palette
+     * @param MetadataBag      $metadata
+     */
+    public function __construct($resource, PaletteInterface $palette, MetadataBag $metadata)
     {
+        $this->metadata = $metadata;
+        $this->palette = $palette;
         $this->resource = $resource;
     }
 
@@ -78,7 +97,7 @@ final class Image implements ImageInterface
             throw new RuntimeException('Image copy operation failed');
         }
 
-        return new Image($copy);
+        return new Image($copy, $this->palette, $this->metadata);
     }
 
     /**
@@ -148,8 +167,12 @@ final class Image implements ImageInterface
     /**
      * {@inheritdoc}
      */
-    final public function resize(BoxInterface $size)
+    final public function resize(BoxInterface $size, $filter = ImageInterface::FILTER_UNDEFINED)
     {
+        if (ImageInterface::FILTER_UNDEFINED !== $filter) {
+            throw new InvalidArgumentException('Unsupported filter type, GD only supports ImageInterface::FILTER_UNDEFINED filter');
+        }
+
         $width  = $size->getWidth();
         $height = $size->getHeight();
 
@@ -177,9 +200,9 @@ final class Image implements ImageInterface
     /**
      * {@inheritdoc}
      */
-    final public function rotate($angle, Color $background = null)
+    final public function rotate($angle, ColorInterface $background = null)
     {
-        $color = $background ? $background : new Color('fff');
+        $color = $background ? $background : $this->palette->color('fff');
 
         $resource = imagerotate($this->resource, -1 * $angle, $this->getColor($color));
 
@@ -197,11 +220,24 @@ final class Image implements ImageInterface
     /**
      * {@inheritdoc}
      */
-    final public function save($path, array $options = array())
+    final public function save($path = null, array $options = array())
     {
-        $format = isset($options['format'])
-            ? $options['format']
-            : pathinfo($path, \PATHINFO_EXTENSION);
+        $path = null === $path ? (isset($this->metadata['filepath']) ? $this->metadata['filepath'] : $path) : $path;
+
+        if (null === $path) {
+            throw new RuntimeException(
+                'You can omit save path only if image has been open from a file'
+            );
+        }
+
+        if (isset($options['format'])) {
+            $format = $options['format'];
+        } elseif ('' !== $extension = pathinfo($path, \PATHINFO_EXTENSION)) {
+            $format = $extension;
+        } else {
+            $originalPath = isset($this->metadata['filepath']) ? $this->metadata['filepath'] : null;
+            $format = pathinfo($originalPath, \PATHINFO_EXTENSION);
+        }
 
         $this->saveOrOutput($format, $options, $path);
 
@@ -302,47 +338,6 @@ final class Image implements ImageInterface
     /**
      * {@inheritdoc}
      */
-    public function thumbnail(BoxInterface $size, $mode = ImageInterface::THUMBNAIL_INSET)
-    {
-        if ($mode !== ImageInterface::THUMBNAIL_INSET &&
-            $mode !== ImageInterface::THUMBNAIL_OUTBOUND) {
-            throw new InvalidArgumentException('Invalid mode specified');
-        }
-
-        $width  = $size->getWidth();
-        $height = $size->getHeight();
-
-        $ratios = array(
-            $width / imagesx($this->resource),
-            $height / imagesy($this->resource)
-        );
-
-        if ($mode === ImageInterface::THUMBNAIL_INSET) {
-            $ratio = min($ratios);
-        } else {
-            $ratio = max($ratios);
-        }
-
-        $thumbnail = $this->copy();
-        
-        if ($ratio < 1) {
-            $thumbnailSize = $thumbnail->getSize()->scale($ratio);
-            $thumbnail->resize($thumbnailSize);
-
-            if ($mode === ImageInterface::THUMBNAIL_OUTBOUND) {
-                $thumbnail->crop(new Point(
-                    max(0, round(($thumbnailSize->getWidth() - $width) / 2)),
-                    max(0, round(($thumbnailSize->getHeight() - $height) / 2))
-                ), $size);
-            }
-        }
-
-        return $thumbnail;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
     public function draw()
     {
         return new Drawer($this->resource);
@@ -389,6 +384,7 @@ final class Image implements ImageInterface
                 $position  = new Point($x, $y);
                 $color     = $this->getColorAt($position);
                 $maskColor = $mask->getColorAt($position);
+
                 $round     = (int) round(max($color->getAlpha(), (100 - $color->getAlpha()) * $maskColor->getRed() / 255));
 
                 if (false === imagesetpixel(
@@ -471,7 +467,7 @@ final class Image implements ImageInterface
         $index = imagecolorat($this->resource, $point->getX(), $point->getY());
         $info  = imagecolorsforindex($this->resource, $index);
 
-        return new Color(array(
+        return $this->palette->color(array(
                 $info['red'],
                 $info['green'],
                 $info['blue'],
@@ -486,7 +482,7 @@ final class Image implements ImageInterface
     public function layers()
     {
         if (null === $this->layers) {
-            $this->layers = new Layers($this, $this->resource);
+            $this->layers = new Layers($this, $this->palette, $this->resource);
         }
 
         return $this->layers;
@@ -514,6 +510,36 @@ final class Image implements ImageInterface
     }
 
     /**
+     * {@inheritdoc}
+     */
+    public function palette()
+    {
+        return $this->palette;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function profile(ProfileInterface $profile)
+    {
+        throw new RuntimeException('GD driver does not support color profiles');
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function usePalette(PaletteInterface $palette)
+    {
+        if (!$palette instanceof RGB) {
+            throw new RuntimeException('GD driver only supports RGB palette');
+        }
+
+        $this->palette = $palette;
+
+        return $this;
+    }
+
+    /**
      * Internal
      *
      * Performs save or show operation using one of GD's image... functions
@@ -527,11 +553,12 @@ final class Image implements ImageInterface
      */
     private function saveOrOutput($format, array $options, $filename = null)
     {
+        $format = $this->normalizeFormat($format);
 
         if (!$this->supported($format)) {
             throw new InvalidArgumentException(sprintf(
                 'Saving image in "%s" format is not supported, please use one '.
-                'of the following extension: "%s"', $format,
+                'of the following extensions: "%s"', $format,
                 implode('", "', $this->supported())
             ));
         }
@@ -539,19 +566,36 @@ final class Image implements ImageInterface
         $save = 'image'.$format;
         $args = array(&$this->resource, $filename);
 
-        if (($format === 'jpeg' || $format === 'png') &&
-            isset($options['quality'])) {
-            // Png compression quality is 0-9, so here we get the value from percent.
-            // Beaware that compression level for png works the other way around.
-            // For PNG 0 means no compression and 9 means highest compression level.
-            if ($format === 'png') {
-                $options['quality'] = round((100 - $options['quality']) * 9 / 100);
-            }
-            $args[] = $options['quality'];
+        // Preserve BC until version 1.0
+        if (isset($options['quality']) && !isset($options['png_compression_level'])) {
+            $options['png_compression_level'] = round((100 - $options['quality']) * 9 / 100);
+        }
+        if (isset($options['filters']) && !isset($options['png_compression_filter'])) {
+            $options['png_compression_filter'] = $options['filters'];
         }
 
-        if ($format === 'png' && isset($options['filters'])) {
-            $args[] = $options['filters'];
+        $options = $this->updateSaveOptions($options);
+
+        if ($format === 'jpeg' && isset($options['jpeg_quality'])) {
+            $args[] = $options['jpeg_quality'];
+        }
+
+        if ($format === 'png') {
+            if (isset($options['png_compression_level'])) {
+                if ($options['png_compression_level'] < 0 || $options['png_compression_level'] > 9) {
+                    throw new InvalidArgumentException('png_compression_level option should be an integer from 0 to 9');
+                }
+                $args[] = $options['png_compression_level'];
+            } else {
+                $args[] = -1; // use default level
+            }
+
+            if (isset($options['png_compression_filter'])) {
+                if (~PNG_ALL_FILTERS & $options['png_compression_filter']) {
+                    throw new InvalidArgumentException('png_compression_filter option should be a combination of the PNG_FILTER_XXX constants');
+                }
+                $args[] = $options['png_compression_filter'];
+            }
         }
 
         if (($format === 'wbmp' || $format === 'xbm') &&
@@ -616,8 +660,14 @@ final class Image implements ImageInterface
      *
      * @throws RuntimeException
      */
-    private function getColor(Color $color)
+    private function getColor(ColorInterface $color)
     {
+        if (!$color instanceof RGBColor) {
+            throw new InvalidArgumentException(
+                'GD driver only supports RGB colors'
+            );
+        }
+
         $index = imagecolorallocatealpha(
             $this->resource, $color->getRed(), $color->getGreen(),
             $color->getBlue(), round(127 * $color->getAlpha() / 100)
@@ -637,13 +687,33 @@ final class Image implements ImageInterface
     /**
      * Internal
      *
+     * Normalizes a given format name
+     *
+     * @param string $format
+     *
+     * @return string
+     */
+    private function normalizeFormat($format)
+    {
+        $format = strtolower($format);
+
+        if ('jpg' === $format || 'pjpeg' === $format) {
+            $format = 'jpeg';
+        }
+
+        return $format;
+    }
+
+    /**
+     * Internal
+     *
      * Checks whether a given format is supported by GD library
      *
      * @param string $format
      *
      * @return Boolean
      */
-    private function supported(&$format = null)
+    private function supported($format = null)
     {
         $formats = array('gif', 'jpeg', 'png', 'wbmp', 'xbm');
 
@@ -651,18 +721,12 @@ final class Image implements ImageInterface
             return $formats;
         }
 
-        $format  = strtolower($format);
-
-        if ('jpg' === $format || 'pjpeg' === $format) {
-            $format = 'jpeg';
-        }
-
         return in_array($format, $formats);
     }
 
     private function setExceptionHandler()
     {
-        set_error_handler(function($errno, $errstr, $errfile, $errline, array $errcontext) {
+        set_error_handler(function ($errno, $errstr, $errfile, $errline) {
 
             if (0 === error_reporting()) {
                 return;
@@ -693,13 +757,14 @@ final class Image implements ImageInterface
      */
     private function getMimeType($format)
     {
+        $format = $this->normalizeFormat($format);
+
         if (!$this->supported($format)) {
             throw new RuntimeException('Invalid format');
         }
 
         static $mimeTypes = array(
             'jpeg' => 'image/jpeg',
-            'jpg'  => 'image/jpeg',
             'gif'  => 'image/gif',
             'png'  => 'image/png',
             'wbmp' => 'image/vnd.wap.wbmp',

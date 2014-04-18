@@ -3407,7 +3407,7 @@ function WSCreateSession($params)
                 $results[] = 0;
                 continue;*/
         } else {
-            $rs = Database::query("SELECT 1 FROM $tbl_session WHERE name='".Datanbase::escape_string($name)."'");
+            $rs = Database::query("SELECT 1 FROM $tbl_session WHERE name='".Database::escape_string($name)."'");
             if (Database::num_rows($rs)) {
                 $results[] = 0;
                 continue;
@@ -4370,8 +4370,8 @@ function WSUnsubscribeUserFromCourse($params)
         foreach ($usersList as $user_id) {
             $course_code = Database::escape_string($course_code);
             $sql = "DELETE FROM $table_course_user WHERE user_id = '$user_id' AND course_code = '".$course_code."'";
-            Database::query($sql);
-            $return = Database::affected_rows();
+            $result = Database::query($sql);
+            $return = Database::affected_rows($result);
         }
         $results[] = 1;
         continue;
@@ -4559,8 +4559,8 @@ function WSSuscribeUsersToSession($params)
                 if (!in_array($enreg_user, $existingUsers)) {
                     $enreg_user = Database::escape_string($enreg_user);
                     $insert_sql = "INSERT IGNORE INTO $tbl_session_rel_course_rel_user(id_session, c_id, id_user) VALUES('$id_session','$courseId','$enreg_user')";
-                    Database::query($insert_sql);
-                    if (Database::affected_rows()) {
+                    $result = Database::query($insert_sql);
+                    if (Database::affected_rows($result)) {
                         $nbr_users++;
                     }
                 }
@@ -4585,8 +4585,8 @@ function WSSuscribeUsersToSession($params)
         // update number of users in the session
         $nbr_users = count($usersList);
         $update_sql = "UPDATE $tbl_session SET nbr_users= $nbr_users WHERE id='$id_session' ";
-        Database::query($update_sql);
-        Database::affected_rows();
+        $result = Database::query($update_sql);
+        Database::affected_rows($result);
         $results[] = 1;
         continue;
 
@@ -4774,9 +4774,9 @@ function WSUnsuscribeUsersFromSession($params)
             foreach ($existingUsers as $existing_user) {
                 if (!in_array($existing_user, $usersList)) {
                     $sql = "DELETE FROM $tbl_session_rel_course_rel_user WHERE id_session='$id_session' AND c_id='$courseId' AND id_user='$existing_user'";
-                    Database::query($sql);
+                    $result = Database::query($sql);
 
-                    if (Database::affected_rows()) {
+                    if (Database::affected_rows($result)) {
                         $nbr_users--;
                     }
                 }
@@ -4796,8 +4796,8 @@ function WSUnsuscribeUsersFromSession($params)
             $enreg_user = Database::escape_string($enreg_user);
             $delete_sql = "DELETE FROM $tbl_session_rel_user
                            WHERE id_session = '$id_session' AND id_user ='$enreg_user' AND relation_type<>".SESSION_RELATION_TYPE_RRHH."";
-            Database::query($delete_sql);
-            $return = Database::affected_rows();
+            $result = Database::query($delete_sql);
+            $return = Database::affected_rows($result);
         }
 
         $nbr_users = 0;
@@ -4811,8 +4811,8 @@ function WSUnsuscribeUsersFromSession($params)
 
         // Update number of users in the session.
         $update_sql = "UPDATE $tbl_session SET nbr_users= $nbr_users WHERE id='$id_session' ";
-        Database::query($update_sql);
-        $return = Database::affected_rows();
+        $result = Database::query($update_sql);
+        $return = Database::affected_rows($result);
         $results[] = 1;
         continue;
 
@@ -5088,8 +5088,8 @@ function WSSuscribeCoursesToSession($params)
                 foreach ($user_list as $enreg_user) {
                     $enreg_user_id = Database::escape_string($enreg_user['id_user']);
                     $sql_insert = "INSERT IGNORE INTO $tbl_session_rel_course_rel_user (id_session,c_id,id_user) VALUES ('$id_session','$courseId','$enreg_user_id')";
-                    Database::query($sql_insert);
-                    if (Database::affected_rows()) {
+                    $result = Database::query($sql_insert);
+                    if (Database::affected_rows($result)) {
                         $nbr_users++;
                     }
                 }
@@ -5281,13 +5281,9 @@ function WSUnsuscribeCoursesFromSession($params)
 
         foreach ($course_list as $courseId) {
             $courseId = Database::escape_string($courseId);
-            Database::query(
-                "DELETE FROM $tbl_session_rel_course WHERE c_id = '$courseId' AND id_session='$id_session'"
-            );
-            Database::query(
-                "DELETE FROM $tbl_session_rel_course_rel_user WHERE c_id ='$courseId' AND id_session='$id_session'"
-            );
-            $return = Database::affected_rows();
+            $result = Database::query("DELETE FROM $tbl_session_rel_course WHERE c_id = '$courseId' AND id_session='$id_session'");
+            $result = Database::query("DELETE FROM $tbl_session_rel_course_rel_user WHERE c_id ='$courseId' AND id_session='$id_session'");
+            $return = Database::affected_rows($result);
         }
 
         $nbr_courses = 0;
@@ -5296,7 +5292,7 @@ function WSUnsuscribeCoursesFromSession($params)
         $row_nbr_courses = Database::fetch_row($res_nbr_courses);
 
         if (Database::num_rows($res_nbr_courses) > 0) {
-            $nbr_users = ($row_nbr_courses[0] - $return);
+            $nbr_users = $row_nbr_courses[0] - $return;
         }
 
         // Update number of users in the session.
@@ -5486,6 +5482,86 @@ function WSUpdateUserApiKey($params)
     }
 
     return $apikey;
+}
+
+/** WSListSessions **/
+
+$server->wsdl->addComplexType(
+    'session',
+    'complexType',
+    'struct',
+    'all',
+    '',
+    array(
+        'id' => array ('name' => 'id'  , 'type' => 'xsd:int'),
+        'title' => array ('name' => 'title', 'type' => 'xsd:string'),
+        'url' => array ('name' => 'url', 'type' => 'xsd:string'),
+        'date_start' => array ('name' => 'date_start', 'type' => 'xsd:string'),
+        'date_end' => array ('name' => 'date_end', 'type' => 'xsd:string'),
+    )
+);
+
+$server->wsdl->addComplexType(
+    'sessions',
+    'complexType',
+    'array',
+    '',
+    'SOAP-ENC:Array',
+    array(),
+    array(
+        array('ref'=>'SOAP:ENC:arrayType',
+            'wsdl:arrayType'=>'tns:session[]')
+    ),
+    'tns:session'
+);
+
+// Register the method to expose
+$server->register('WSListSessions',         // method name
+    array('secret_key' => 'xsd:string',
+        'date_start' => 'xsd:string',
+        'date_end' => 'xsd:string'),      // input parameters
+    array('return' => 'tns:sessions'),             // output parameters
+    'urn:WSRegistration',                         // namespace
+    'urn:WSRegistration#WSListSessions',      // soapaction
+    'rpc',                                      // style
+    'encoded',                                  // use
+    'This service returns a list of sessions'    // documentation
+);
+
+
+/**
+ * Get a list of sessions (id, title, url, date_start, date_end) and
+ * return to caller. Date start can be set to ask only for the sessions
+ * starting at or after this date. Date end can be set to ask only for the
+ * sessions ending before or at this date.
+ * Function registered as service. Returns strings in UTF-8.
+ * @param array List of parameters (security key, date_start and date_end)
+ * @return array Sessions list (id=>[title=>'title',url='http://...',date_start=>'...',date_end=>''])
+ */
+function WSListSessions($params) {
+    if(!WSHelperVerifyKey($params)) {
+        return return_error(WS_ERROR_SECRET_KEY);
+    }
+    $sql_params = array();
+    // Dates should be provided in YYYY-MM-DD format, UTC
+    if (!empty($params['date_start'])) {
+        $sql_params['date_start >='] = $params['date_start'];
+    }
+    if (!empty($params['date_end'])) {
+        $sql_params['date_end <='] = $params['date_end'];
+    }
+    $sessions_list = SessionManager::get_sessions_list($sql_params);
+    $return_list = array();
+    foreach ($sessions_list as $session) {
+        $return_list[] = array(
+            'id' => $session['id'],
+            'title' => $session['name'],
+            'url' => api_get_path(WEB_CODE_PATH).'session/index.php?session_id='.$session['id'], // something like http://my.chamilo.net/main/session/index.php?session_id=5
+            'date_start' => $session['date_start'],
+            'date_end' => $session['date_end'],
+        );
+    }
+    return $return_list;
 }
 
 // Use the request to (try to) invoke the service

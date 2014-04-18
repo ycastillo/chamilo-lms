@@ -42,7 +42,6 @@ var hide_bar = function() {
     $("#template_col").hide();
     $("#doc_form").removeClass("span9");
     $("#doc_form").addClass("span11");
-    $("#hide_bar_template").css({"background-image" : \'url("../img/hide2.png")\'})
 }
 
 $(document).ready(function() {
@@ -58,44 +57,9 @@ $(document).ready(function() {
             $("#template_col").show();
             $("#doc_form").removeClass("span11");
             $("#doc_form").addClass("span9");
-            $(this).css("background-image", \'url("../img/hide0.png")\');
         }
     );
 });
-
-function InnerDialogLoaded() {
-	/*
-	var B=new window.frames[0].FCKToolbarButton(\'Templates\',window.frames[0].FCKLang.Templates);
-	return B.ClickFrame();
-	*/
-	var isIE  = (navigator.appVersion.indexOf(\'MSIE\') != -1) ? true : false ;
-	var EditorFrame = null ;
-
-	if ( !isIE ) {
-		EditorFrame = window.frames[0] ;
-	} else {
-		// For this dynamic page window.frames[0] enumerates frames in a different order in IE.
-		// We need a sure method to locate the frame that contains the online editor.
-		for ( var i = 0, n = window.frames.length ; i < n ; i++ ) {
-			if ( window.frames[i].location.toString().indexOf(\'InstanceName=content\') != -1 ) {
-				EditorFrame = window.frames[i] ;
-			}
-		}
-	}
-
-	if ( !EditorFrame ) {
-		return null ;
-	}
-
-	var B = new EditorFrame.FCKToolbarButton(\'Templates\', EditorFrame.FCKLang.Templates);
-	return B.ClickFrame();
-};
-
-function FCKeditor_OnComplete( editorInstance) {
-	document.getElementById(\'frmModel\').innerHTML = "<iframe style=\'height: 525px; width: 180px;\' scrolling=\'no\' frameborder=\'0\' src=\''.api_get_path(
-    WEB_LIBRARY_PATH
-).'fckeditor/editor/fckdialogframe.html \'>";
-}
 </script>';
 
 $_SESSION['whereami'] = 'document/create';
@@ -122,7 +86,7 @@ if (isset($_GET['id'])) {
     $dir_original = $dir;
 
     $doc = basename($file);
-    $my_cur_dir_path = Security::remove_XSS($_GET['curdirpath']);
+    $my_cur_dir_path = isset($_GET['curdirpath']) ? Security::remove_XSS($_GET['curdirpath']) : null;
     $readonly = $document_data['readonly'];
 }
 
@@ -133,8 +97,8 @@ if (empty($document_data)) {
 $is_certificate_mode = DocumentManager::is_certificate_mode($dir);
 
 //Call from
-$call_from_tool = Security::remove_XSS($_GET['origin']);
-$slide_id = Security::remove_XSS($_GET['origin_opt']);
+$call_from_tool = isset($_GET['origin']) ? Security::remove_XSS($_GET['origin']) : null;
+$slide_id = isset($_GET['origin_opt']) ? Security::remove_XSS($_GET['origin_opt']) : null;
 $file_name = $doc;
 
 $group_document = false;
@@ -174,7 +138,7 @@ if ($is_certificate_mode) {
     $html_editor_config['BaseHref'] = api_get_path(WEB_COURSE_PATH).$_course['path'].'/document'.$dir;
 }
 
-$is_allowed_to_edit = api_is_allowed_to_edit(null, true) || $_SESSION['group_member_with_upload_rights'] || is_my_shared_folder(api_get_user_id(), $dir, $current_session_id);
+$is_allowed_to_edit = api_is_allowed_to_edit(null, true) || GroupManager::groupMemberWithUploadRights() || is_my_shared_folder(api_get_user_id(), $dir, $current_session_id);
 $noPHP_SELF = true;
 
 /*	Other initialization code */
@@ -183,15 +147,14 @@ $dbTable = Database::get_course_table(TABLE_DOCUMENT);
 $course_id = api_get_course_int_id();
 
 if (!empty($group_id)) {
-    $req_gid = '&amp;gidReq='.$group_id;
-    $interbreadcrumb[] = array('url' => '../group/group_space.php?gidReq='.$group_id, 'name' => get_lang('GroupSpace'));
+    $interbreadcrumb[] = array('url' => '../group/group_space.php?'.api_get_cidreq(), 'name' => get_lang('GroupSpace'));
     $group_document = true;
     $noPHP_SELF = true;
 }
 
 if (!$is_certificate_mode) {
     $interbreadcrumb[] = array(
-        "url" => "./document.php?curdirpath=".urlencode($my_cur_dir_path).$req_gid,
+        "url" => "./document.php?curdirpath=".urlencode($my_cur_dir_path).'&'.api_get_cidreq(),
         "name" => get_lang('Documents')
     );
 } else {
@@ -220,7 +183,7 @@ if (!$is_allowed_to_edit) {
 event_access_tool(TOOL_DOCUMENT);
 
 //TODO:check the below code and his functionality
-if (!is_allowed_to_edit()) {
+if (!api_is_allowed_to_edit()) {
     if (DocumentManager::check_readonly($course_info, $user_id, $file)) {
         api_not_allowed();
     }
@@ -250,12 +213,12 @@ if (isset($_POST['comment'])) {
 
 /*	WYSIWYG HTML EDITOR - Program Logic */
 if ($is_allowed_to_edit) {
-    if ($_POST['formSent'] == 1) {
+    if (isset($_POST['formSent']) && $_POST['formSent'] == 1) {
 
         $filename = stripslashes($_POST['filename']);
         $extension = $_POST['extension'];
 
-        $content = trim(str_replace(array("\r", "\n"), '', stripslashes($_POST['content'])));
+        $content = trim(str_replace(array("\r", "\n"), '', $_POST['content']));
         $content = Security::remove_XSS($content, COURSEMANAGERLOWSECURITY);
 
         if (!strstr($content, '/css/frames.css')) {
@@ -329,9 +292,9 @@ if ($is_allowed_to_edit) {
 
                         if (!is_file($filepath.'css/frames.css')) {
                             $platform_theme = api_get_setting('stylesheets');
-                            if (file_exists(api_get_path(SYS_CODE_PATH).'css/'.$platform_theme.'/frames.css')) {
+                            if (file_exists(api_get_path(SYS_CSS_PATH).'themes/'.$platform_theme.'/frames.css')) {
                                 copy(
-                                    api_get_path(SYS_CODE_PATH).'css/'.$platform_theme.'/frames.css',
+                                    api_get_path(SYS_CSS_PATH).'themes/'.$platform_theme.'/frames.css',
                                     $filepath.'css/frames.css'
                                 );
                                 $doc_id = FileManager::add_document(
@@ -451,7 +414,7 @@ if ($owner_id == api_get_user_id() || api_is_platform_admin(
 ) || $is_allowed_to_edit || GroupManager :: is_user_in_group(api_get_user_id(), api_get_group_id())
 ) {
     $action = api_get_self().'?id='.$document_data['id'];
-    $form = new FormValidator('formEdit', 'post', $action, null, array('class' => 'form-vertical'));
+    $form = new FormValidator('formEdit', 'post', $action, null, array('class' => 'form-horizontal'));
 
     // Form title
     $form->addElement('header', $nameTools);
@@ -470,7 +433,7 @@ if ($owner_id == api_get_user_id() || api_is_platform_admin(
     $form->addElement('hidden', 'formSent');
     $defaults['formSent'] = 1;
 
-    $read_only_flag = $_POST['readonly'];
+    $read_only_flag = isset($_POST['readonly']) ? $_POST['readonly'] : null;
 
     // Desactivation of IE proprietary commenting tags inside the text before loading it on the online editor.
     // This fix has been proposed by Hubert Borderiou, see Bug #573, http://support.chamilo.org/issues/573
@@ -488,20 +451,16 @@ if ($owner_id == api_get_user_id() || api_is_platform_admin(
     }
 
     if (!$group_document && !is_my_shared_folder(api_get_user_id(), $my_cur_dir_path, $current_session_id)) {
-        $metadata_link = '<a href="../metadata/index.php?eid='.urlencode(
-            'Document.'.$document_data['id']
-        ).'">'.get_lang('AddMetadata').'</a>';
+        $metadata_link = '<a href="../metadata/index.php?eid='.urlencode('Document.'.$document_data['id']).'">'.get_lang('AddMetadata').'</a>';
 
-        //Updated on field
+        // Updated on field
         $last_edit_date = api_get_local_time($last_edit_date);
-        $display_date = date_to_str_ago($last_edit_date).' <span class="dropbox_date">'.api_format_date(
-            $last_edit_date
-        ).'</span>';
-        $form->addElement('static', null, get_lang('Metadata'), $metadata_link);
-        $form->addElement('static', null, get_lang('UpdatedOn'), $display_date);
+        $display_date = date_to_str_ago($last_edit_date).' <span class="dropbox_date">'.api_format_date($last_edit_date).'</span>';
+        $form->addElement('label', get_lang('Metadata'), $metadata_link);
+        $form->addElement('label', get_lang('UpdatedOn'), $display_date);
     }
 
-    $form->addElement('textarea', 'comment', get_lang('Comment'), 'rows="3" style="width:300px;"');
+    $form->addElement('textarea', 'comment', get_lang('Comment'));
 
     if ($owner_id == api_get_user_id() || api_is_platform_admin()) {
         $checked =& $form->addElement('checkbox', 'readonly', null, get_lang('ReadOnly'));
@@ -511,19 +470,19 @@ if ($owner_id == api_get_user_id() || api_is_platform_admin(
     }
 
     if ($is_certificate_mode) {
-        $form->addElement('style_submit_button', 'submit', get_lang('SaveCertificate'), 'class="save"');
+        $form->addElement('style_submit_button', 'submit', get_lang('SaveCertificate'), array('class' => 'save'));
     } else {
-        $form->addElement('style_submit_button', 'submit', get_lang('SaveDocument'), 'class="save"');
+        $form->addElement('style_submit_button', 'submit', get_lang('SaveDocument'), array('class' => 'save'));
     }
 
     $defaults['filename'] = $filename;
     $defaults['extension'] = $extension;
-    $defaults['file_path'] = Security::remove_XSS($_GET['file']);
+    $defaults['file_path'] = isset($_GET['file']) ? Security::remove_XSS($_GET['file']) : null;
     $defaults['commentPath'] = $file;
     $defaults['renameTo'] = $file_name;
     $defaults['comment'] = $document_data['comment'];
-    $defaults['origin'] = Security::remove_XSS($_GET['origin']);
-    $defaults['origin_opt'] = Security::remove_XSS($_GET['origin_opt']);
+    $defaults['origin'] = isset($_GET['origin']) ? Security::remove_XSS($_GET['origin']) : null;
+    $defaults['origin_opt'] = isset($_GET['origin_opt']) ? Security::remove_XSS($_GET['origin_opt']) : null;
 
     $form->setDefaults($defaults);
 
@@ -545,15 +504,8 @@ if ($owner_id == api_get_user_id() || api_is_platform_admin(
     if ($extension == 'svg' && !api_browser_support('svg') && api_get_setting('enabled_support_svg') == 'true') {
         Display::display_warning_message(get_lang('BrowserDontSupportsSVG'));
     }
-    echo '<div class="row-fluid" style="overflow:hidden">
-            <div id="template_col" class="span2" style="width:162px">
-                <div id="frmModel" style="overflow: visible;"></div>
-            </div>
-            <div id="hide_bar_template"></div>
-            <div id="doc_form" class="span9">
-                    '.$form->return_form().'
-            </div>
-          </div>';
+
+    echo $form->return_form();
 }
 
 Display::display_footer();

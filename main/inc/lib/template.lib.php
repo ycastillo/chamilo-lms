@@ -8,6 +8,10 @@
  * */
 use \ChamiloSession as Session;
 use Silex\Application;
+use Symfony\Component\Security\Core\SecurityContext;
+use Symfony\Component\Translation\Translator;
+use Symfony\Component\Routing\Router;
+use ChamiloLMS\Component\Editor\Editor;
 
 class Template
 {
@@ -18,7 +22,7 @@ class Template
     public $show_header;
     public $show_footer;
     public $help;
-    public $menu_navigation = array(); //Used in the userportal.lib.php function: return_navigation_course_links()
+    public $menu_navigation = array();
     public $show_learnpath = false; // This is a learnpath section or not?
     public $plugin = null;
     public $course_id = null;
@@ -27,60 +31,66 @@ class Template
     public $jquery_ui_theme;
     public $force_plugin_load = true;
     public $navigation_array;
+    public $loadBreadcrumb = true;
+    public $resources = array();
+    public $disableJsAndCss = false;
+
+    /** @var SecurityContext */
+    private $security;
+    /** @var Translator */
+    private $translator;
+    /** @var Router */
+    private $urlGenerator;
+    /** @var Editor */
+    private $htmlEditor;
 
     /**
      * @param Application $app
+     * @param Database $database
+     * @param SecurityContext $security
+     * @param Translator $translator
+     * @param Router $urlGenerator
      */
-    public function __construct(Application $app = null)
-    {
-        if (empty($app)) {
-            global $app;
-            $this->app = &$app;
-        } else {
-            //ugly fix just for now
-            $this->app = &$app;
-        }
+    public function __construct(
+        Application $app,
+        Database $database,
+        SecurityContext $security,
+        Translator $translator,
+        Router $urlGenerator
+        //Editor $htmlEditor
+    ) {
+        $this->app = &$app;
+        $this->security = $security;
+        $this->translator = $translator;
+        $this->urlGenerator = $urlGenerator;
+        //$this->htmlEditor = $htmlEditor;
 
         $this->app['classic_layout'] = true;
         $this->navigation_array = $this->returnNavigationArray();
 
-        //just in case
+        // Just in case
         global $tool_name;
 
-        //Page title
-        $this->title = isset($app['title']) ? $app['title'] : $tool_name;
+        // Page title
+        $title = isset($app['title']) ? $app['title'] : $tool_name;
+        $this->setTitle($title);
         $this->show_learnpath = $app['template.show_learnpath'];
 
-        // Current themes: cupertino, smoothness, ui-lightness. Find the themes folder in main/inc/lib/javascript/jquery-ui
+        /* Current themes: cupertino, smoothness, ui-lightness.
+           Find the themes folder in main/inc/lib/javascript/jquery-ui */
         $this->jquery_ui_theme = 'smoothness';
 
-        //Setting system variables
+        // Setting system variables.
         $this->setSystemParameters();
 
-        //Setting user variables
+        // Setting user variables.
         $this->setUserParameters();
 
-        //Setting course variables
+        // Setting course variables.
         $this->setCourseParameters();
 
-        //Using global because all scripts have this variable
-        global $interbreadcrumb;
-
-        if (isset($this->app['breadcrumb']) && !empty($this->app['breadcrumb'])) {
-            if (empty($interbreadcrumb)) {
-                $interbreadcrumb = $this->app['breadcrumb'];
-            } else {
-                $interbreadcrumb = array_merge($interbreadcrumb, $this->app['breadcrumb']);
-            }
-        }
-
-        if (!empty($interbreadcrumb)) {
-            $this->app['breadcrumb'] = $interbreadcrumb;
-        }
-
-        //header and footer are showed by default
+        // header and footer are showed by default
         $this->setFooter($app['template.show_footer']);
-
         $this->setHeader($app['template.show_header']);
 
         $this->setHeaderParameters();
@@ -88,7 +98,7 @@ class Template
 
         $this->assign('style', $app['template_style']);
 
-        //Chamilo plugins
+        // Chamilo plugins
         if ($this->show_header) {
             if ($app['template.load_plugins'] && !empty($app['plugins'])) {
 
@@ -111,6 +121,33 @@ class Template
     }
 
     /**
+     * @param string $title
+     */
+    public function setTitle($title)
+    {
+        $this->title = $title;
+        $this->assign('header', $this->title);
+    }
+
+    /**
+     * @param array $breadCrumb
+     */
+    public function setBreadcrumb($breadCrumb)
+    {
+        if (isset($this->app['breadcrumb']) && !empty($this->app['breadcrumb'])) {
+            if (empty($breadCrumb)) {
+                $breadCrumb = $this->app['breadcrumb'];
+            } else {
+                $breadCrumb = array_merge($breadCrumb, $this->app['breadcrumb']);
+            }
+        }
+
+        if (!empty($breadCrumb)) {
+            $this->app['breadcrumb'] = $breadCrumb;
+        }
+    }
+
+    /**
      * Get icon path
      * @param string $image
      * @param int $size
@@ -119,7 +156,7 @@ class Template
      */
     public static function get_icon_path($image, $size = ICON_SIZE_SMALL)
     {
-        return Display:: return_icon($image, '', array(), $size, false, true);
+        return Display::return_icon($image, '', array(), $size, false, true);
     }
 
     /**
@@ -169,7 +206,7 @@ class Template
      * */
     public function display_one_col_template()
     {
-        $tpl = $this->get_template('layout/layout_1_col.tpl');
+        $tpl = $this->getTemplate('layout/layout_1_col.tpl');
         $this->display($tpl);
     }
 
@@ -178,7 +215,7 @@ class Template
      * */
     public function display_two_col_template()
     {
-        $tpl = $this->get_template('layout/layout_2_col.tpl');
+        $tpl = $this->getTemplate('layout/layout_2_col.tpl');
         $this->display($tpl);
     }
 
@@ -187,7 +224,7 @@ class Template
      */
     public function display_blank_template()
     {
-        $tpl = $this->get_template('layout/blank.tpl');
+        $tpl = $this->getTemplate('layout/blank.tpl');
         $this->display($tpl);
     }
 
@@ -196,7 +233,7 @@ class Template
      */
     public function display_no_layout_template()
     {
-        $tpl = $this->get_template('layout/no_layout.tpl');
+        $tpl = $this->getTemplate('layout/no_layout.tpl');
         $this->display($tpl);
     }
 
@@ -260,12 +297,26 @@ class Template
         $this->assign('show_course_navigation_menu', $show_course_navigation_menu);
     }
 
-    public function get_template($name)
+    /**
+     * @param string $name
+     * @return string
+     */
+    public function getTemplate($name)
     {
         return $this->app['template_style'].'/'.$name;
     }
 
-    /** Set course parameters */
+    /**
+     * @deprecated use getTemplate
+     */
+    public function get_template($name)
+    {
+        return $this->getTemplate($name);
+    }
+
+    /**
+     * Set course parameters
+     */
     private function setCourseParameters()
     {
         //Setting course id
@@ -282,10 +333,11 @@ class Template
         $user_info = array();
         $user_info['logged'] = 0;
         $this->user_is_logged_in = false;
-        if (api_user_is_login()) {
-            $user_info = $this->app['current_user'];
-            $user_info['logged'] = 1;
+        $user_info = isset($this->app['current_user']) ? $this->app['current_user'] : null;
 
+        if (api_user_is_login() && !empty($user_info)) {
+
+            $user_info['logged'] = 1;
             $user_info['is_admin'] = 0;
             if (api_is_platform_admin()) {
                 $user_info['is_admin'] = 1;
@@ -293,13 +345,6 @@ class Template
 
             $new_messages = MessageManager::get_new_messages();
             $user_info['messages_count'] = $new_messages != 0 ? Display::label($new_messages, 'warning') : null;
-
-            /*$usergroup = new UserGroup();
-            $messages_invitations_count = $usergroup->get_groups_by_user_count($user_info['user_id'], GROUP_USER_PERMISSION_PENDING_INVITATION, false);
-            $user_info['messages_invitations_count'] = $messages_invitations_count != 0 ? Display::label(
-                $messages_invitations_count,
-                'warning'
-            ) : null;*/
             $this->user_is_logged_in = true;
         }
 
@@ -307,22 +352,32 @@ class Template
         $this->assign('_u', $user_info);
     }
 
-    /** Set system parameters */
+    /**
+     * Set system parameters
+     */
     private function setSystemParameters()
     {
-        global $_configuration;
+        $version = $this->app['configuration']['system_version'];
 
-        //Setting app paths/URLs
+        // Setting app paths/URLs.
         $_p = array(
             'web' => api_get_path(WEB_PATH),
             'web_course' => api_get_path(WEB_COURSE_PATH),
+            'web_course_path' => api_get_path(WEB_COURSE_PATH),
+            'web_code_path' => api_get_path(WEB_CODE_PATH),
             'web_main' => api_get_path(WEB_CODE_PATH),
             'web_css' => api_get_path(WEB_CSS_PATH),
+            'web_css_path' => api_get_path(WEB_CSS_PATH),
             'web_ajax' => api_get_path(WEB_AJAX_PATH),
+            'web_ajax_path' => api_get_path(WEB_AJAX_PATH),
             'web_img' => api_get_path(WEB_IMG_PATH),
+            'web_img_path' => api_get_path(WEB_IMG_PATH),
             'web_plugin' => api_get_path(WEB_PLUGIN_PATH),
+            'web_plugin_path' => api_get_path(WEB_PLUGIN_PATH),
             'web_lib' => api_get_path(WEB_LIBRARY_PATH),
-            'public_web' => api_get_path(WEB_PUBLIC_PATH)
+            'web_library_path' => api_get_path(WEB_LIBRARY_PATH),
+            'web_library_js_path' => api_get_path(WEB_LIBRARY_JS_PATH),
+            'web_public' => api_get_path(WEB_PUBLIC_PATH)
         );
 
         $this->assign('_p', $_p);
@@ -330,7 +385,7 @@ class Template
         //Here we can add system parameters that can be use in any template
         $_s = array(
             'software_name' => api_get_software_name(),
-            'system_version' => $_configuration['system_version'],
+            'system_version' => $version,
             'site_name' => api_get_setting('siteName'),
             'institution' => api_get_setting('Institution')
         );
@@ -338,151 +393,181 @@ class Template
     }
 
     /**
-     * Set theme, include CSS files  */
-    private function set_css_files()
+     * Set theme, include CSS files
+     */
+    private function setCssFiles()
     {
-        global $disable_js_and_css_files;
         $css = array();
-
         $this->theme = api_get_visual_theme();
-
+        if (isset($_POST['style']) && api_is_platform_admin()) {
+            $this->preview_theme = $_POST['style'];
+        }
         if (!empty($this->preview_theme)) {
             $this->theme = $this->preview_theme;
         }
 
+        $this->app['theme'] = $this->theme;
+
         $cssPath = api_get_path(WEB_CSS_PATH);
 
-        //Base CSS
-        $css[] = api_get_cdn_path($cssPath.'base.css');
-        //Compressed version of default + all CSS files
-        //$css[] = api_get_cdn_path(api_get_path(WEB_PATH).'web/css/'.$this->theme.'/style.css');
+        // Loads only 1 css file
+        if ($this->app['assetic.enabled']) {
+            $css[] = api_get_path(WEB_CSS_PATH).'themes/'.$this->theme.'/style.css';
+        } else {
+            // Bootstrap
+            $css[] = api_get_cdn_path(api_get_path(WEB_LIBRARY_JS_PATH).'bootstrap/css/bootstrap.css');
 
-        //Default theme CSS
-        $css[] = api_get_cdn_path($cssPath.$this->theme.'/default.css');
-        $css[] = api_get_cdn_path($cssPath.'bootstrap-responsive.css');
-        $css[] = api_get_cdn_path($cssPath.'responsive.css');
-        $css[] = api_get_cdn_path($cssPath.'font_awesome/font-awesome.css');
+            //$css[] = api_get_cdn_path(api_get_path(WEB_LIBRARY_JS_PATH).'bootstrap/css/bootstrap-theme.css');
 
-        //Extra CSS files
-        $css[] = api_get_path(WEB_LIBRARY_PATH).'javascript/thickbox.css';
-        $css[] = api_get_path(WEB_LIBRARY_PATH).'javascript/chosen/chosen.css';
+            // Base CSS.
+            $css[] = api_get_cdn_path($cssPath.'base.css');
 
-        if ($this->show_learnpath) {
-            $css[] = $cssPath.$this->theme.'/learnpath.css';
-            $css[] = $cssPath.$this->theme.'/scorm.css';
+            // Extra CSS files.
+            if ($this->show_learnpath) {
+                //$css[] = $cssPath.$this->theme.'/learnpath.css';
+                //$css[] = $cssPath.$this->theme.'/scorm.css';
+            }
+
+            if (api_is_global_chat_enabled()) {
+                $css[] = api_get_path(WEB_LIBRARY_JS_PATH).'chat/css/chat.css';
+            }
+
+            $css[] = api_get_path(WEB_LIBRARY_JS_PATH).'jquery-ui/css/'.$this->jquery_ui_theme.'/jquery-ui-custom.css';
         }
 
-        if (api_is_global_chat_enabled()) {
-            $css[] = api_get_path(WEB_LIBRARY_PATH).'javascript/chat/css/chat.css';
+        $css[] = api_get_path(WEB_LIBRARY_JS_PATH).'font-awesome/css/font-awesome.css';
+        $css[] = api_get_path(WEB_LIBRARY_JS_PATH).'thickbox.css';
+        $css[] = api_get_path(WEB_LIBRARY_JS_PATH).'pace/pace.css';
+        $css[] = api_get_path(WEB_LIBRARY_JS_PATH).'chosen/chosen.css';
+        $css[] = api_get_path(WEB_LIBRARY_JS_PATH).'tag/style.css';
+
+        // Default theme CSS.
+        $css[] = api_get_cdn_path($cssPath.'themes/'.$this->theme.'/default.css');
+
+        $this->addResource($css, 'css');
+
+        if (!$this->disableJsAndCss) {
+            $style = api_get_css(api_get_cdn_path($cssPath.'themes/'.$this->theme.'/print.css'), 'print');
+            $this->addResource($style, 'no_js_css');
         }
-
-        $css[] = api_get_path(WEB_LIBRARY_PATH).'javascript/jquery-ui/'.$this->jquery_ui_theme.'/jquery-ui-custom.css';
-        $css[] = api_get_path(WEB_LIBRARY_PATH).'javascript/jquery-ui/default.css';
-
-        $css_file_to_string = null;
-        foreach ($css as $file) {
-            $css_file_to_string .= api_get_css($file);
-        }
-
-        // @todo move this somewhere else. Special fix when using tablets in order to see the text near icons
-        if (SHOW_TEXT_NEAR_ICONS == true) {
-            //hack in order to fix the actions buttons
-            $css_file_to_string .= '<style>
-                .td_actions a {
-                    float:left;
-                    width:100%;
-                }
-                .forum_message_left a {
-                    float:left;
-                    width:100%;
-                }
-                </style>';
-        }
-
-        $navigator_info = api_get_navigator();
-        if ($navigator_info['name'] == 'Internet Explorer' && $navigator_info['version'] == '6') {
-            $css_file_to_string .= 'img, div { behavior: url('.api_get_path(
-                WEB_LIBRARY_PATH
-            ).'javascript/iepngfix/iepngfix.htc) } '."\n";
-        }
-
-        if (!$disable_js_and_css_files) {
-            $this->assign('css_file_to_string', $css_file_to_string);
-
-            $style_print = api_get_css(api_get_cdn_path($cssPath.$this->theme.'/print.css'), 'print');
-            $this->assign('css_style_print', $style_print);
-        }
-
-        // Logo
-        $logo = $this->returnLogo($this->theme);
-        $this->assign('logo', $logo);
     }
 
-    /**
-     *
-     */
-    private function set_js_files()
+    public function setJsFiles()
     {
-        global $disable_js_and_css_files, $htmlHeadXtra;
-        //JS files
-        $js_files = array(
-            'modernizr.js',
-            'jquery.min.js',
-            'chosen/chosen.jquery.min.js',
-            'jquery-ui/'.$this->jquery_ui_theme.'/jquery-ui-custom.min.js',
-            //'jquery-ui/jquery.ui.touch-punch.js',
-            'thickbox.js',
-            'ckeditor/ckeditor.js',
-            //'tinymce/tinymce.min.js',
-            'bootstrap/bootstrap.js',
-        );
+        $jsFolder = api_get_path(WEB_LIBRARY_JS_PATH);
 
+        if ($this->app['assetic.enabled']) {
+            $jsFiles = array(
+                api_get_path(WEB_PATH).'web/js/script.js',
+                $jsFolder.'chosen/chosen.jquery.min.js',
+                $jsFolder.'thickbox.js',
+                $jsFolder.'ckeditor/ckeditor.js',
+            );
+        } else {
+            //JS files
+            $jsFiles = array(
+                $jsFolder.'modernizr.js',
+                $jsFolder.'jquery.js',
+                $jsFolder.'chosen/chosen.jquery.min.js',
+                $jsFolder.'jquery-ui/js/jquery-ui.custom.js',
+                $jsFolder.'thickbox.js',
+                $jsFolder.'tag/jquery.fcbkcomplete.js',
+                $jsFolder.'bootstrap/js/bootstrap.js',
+                $jsFolder.'upload.js',
+                $jsFolder.'pace/pace.min.js',
+                $jsFolder.'calendar/tbl_change.js',
+                $jsFolder.'textareacounter/jquery.textareaCounter.plugin.js'
+            );
+        }
+
+        //$this->app['html_editor']->getJavascriptToInclude();
 
         if (api_is_global_chat_enabled()) {
             //Do not include the global chat in LP
             if ($this->show_learnpath == false && $this->show_footer == true && $this->app['template.hide_global_chat'] == false) {
-                $js_files[] = 'chat/js/chat.js';
+                $jsFiles[] = $jsFolder.'chat/js/chat.js';
             }
         }
 
         if (api_get_setting('accessibility_font_resize') == 'true') {
-            $js_files[] = 'fontresize.js';
+            $jsFiles[] = $jsFolder.'fontresize.js';
         }
 
         if (api_get_setting('include_asciimathml_script') == 'true') {
-            $js_files[] = 'asciimath/ASCIIMathML.js';
+            $jsFiles[] = $jsFolder.'asciimath/ASCIIMathML.js';
         }
 
-        $js_file_to_string = null;
-
-        foreach ($js_files as $js_file) {
-            $js_file_to_string .= api_get_js($js_file);
+        if (api_get_setting('disable_copy_paste') == 'true') {
+            $jsFiles[] = $jsFolder.'jquery.nocutcopypaste.js';
         }
+        $this->addResource($jsFiles, 'js');
+    }
 
-        //Loading email_editor js
-        if (!api_is_anonymous() && api_get_setting('allow_email_editor') == 'true') {
-            $js_file_to_string .= $this->fetch($this->app['template_style'].'/mail_editor/email_link.js.tpl');
-        }
+    /**
+     * Get resource list.
+     * @return array
+     */
+    public function getResources()
+    {
+       return $this->resources;
+    }
 
-        //$js_file_to_string = api_get_js_simple(api_get_path(WEB_PATH).'web/js/script.js').$js_file_to_string;
-
-        if (!$disable_js_and_css_files) {
-            $this->assign('js_file_to_string', $js_file_to_string);
-
-            $extra_headers = null;
-            if (isset($htmlHeadXtra) && $htmlHeadXtra) {
-                foreach ($htmlHeadXtra as $this_html_head) {
-                    $extra_headers .= $this_html_head."\n";
-                }
+    /**
+     * Add an item to the resources array.
+     * @param string $resource
+     * @param string $type js or css
+     */
+    public function addResource($resource, $type)
+    {
+        if (is_array($resource)) {
+            if (isset($this->resources[$type])) {
+                $this->resources[$type] = array_merge($this->resources[$type], $resource);
+            } else {
+                $this->resources[$type] = $resource;
             }
-
-            if (isset($this->app['extraJS'])) {
-                foreach ($this->app['extraJS'] as $this_html_head) {
-                    $extra_headers .= $this_html_head."\n";
-                }
-            }
-            $this->assign('extra_headers', $extra_headers);
+        } else {
+            $this->resources[$type][] = $resource;
         }
+    }
+
+    /**
+     * @return string
+     */
+    public function parseResources()
+    {
+        $resourceToString = null;
+
+        foreach ($this->resources as $type => $resources) {
+            switch($type) {
+                case 'js':
+                    if ($this->disableJsAndCss == false) {
+                        foreach($resources as $resource) {
+                            $resourceToString .= api_get_js_simple($resource);
+                        }
+                    }
+                    break;
+                case 'css':
+                    if ($this->disableJsAndCss == false) {
+                        foreach($resources as $resource) {
+                            $resourceToString .= api_get_css($resource);
+                        }
+                    }
+                    break;
+                case 'string':
+                    if ($this->disableJsAndCss == false) {
+                        foreach($resources as $resource) {
+                            $resourceToString .= $resource;
+                        }
+                    }
+                    break;
+                case 'no_js_css':
+                    foreach($resources as $resource) {
+                        $resourceToString .= $resource;
+                    }
+                    break;
+            }
+        }
+        $this->assign('resources', $resourceToString);
     }
 
     /**
@@ -496,7 +581,6 @@ class Template
 
         $nameTools = $this->title;
         $navigation = $this->navigation_array;
-
         $this->menu_navigation = $navigation['menu_navigation'];
 
         $this->assign('system_charset', api_get_system_encoding());
@@ -504,7 +588,7 @@ class Template
         $this->assign('offline_button', Display::return_icon('offline.png'));
 
         // Get language iso-code for this page - ignore errors
-        $this->assign('document_language', api_get_language_isocode());
+        $this->assign('document_language', $this->translator->getLocale());
 
         $course_title = isset($_course['name']) ? $_course['name'] : null;
 
@@ -533,9 +617,9 @@ class Template
 
         $this->assign('title_string', $title_string);
 
-        //Setting the theme and CSS files
-        $this->set_css_files();
-        $this->set_js_files();
+        // Setting the theme and CSS files.
+        $this->setCssFiles();
+        $this->setJsFiles();
 
         // Implementation of prefetch.
         // See http://cdn.chamilo.org/main/img/online.png for details
@@ -556,9 +640,9 @@ class Template
         if (isset($_configuration['multiple_access_urls']) && $_configuration['multiple_access_urls']) {
             $access_url_id = api_get_current_access_url_id();
             if ($access_url_id != -1) {
-                $url_info = api_get_access_url($access_url_id);
+                $url_info = api_get_current_access_url_info();
                 $url = api_remove_trailing_slash(preg_replace('/https?:\/\//i', '', $url_info['url']));
-                $clean_url = replace_dangerous_char($url);
+                $clean_url = api_replace_dangerous_char($url);
                 $clean_url = str_replace('/', '-', $clean_url);
                 $clean_url .= '/';
                 $homep = api_get_path(REL_PATH).'home/'.$clean_url; //homep for Home Path
@@ -578,47 +662,66 @@ class Template
         $notification = $this->returnNotificationMenu();
         $this->assign('notification_menu', $notification);
 
-        //Preparing values for the menu
+        // Profile link.
+        $this->assign('is_profile_editable', api_is_profile_readable());
 
-        //Logout link
-        $this->assign('logout_link', api_get_path(WEB_PUBLIC_PATH).'logout');
+        $visibility = api_is_allowed_to_create_course() ? \SystemAnnouncementManager::VISIBLE_TEACHER : \SystemAnnouncementManager::VISIBLE_STUDENT;
+        $announcements = \SystemAnnouncementManager::getAnnouncements($visibility, null, 'resumed', false, 50);
+        $this->assign('news_counter', count($announcements));
+        $this->assign('news_list', $announcements);
 
-        //Profile link
+        $profile_link = null;
         if (api_get_setting('allow_social_tool') == 'true') {
-            $profile_link = '<a href="'.api_get_path(WEB_CODE_PATH).'social/home.php">'.get_lang('Profile').'</a>';
+            $profile_link = api_get_path(WEB_CODE_PATH).'social/home.php';
         } else {
-            $profile_link = '<a href="'.api_get_path(WEB_CODE_PATH).'auth/profile.php">'.get_lang('Profile').'</a>';
+            if (api_is_profile_readable()) {
+                $profile_link = api_get_path(WEB_CODE_PATH).'auth/profile.php';
+            }
         }
         $this->assign('profile_link', $profile_link);
 
-        //Message link
-        $message_link = null;
+        $this->assign('settings_link', api_get_path(WEB_CODE_PATH).'auth/profile.php');
+
+        // Message link.
+        $messageUrl = null;
         if (api_get_setting('allow_message_tool') == 'true') {
-            $message_link = '<a href="'.api_get_path(WEB_CODE_PATH).'messages/inbox.php">'.get_lang('Inbox').'</a>';
+            $messageUrl = api_get_path(WEB_CODE_PATH).'messages/inbox.php';
         }
-        $this->assign('message_link', $message_link);
+        $this->assign('message_link', $messageUrl);
 
         $institution = api_get_setting('Institution');
         $portal_name = empty($institution) ? api_get_setting('siteName') : $institution;
 
         $this->assign('portal_name', $portal_name);
 
-        //Menu
-        $menu = $this->return_menu();
+        // Menu.
+        $menu = $this->returnMenu();
 
         $this->assign('menu', $menu);
 
-        //Breadcrumb
-        $breadcrumb = $this->returnBreadcrumb();
+        // Breadcrumb
+        if ($this->loadBreadcrumb) {
+            $this->loadBreadcrumbToTemplate();
+        }
 
-        $this->assign('breadcrumb', $breadcrumb);
-
-        //Extra content
+        // Extra content
         $extra_header = null;
         if (!api_is_platform_admin()) {
             $extra_header = trim(api_get_setting('header_extra_content'));
         }
         $this->assign('header_extra_content', $extra_header);
+    }
+
+    /**
+     *
+     */
+    public function loadBreadcrumbToTemplate()
+    {
+        if (api_get_setting('breadcrumb_navigation_display') == 'false') {
+            return;
+        }
+        $breadcrumb = $this->returnBreadcrumb();
+        $this->assign('breadcrumb', $breadcrumb);
     }
 
     /**
@@ -677,45 +780,28 @@ class Template
         if (api_get_setting('show_teacher_data') == 'true') {
             // course manager
             if (isset($courseId) && $courseId != -1 && !empty($courseId)) {
-                $teacher_data = '';
-                $mail = CourseManager::get_emails_of_tutors_to_course($courseId);
-                if (!empty($mail)) {
-                    $teachers_parsed = array();
-                    foreach ($mail as $value) {
-                        foreach ($value as $email => $name) {
-                            $teachers_parsed[] = Display::encrypted_mailto_link($email, $name);
-                        }
-                    }
-                    $label = get_lang('Teacher');
-                    if (count($mail) > 1) {
-                        $label = get_lang('Teachers');
-                    }
-                    $teacher_data .= $label.' : '.ArrayClass::array_to_string($teachers_parsed, CourseManager::USER_SEPARATOR);
+                $courseInfo = api_get_course_info();
+                $teacher_data = null;
+                $label = get_lang('Teacher');
+                if (count($courseInfo['teacher_list']) > 1) {
+                    $label = get_lang('Teachers');
                 }
+                $teacher_data .= $label.' : '.$courseInfo['teacher_list_formatted'];
                 $this->assign('teachers', $teacher_data);
             }
         }
     }
 
-    function show_header_template()
-    {
-        $tpl = $this->get_template('layout/show_header.tpl');
-        $this->display($tpl);
-    }
-
-    public function show_footer_template()
-    {
-        $tpl = $this->get_template('layout/show_footer.tpl');
-        $this->display($tpl);
-    }
-
-    public function manage_display($content)
+    public function manageDisplay($content)
     {
         //$this->assign('content', $content);
     }
 
-    /* Sets the plugin content in a template variable */
-   private function set_plugin_region($plugin_region)
+    /**
+     * Sets the plugin content in a template variable
+     * @param string
+     */
+    private function set_plugin_region($plugin_region)
     {
         if (!empty($plugin_region)) {
             $region_content = $this->plugin->load_region($this->app['plugins'], $plugin_region, $this, $this->force_plugin_load);
@@ -725,15 +811,22 @@ class Template
                 $this->assign('plugin_'.$plugin_region, null);
             }
         }
-        return null;
     }
 
+    /**
+     * @param string $template
+     * @return mixed
+     */
     public function fetch($template = null)
     {
         $template = $this->app['twig']->loadTemplate($template);
         return $template->render(array());
     }
 
+    /**
+     * @param string $key
+     * @param mixed $value
+     */
     public function assign($key, $value = null)
     {
         if ($this->app['allowed'] == true) {
@@ -741,27 +834,20 @@ class Template
         }
     }
 
+    /**
+     * @param string $template
+     */
     public function display($template = null)
     {
         if (!empty($template)) {
             $this->app['default_layout'] = $template;
         }
-        $this->app->run();
     }
 
-    function show_page_loaded_info()
-    {
-        //@todo will be removed before a stable release
-        $mtime = microtime();
-        $mtime = explode(" ", $mtime);
-        $mtime = $mtime[1] + $mtime[0];
-        error_log('--------------------------------------------------------');
-        error_log("Page loaded in:".($mtime - START));
-        error_log("memory_get_usage: ".Text::format_file_size(memory_get_usage(true)));
-        error_log("memory_get_peak_usage: ".Text::format_file_size(memory_get_peak_usage(true)));
-    }
-
-    function return_menu()
+    /**
+     * @return null|string
+     */
+    public function returnMenu()
     {
         $navigation = $this->navigation_array;
         $navigation = $navigation['navigation'];
@@ -769,14 +855,14 @@ class Template
         // Displaying the tabs
         $lang = api_get_user_language();
 
-        //Preparing home folder for multiple urls
+        // Preparing home folder for multiple urls
 
         if (api_get_multiple_access_url()) {
             $access_url_id = api_get_current_access_url_id();
             if ($access_url_id != -1) {
-                $url_info = api_get_access_url($access_url_id);
+                $url_info = api_get_current_access_url_info();
                 $url = api_remove_trailing_slash(preg_replace('/https?:\/\//i', '', $url_info['url']));
-                $clean_url = replace_dangerous_char($url);
+                $clean_url = api_replace_dangerous_char($url);
                 $clean_url = str_replace('/', '-', $clean_url);
                 $clean_url .= '/';
                 $homep = api_get_path(SYS_DATA_PATH).'home/'.$clean_url; //homep for Home Path
@@ -797,10 +883,7 @@ class Template
             $home_top = @(string)file_get_contents($homep.$menutabs.'_'.$lang.$ext);
         } elseif (is_file($homep.$menutabs.$lang.$ext) && is_readable($homep.$menutabs.$lang.$ext)) {
             $home_top = @(string)file_get_contents($homep.$menutabs.$lang.$ext);
-        } else {
-            //$errorMsg = get_lang('HomePageFilesNotReadable');
         }
-
         $home_top = api_to_system_encoding($home_top, api_detect_encoding(strip_tags($home_top)));
 
         $open = str_replace('{rel_path}', api_get_path(REL_PATH), $home_top);
@@ -814,7 +897,6 @@ class Template
                     $navigation[SECTION_CAMPUS] = null;
                 }
             } else {
-                //$lis .= Display::tag('li', $open);
                 $lis .= $open;
             }
         }
@@ -841,41 +923,60 @@ class Template
         return $menu;
     }
 
-    function returnNavigationLinks()
+    /**
+     * @return string
+     */
+    public function getNavigationLinks()
     {
-        $html = '';
-
-        // Deleting the myprofile link.
+        // Deleting the my profile link.
         if (api_get_setting('allow_social_tool') == 'true') {
             unset($this->menu_navigation['myprofile']);
         }
-
-        // Main navigation section.
-        // Tabs that are deactivated are added here.
-        if (!empty($this->menu_navigation)) {
-            $content = '<ul class="nav nav-list">';
-            foreach ($this->menu_navigation as $section => $navigation_info) {
-                $current = isset($GLOBALS['this_section']) && $section == $GLOBALS['this_section'] ? ' id="current"' : '';
-                $content .= '<li'.$current.'>';
-                $content .= '<a href="'.$navigation_info['url'].'" target="_self">'.$navigation_info['title'].'</a>';
-                $content .= '</li>';
-            }
-            $content .= '</ul>';
-            $html = $this->app['page_controller']->show_right_block(get_lang('MainNavigation'), $content, 'navigation_link_block');
-        }
-        return $html;
+        return $this->menu_navigation;
     }
 
-    function render_layout($layout = null)
+    /**
+     * @param string $layout
+     * @return mixed
+     */
+    public function renderLayout($layout = null)
     {
         if (empty($layout)) {
             $layout = $this->app['default_layout'];
         }
+        $this->parseResources();
         return $this->app['twig']->render($this->app['template_style'].'/layout/'.$layout);
     }
 
-    function render_template($template, $elements = array())
+    /**
+     * @param string $layout
+     * @deprecated use renderLayout
+     * @return mixed
+     */
+    public function render_layout($layout = null)
     {
+        return $this->renderLayout($layout);
+    }
+
+    /**
+     * @param string $template
+     * @param array $elements
+     * @deprecated use renderTemplate
+     * @return mixed
+     */
+    public function render_template($template, $elements = array())
+    {
+        return $this->renderTemplate($template, $elements);
+    }
+
+    /**
+     * @param string $template
+     * @param array $elements
+     * @return mixed
+     */
+    public function renderTemplate($template, $elements = array())
+    {
+        $this->parseResources();
         return $this->app['twig']->render($this->app['template_style'].'/'.$template, $elements);
     }
 
@@ -888,31 +989,24 @@ class Template
      * @return array containing all the possible tabs
      * @author Patrick Cool <patrick.cool@UGent.be>, Ghent University
      */
-    function getTabs()
+    public function getTabs()
     {
         $_course = api_get_course_info();
-
         $navigation = array();
 
         // Campus Homepage
-        $navigation[SECTION_CAMPUS]['url'] = api_get_path(WEB_PATH).'index.php';
+        $navigation[SECTION_CAMPUS]['url'] = api_get_path(WEB_PUBLIC_PATH).'index';
         $navigation[SECTION_CAMPUS]['title'] = get_lang('CampusHomepage');
 
         // My Courses
-
-        if (api_is_allowed_to_create_course()) {
-            // Link to my courses for teachers
-            $navigation['mycourses']['url'] = api_get_path(WEB_PATH).'user_portal.php?nosession=true';
-            $navigation['mycourses']['title'] = get_lang('MyCourses');
-        } else {
-            // Link to my courses for students
-            $navigation['mycourses']['url'] = api_get_path(WEB_PATH).'user_portal.php';
-            $navigation['mycourses']['title'] = get_lang('MyCourses');
-        }
+        $navigation['mycourses']['url'] = api_get_path(WEB_PUBLIC_PATH).'userportal';
+        $navigation['mycourses']['title'] = get_lang('MyCourses');
 
         // My Profile
-        $navigation['myprofile']['url'] = api_get_path(WEB_CODE_PATH).'auth/profile.php'.(!empty($_course['path']) ? '?coursePath='.$_course['path'].'&amp;courseCode='.$_course['official_code'] : '');
-        $navigation['myprofile']['title'] = get_lang('ModifyProfile');
+        if (api_is_profile_readable()) {
+            $navigation['myprofile']['url'] = api_get_path(WEB_CODE_PATH).'auth/profile.php'.(!empty($_course['path']) ? '?coursePath='.$_course['path'].'&amp;courseCode='.$_course['official_code'] : '');
+            $navigation['myprofile']['title'] = get_lang('ModifyProfile');
+        }
 
         // Link to my agenda
         $navigation['myagenda']['url'] = api_get_path(WEB_CODE_PATH).'calendar/agenda_js.php?type=personal';
@@ -929,14 +1023,13 @@ class Template
         // Reporting
         if (api_is_allowed_to_create_course() || api_is_drh() || api_is_session_admin()) {
             // Link to my space
-            $navigation['session_my_space']['url'] = api_get_path(WEB_CODE_PATH).'mySpace/';
+            $navigation['session_my_space']['url'] = api_get_path(WEB_CODE_PATH).'mySpace/index.php';
             $navigation['session_my_space']['title'] = get_lang('MySpace');
         } else {
             // Link to my progress
             $navigation['session_my_progress']['url'] = api_get_path(WEB_CODE_PATH).'auth/my_progress.php';
             $navigation['session_my_progress']['title'] = get_lang('MyProgress');
         }
-
 
         // Social
         if (api_get_setting('allow_social_tool') == 'true') {
@@ -950,13 +1043,6 @@ class Template
             $navigation['dashboard']['title'] = get_lang('Dashboard');
         }
 
-        // Reports
-        /*
-        if (api_is_platform_admin() || api_is_drh() || api_is_session_admin()) {
-            $navigation['reports']['url'] = api_get_path(WEB_CODE_PATH).'reports/index.php';
-            $navigation['reports']['title'] = get_lang('Reports');
-        }*/
-
         // Custom tabs
         for ($i = 1; $i <= 3; $i++) {
             if (api_get_setting('custom_tab_'.$i.'_name') && api_get_setting('custom_tab_'.$i.'_url')) {
@@ -965,25 +1051,44 @@ class Template
             }
         }
 
-        // Platform administration
-        if (api_is_platform_admin(true)) {
-            $navigation['platform_admin']['url'] = api_get_path(WEB_CODE_PATH).'admin/';
-            $navigation['platform_admin']['title'] = get_lang('PlatformAdmin');
-        }
+        // Adding block settings for each role
+        if (isset($this->app['allow_admin_toolbar'])) {
+            $roleTemplate = array();
+            foreach ($this->app['allow_admin_toolbar'] as $role) {
+                if ($this->security->getToken() && $this->security->isGranted($role)) {
+                    // Fixes in order to match the templates
+                    if ($role == 'ROLE_ADMIN') {
+                        $role = 'administrator';
+                    }
+                    if ($role == 'ROLE_QUESTION_MANAGER') {
+                        $role = 'QUESTIONMANAGER';
+                    }
+                    $stripRole = strtolower(str_replace('ROLE_', '', $role));
+                    $roleTemplate[] = $stripRole;
+                }
+            }
 
-        if (api_is_question_manager()) {
-            $navigation['question_manager']['url'] = api_get_path(WEB_PUBLIC_PATH).'admin/questionmanager';
-            $navigation['question_manager']['title'] = get_lang('PlatformAdmin');
+            if (!empty($roleTemplate)) {
+                if (api_get_setting('show_tabs', 'platform_administration') == 'true') {
+                    //$navigation['admin']['url'] = api_get_path(WEB_PUBLIC_PATH).'admin';
+                    //$navigation['admin']['title'] = get_lang('PlatformAdmin');
+                }
+            }
+            $this->app['admin_toolbar_roles'] = $roleTemplate;
         }
-
         return $navigation;
     }
 
-    function returnLogo($theme)
+    /**
+     * @param string $theme
+     * @deprecated the logo is wrote in the main_header.tpl file
+     * @return string
+     */
+    public function returnLogo($theme)
     {
         $_course = api_get_course_info();
         $html = '';
-        $logo = api_get_path(SYS_CODE_PATH).'css/'.$theme.'/images/header-logo.png';
+        $logo = api_get_path(SYS_CSS_PATH).'themes/'.$theme.'/images/header-logo.png';
 
         $site_name = api_get_setting('siteName');
         if (file_exists($logo)) {
@@ -1014,25 +1119,13 @@ class Template
             }
         }
 
-        /* //  Course title section
-         if (!empty($_cid) and $_cid != -1 and isset($_course)) {
-             //Put the name of the course in the header
-             $html .= '<div id="my_courses">';
-             $html .= '</div>';
-         } elseif (isset($nameTools) && $language_file != 'course_home') {
-             //Put the name of the user-tools in the header
-             if (!isset($user_id)) {
-                 //echo '<div id="my_courses"></div>';
-             } elseif (!$noPHP_SELF) {
-                 $html .= '<div id="my_courses"><a href="'.api_get_self().'?'.api_get_cidreq(). '" target="_top">'.$nameTools.'</a></div>';
-             } else {
-                 $html .= '<div id="my_courses">'.$nameTools.'</div>';
-             }
-         }*/
         return $html;
     }
 
-    function returnNotificationMenu()
+    /**
+     * @return string
+     */
+    public function returnNotificationMenu()
     {
         $_course = api_get_course_info();
         $course_id = api_get_course_id();
@@ -1040,10 +1133,9 @@ class Template
 
         $html = '';
 
-        if ((api_get_setting('showonline', 'world') == 'true' AND !$user_id) OR (api_get_setting(
-            'showonline',
-            'users'
-        ) == 'true' AND $user_id) OR (api_get_setting('showonline', 'course') == 'true' AND $user_id AND $course_id)
+        if ((api_get_setting('showonline', 'world') == 'true' AND !$user_id) OR
+            (api_get_setting('showonline', 'users') == 'true' AND $user_id) OR
+            (api_get_setting('showonline', 'course') == 'true' AND $user_id AND $course_id)
         ) {
             $number = Online::who_is_online_count(api_get_setting('time_limit_whosonline'));
 
@@ -1058,10 +1150,8 @@ class Template
 
             // Display the who's online of the platform
             if ($number) {
-                if ((api_get_setting('showonline', 'world') == 'true' AND !$user_id) OR (api_get_setting(
-                    'showonline',
-                    'users'
-                ) == 'true' AND $user_id)
+                if ((api_get_setting('showonline', 'world') == 'true' AND !$user_id) OR
+                    (api_get_setting('showonline', 'users' ) == 'true' AND $user_id)
                 ) {
                     $html .= '<li><a href="'.SocialManager::getUserOnlineLink().'" target="_top" title="'.get_lang(
                         'UsersOnline'
@@ -1077,10 +1167,9 @@ class Template
 
             // Display the who's online for the course
             if ($number_online_in_course) {
-                if (is_array($_course) AND api_get_setting(
-                    'showonline',
-                    'course'
-                ) == 'true' AND isset($_course['sysCode'])
+                if (is_array($_course) AND
+                    api_get_setting('showonline', 'course' ) == 'true' AND
+                    isset($_course['sysCode'])
                 ) {
                     $html .= '<li><a href="'.SocialManager::getUserOnlineLink($_course['sysCode']).'" target="_top">'.
                         Display::return_icon(
@@ -1093,15 +1182,17 @@ class Template
             }
 
             // Display the who's online for the session
-            if (isset($user_id) && api_get_session_id() != 0) {
-                if (api_is_allowed_to_edit()) {
-                    $html .= '<li><a href="'.SocialManager::getUserOnlineLink(null, api_get_session_id()).'&id_coach='.$user_id.'" >'.
-                        Display::return_icon(
-                            'session.png',
-                            get_lang('UsersConnectedToMySessions'),
-                            array(),
-                            ICON_SIZE_TINY
-                        ).' </a></li>';
+            if (api_get_setting('showonline', 'session') == 'true') {
+                if (isset($user_id) && api_get_session_id() != 0) {
+                    if (api_is_allowed_to_edit()) {
+                        $html .= '<li><a href="'.SocialManager::getUserOnlineLink(null, api_get_session_id()).'&id_coach='.$user_id.'" >'.
+                            Display::return_icon(
+                                'session.png',
+                                get_lang('UsersConnectedToMySessions'),
+                                array(),
+                                ICON_SIZE_TINY
+                            ).' </a></li>';
+                    }
                 }
             }
         }
@@ -1118,6 +1209,11 @@ class Template
         return $html;
     }
 
+    /**
+     * Gets the main menu
+     *
+     * @return array
+     */
     public function returnNavigationArray()
     {
         $navigation = array();
@@ -1125,48 +1221,52 @@ class Template
         $possible_tabs = $this->getTabs();
 
         // Campus Homepage
-        if (api_get_setting('show_tabs', 'campus_homepage') == 'true') {
+        /*if (api_get_setting('show_tabs', 'campus_homepage') == 'true') {
             $navigation[SECTION_CAMPUS] = $possible_tabs[SECTION_CAMPUS];
         } else {
             $menu_navigation[SECTION_CAMPUS] = $possible_tabs[SECTION_CAMPUS];
-        }
+        }*/
 
         if (api_get_user_id() && !api_is_anonymous()) {
-
             // My Courses
-            if (api_get_setting('show_tabs', 'my_courses') == 'true') {
+            /*if (api_get_setting('show_tabs', 'my_courses') == 'true') {
                 $navigation['mycourses'] = $possible_tabs['mycourses'];
             } else {
                 $menu_navigation['mycourses'] = $possible_tabs['mycourses'];
-            }
+            }*/
 
             // My Profile
-            if (api_get_setting('show_tabs', 'my_profile') == 'true' && api_get_setting(
-                'allow_social_tool'
-            ) != 'true'
-            ) {
-                $navigation['myprofile'] = $possible_tabs['myprofile'];
+            /*
+            if (api_get_setting('show_tabs', 'my_profile') == 'true' && api_get_setting('allow_social_tool') != 'true') {
+                if (isset($possible_tabs['myprofile'])) {
+                    $navigation['myprofile'] = $possible_tabs['myprofile'];
+                }
             } else {
-                $menu_navigation['myprofile'] = $possible_tabs['myprofile'];
-            }
+                if (isset($possible_tabs['myprofile'])) {
+                    $menu_navigation['myprofile'] = $possible_tabs['myprofile'];
+                }
+            }*/
 
             // My Agenda
+            /*
             if (api_get_setting('show_tabs', 'my_agenda') == 'true') {
                 $navigation['myagenda'] = $possible_tabs['myagenda'];
             } else {
                 $menu_navigation['myagenda'] = $possible_tabs['myagenda'];
-            }
+            }*/
 
             // Gradebook
+            /*
             if (api_get_setting('gradebook_enable') == 'true') {
                 if (api_get_setting('show_tabs', 'my_gradebook') == 'true') {
                     $navigation['mygradebook'] = $possible_tabs['mygradebook'];
                 } else {
                     $menu_navigation['mygradebook'] = $possible_tabs['mygradebook'];
                 }
-            }
+            }*/
 
             // Reporting
+            /*
             if (api_get_setting('show_tabs', 'reporting') == 'true') {
                 if (api_is_allowed_to_create_course() || api_is_drh() || api_is_session_admin()) {
                     $navigation['session_my_space'] = $possible_tabs['session_my_space'];
@@ -1179,8 +1279,8 @@ class Template
                 } else {
                     $menu_navigation['session_my_space'] = $possible_tabs['session_my_progress'];
                 }
-            }
-
+            }*/
+/*
             // Social Networking
             if (api_get_setting('show_tabs', 'social') == 'true') {
                 if (api_get_setting('allow_social_tool') == 'true') {
@@ -1189,29 +1289,21 @@ class Template
             } else {
                 $menu_navigation['social'] = isset($possible_tabs['social']) ? $possible_tabs['social'] : null;
             }
-
+*/
             // Dashboard
+            /*
             if (api_get_setting('show_tabs', 'dashboard') == 'true') {
                 if (api_is_platform_admin() || api_is_drh() || api_is_session_admin()) {
                     $navigation['dashboard'] = $possible_tabs['dashboard'];
                 }
             } else {
                 $menu_navigation['dashboard'] = isset($possible_tabs['dashboard']) ? $possible_tabs['dashboard'] : null;
-            }
+            }*/
 
-            // Administration
-            if (api_is_platform_admin(true)) {
-                if (api_get_setting('show_tabs', 'platform_administration') == 'true') {
-                    $navigation['platform_admin'] = $possible_tabs['platform_admin'];
-                } else {
-                    $menu_navigation['platform_admin'] = $possible_tabs['platform_admin'];
-                }
+            if (isset($possible_tabs['admin'])) {
+                $navigation['platform_admin'] = $possible_tabs['admin'];
+                $navigation['platform_admin'] = $possible_tabs['admin'];
             }
-
-            if (api_is_question_manager()) {
-                $navigation['question_manager'] = $possible_tabs['question_manager'];
-            }
-
 
             // Reports
             if (!empty($possible_tabs['reports'])) {
@@ -1240,17 +1332,18 @@ class Template
                 }
             }
         }
+
         $return = array(
             'menu_navigation' => $menu_navigation,
             'navigation' => $navigation,
             'possible_tabs' => $possible_tabs
         );
+
         return $return;
     }
 
     /**
      * Return breadcrumb
-     * @param array $interbreadcrumb
      * @return string
      */
     public function returnBreadcrumb()
@@ -1260,8 +1353,6 @@ class Template
         $session_id = api_get_session_id();
         $session_name = api_get_session_name($session_id);
         $_course = api_get_course_info();
-        $user_id = api_get_user_id();
-        $course_id = api_get_course_id();
 
         /*  Plugins for banner section */
         $web_course_path = api_get_path(WEB_COURSE_PATH);
@@ -1315,8 +1406,9 @@ class Template
             $navigation[] = $navigation_item;
         }
 
-        // part 2: Interbreadcrumbs.
-        //If there is an array $interbreadcrumb defined then these have to appear before the last breadcrumb (which is the tool itself)
+        // Part 2: breadcrumbs.
+        // If there is an array $interbreadcrumb defined then these have to appear before the last breadcrumb
+        // (which is the tool itself)
         if (isset($interbreadcrumb) && is_array($interbreadcrumb)) {
             foreach ($interbreadcrumb as $breadcrumb_step) {
                 if ($breadcrumb_step['url'] != '#') {
@@ -1347,7 +1439,7 @@ class Template
                 } elseif ($breadcrumb_step['name'] == 'gallery') {
                     $navigation_item['title'] = get_lang('Gallery');
                 }
-                //Fixes breadcrumb title now we applied the Security::remove_XSS and we cut the string depending of the MAX_LENGTH_BREADCRUMB value
+                // Fixes breadcrumb title now we applied the Security::remove_XSS and we cut the string depending of the MAX_LENGTH_BREADCRUMB value
 
                 $navigation_item['title'] = Text::cut($navigation_item['title'], MAX_LENGTH_BREADCRUMB);
                 $navigation_item['title'] = Security::remove_XSS($navigation_item['title']);
@@ -1355,16 +1447,15 @@ class Template
             }
         }
 
-
         // part 3: The tool itself. If we are on the course homepage we do not want to display the title of the course because this
         // is the same as the first part of the breadcrumbs (see part 1)
 
         $final_navigation = array();
         $counter = 0;
+        $navigation[] = array('url' => '#', 'title' => strip_tags($this->title));
 
         foreach ($navigation as $index => $navigation_info) {
             if (!empty($navigation_info['title'])) {
-
                 if ($navigation_info['url'] == '#') {
                     $final_navigation[$index] = $navigation_info['title'];
                 } else {
@@ -1375,26 +1466,11 @@ class Template
         }
 
         $html = '';
-
-        /* Part 4 . Show the teacher view/student view button at the right of the breadcrumb */
-        $view_as_student_link = null;
-        if ($user_id && isset($course_id)) {
-            if ((api_is_course_admin() || api_is_course_coach() || api_is_platform_admin()) && api_get_setting(
-                'student_view_enabled'
-            ) == 'true'
-            ) {
-                $view_as_student_link = api_display_tool_view_option();
-            }
-        }
-
         if (!empty($final_navigation)) {
             $lis = '';
             $i = 0;
-            $final_navigation_count = count($final_navigation);
 
             if (!empty($final_navigation)) {
-                // $home_link.= '<span class="divider">/</span>';
-
                 if (!empty($home_link)) {
                     $lis .= Display::tag('li', $home_link);
                 }
@@ -1402,9 +1478,6 @@ class Template
                 foreach ($final_navigation as $bread) {
                     $bread_check = trim(strip_tags($bread));
                     if (!empty($bread_check)) {
-                        if ($final_navigation_count - 1 > $i) {
-                            $bread .= '<span class="divider">/</span>';
-                        }
                         $lis .= Display::tag('li', $bread);
                         $i++;
                     }
@@ -1414,20 +1487,22 @@ class Template
                     $lis .= Display::tag('li', $home_link);
                 }
             }
-
-            // View as student/teacher link
-            if (!empty($view_as_student_link)) {
-                $lis .= Display::tag(
-                    'li',
-                    $view_as_student_link,
-                    array('id' => 'view_as_link', 'class' => 'pull-right')
-                );
-            }
-
-            if (!empty($lis)) {
-                $html .= Display::tag('ul', $lis, array('class' => 'breadcrumb'));
-            }
+            $html .= $lis;
         }
         return $html;
+    }
+
+    /**
+     * Returns a list of directories inside CSS
+     * @return array
+     */
+    public function getStyleSheetFolderList()
+    {
+        $dirs = $this->app['chamilo.filesystem']->getStyleSheetFolders();
+        $themes = array();
+        foreach ($dirs as $dir) {
+            $themes[] = $dir->getFilename();
+        }
+        return $themes;
     }
 }

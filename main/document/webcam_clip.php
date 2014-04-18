@@ -91,7 +91,7 @@ if (isset ($_SESSION['_gid']) && $_SESSION['_gid'] != 0) {
 
 $interbreadcrumb[] = array ("url" => "./document.php?id=".$document_id.$req_gid, "name" => get_lang('Documents'));
 
-if (!($is_allowed_to_edit || $_SESSION['group_member_with_upload_rights'] || is_my_shared_folder(api_get_user_id(), Security::remove_XSS($dir),api_get_session_id()))) {
+if (!($is_allowed_to_edit || GroupManager::groupMemberWithUploadRights() || is_my_shared_folder(api_get_user_id(), Security::remove_XSS($dir),api_get_session_id()))) {
 	api_not_allowed(true);
 }
 
@@ -145,7 +145,7 @@ echo '</div>';
 	<script language="JavaScript">
 		var clip_filename='video_clip.jpg';
 		//var clip_filename='<?php //echo date('YmdHis') . '.jpg'; ?>';
-		webcam.set_swf_url ( '<?php echo api_get_path(WEB_LIBRARY_PATH); ?>jpegcam//webcam.swf?blackboard.png' );
+		webcam.set_swf_url ( '<?php echo api_get_path(WEB_LIBRARY_PATH); ?>jpegcam/webcam.swf?blackboard.png' );
 		webcam.set_shutter_sound( true,'<?php echo api_get_path(WEB_LIBRARY_PATH); ?>jpegcam/shutter.mp3' ); // true play shutter click sound
 		webcam.set_quality( 90 ); // JPEG quality (1 - 100)
 		webcam.set_api_url( '<?php echo api_get_path(WEB_LIBRARY_PATH); ?>jpegcam/webcam_receiver.php?webcamname='+escape(clip_filename)+'&webcamdir=<?php echo $webcamdir; ?>&webcamuserid=<?php echo $webcamuserid; ?>' );

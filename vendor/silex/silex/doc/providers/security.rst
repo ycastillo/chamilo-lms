@@ -7,7 +7,8 @@ your applications.
 Parameters
 ----------
 
-n/a
+* **security.hide_user_not_found** (optional): Defines whether to hide user not
+  found exception or not. Defaults to ``true``.
 
 Services
 --------
@@ -60,7 +61,7 @@ Registering
     .. code-block:: json
 
         "require": {
-            "symfony/security": "~2.1"
+            "symfony/security": "~2.3"
         }
 
 .. caution::
@@ -71,12 +72,17 @@ Registering
 
         $application->boot();
 
+.. caution::
+
+    If you're using a form to authenticate users, you need to enable
+    ``SessionServiceProvider``.
+
 Usage
 -----
 
 The Symfony Security component is powerful. To learn more about it, read the
 `Symfony2 Security documentation
-<http://symfony.com/doc/2.1/book/security.html>`_.
+<http://symfony.com/doc/2.3/book/security.html>`_.
 
 .. tip::
 
@@ -159,9 +165,9 @@ Using a form to authenticate users is very similar to the above configuration.
 Instead of using the ``http`` setting, use the ``form`` one and define these
 two parameters:
 
-* **login_path**: The login path where the user is redirected when he is
-  accessing a secured area without being authenticated so that he can enter
-  his credentials;
+* **login_path**: The login path where the user is redirected when they are
+  accessing a secured area without being authenticated so that they can enter
+  their credentials;
 
 * **check_path**: The check URL used by Symfony to validate the credentials of
   the user.
@@ -371,7 +377,7 @@ parameter to any URL when logged in as a user who has the
 
 You can check that you are impersonating a user by checking the special
 ``ROLE_PREVIOUS_ADMIN``. This is useful for instance to allow the user to
-switch back to his primary account:
+switch back to their primary account:
 
 .. code-block:: jinja
 

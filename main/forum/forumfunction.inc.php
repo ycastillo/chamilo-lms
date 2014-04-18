@@ -248,17 +248,8 @@ function show_add_forum_form($inputvalues = array(), $lp_id)
         $group[] = $form->createElement('radio', 'allow_anonymous', null, get_lang('No'), 0);
         $form->addGroup($group, 'allow_anonymous_group', get_lang('AllowAnonymousPosts'), '&nbsp;');
     }
-
-    $form->addElement(
-        'advanced_settings',
-        '<a href="javascript://" onclick="advanced_parameters()" ><span id="plus_minus">&nbsp;'.Display::return_icon(
-            'div_show.gif',
-            get_lang('Show'),
-            array('style' => 'vertical-align:middle')
-        ).'&nbsp;'.get_lang('AdvancedParameters').'</span></a>',
-        ''
-    );
-    $form->addElement('html', '<div id="options" style="display:none">');
+    $form->addElement('advanced_settings', 'options', get_lang('AdvancedParameters'));
+    $form->addElement('html', '<div id="options_options" style="display:none">');
 
     $group = array();
     $group[] = $form->createElement('radio', 'students_can_edit', null, get_lang('Yes'), 1);
@@ -481,16 +472,13 @@ function show_edit_forumcategory_form($inputvalues = array())
 function store_forumcategory($values)
 {
     $_course = api_get_course_info();
-    global $_user;
 
     $course_id = api_get_course_int_id();
 
     $table_categories = Database::get_course_table(TABLE_FORUM_CATEGORY);
 
     // Find the max cat_order. The new forum category is added at the end => max cat_order + &
-    $sql = "SELECT MAX(cat_order) as sort_max FROM ".Database::escape_string(
-        $table_categories
-    )." WHERE c_id = $course_id";
+    $sql = "SELECT MAX(cat_order) as sort_max FROM $table_categories WHERE c_id = $course_id";
     $result = Database::query($sql);
     $row = Database::fetch_array($result);
     $new_max = $row['sort_max'] + 1;
@@ -528,7 +516,7 @@ function store_forumcategory($values)
                 'ForumCategoryAdded',
                 api_get_user_id()
             );
-            api_set_default_visibility($last_id, TOOL_FORUM_CATEGORY);
+            api_set_default_visibility($_course, $last_id, TOOL_FORUM_CATEGORY);
         }
         $return_message = get_lang('ForumCategoryAdded');
     }
@@ -710,7 +698,7 @@ function store_forum($values)
         $last_id = Database::insert_id();
         if ($last_id > 0) {
             api_item_property_update($_course, TOOL_FORUM, $last_id, 'ForumAdded', api_get_user_id(), $group_id);
-            api_set_default_visibility($last_id, TOOL_FORUM, $group_id);
+            api_set_default_visibility($_course, $last_id, TOOL_FORUM, $group_id);
         }
         $return_message = get_lang('ForumAdded');
     }
@@ -1184,7 +1172,7 @@ function move_up_down($content, $direction, $id)
 
     // The SQL statement
     if ($content == 'forumcategory') {
-        $sql = "SELECT * FROM".$table_categories." forum_categories, ".$table_item_property." item_properties
+        $sql = "SELECT * FROM ".$table_categories." forum_categories, ".$table_item_property." item_properties
                 WHERE
                 forum_categories.c_id = $course_id AND
                 item_properties.c_id = $course_id AND
@@ -1193,7 +1181,7 @@ function move_up_down($content, $direction, $id)
                 ORDER BY forum_categories.cat_order $sort_direction";
     }
     if ($content == 'forum') {
-        $sql = "SELECT * FROM".$table." WHERE c_id = $course_id AND forum_category='".Database::escape_string(
+        $sql = "SELECT * FROM ".$table." WHERE c_id = $course_id AND forum_category='".Database::escape_string(
             $forum_category
         )."' ORDER BY forum_order $sort_direction";
     }
@@ -1271,20 +1259,20 @@ function get_forum_categories($id = '')
     $condition_session .= "AND forum_categories.c_id = $course_id AND item_properties.c_id = $course_id";
 
     if ($id == '') {
-        $sql = "SELECT * FROM".$table_categories." forum_categories, ".$table_item_property." item_properties
+        $sql = "SELECT * FROM ".$table_categories." forum_categories, ".$table_item_property." item_properties
                     WHERE forum_categories.cat_id=item_properties.ref
                     AND item_properties.visibility=1
                     AND item_properties.tool='".TOOL_FORUM_CATEGORY."' $condition_session
                     ORDER BY forum_categories.cat_order ASC";
         if (is_allowed_to_edit()) {
-            $sql = "SELECT * FROM".$table_categories." forum_categories, ".$table_item_property." item_properties
+            $sql = "SELECT * FROM ".$table_categories." forum_categories, ".$table_item_property." item_properties
                     WHERE forum_categories.cat_id=item_properties.ref
                     AND item_properties.visibility<>2
                     AND item_properties.tool='".TOOL_FORUM_CATEGORY."' $condition_session
                     ORDER BY forum_categories.cat_order ASC";
         }
     } else {
-        $sql = "SELECT * FROM".$table_categories." forum_categories, ".$table_item_property." item_properties
+        $sql = "SELECT * FROM ".$table_categories." forum_categories, ".$table_item_property." item_properties
                 WHERE forum_categories.cat_id=item_properties.ref
                 AND item_properties.tool='".TOOL_FORUM_CATEGORY."'
                 AND forum_categories.cat_id='".Database::escape_string($id)."' $condition_session
@@ -2180,7 +2168,7 @@ function store_thread($values)
             // to make the thread visible AND the post.
 
             //Default behaviour
-            api_set_default_visibility($last_thread_id, TOOL_FORUM_THREAD);
+            api_set_default_visibility($_course, $last_thread_id, TOOL_FORUM_THREAD);
 
             if ($visible == 0) {
                 api_item_property_update($_course, TOOL_FORUM_THREAD, $last_thread_id, 'invisible', api_get_user_id());
@@ -2347,17 +2335,8 @@ function show_add_post_form($action = '', $id = '', $form_values = '')
     );
 
     $form->addRule('post_text', get_lang('ThisFieldIsRequired'), 'required');
-    $form->addElement(
-        'advanced_settings',
-        '<a href="javascript://" onclick="return advanced_parameters()">
-    						  <span id="img_plus_and_minus">&nbsp;'.Display::return_icon(
-            'div_show.gif',
-            get_lang('Show'),
-            array('style' => 'vertical-align:middle')
-        ).' '.get_lang('AdvancedParameters').'</span></a>'
-    );
-
-    $form->addElement('html', '<div id="id_qualify" style="display:none">');
+    $form->addElement('advanced_settings', 'id_qualify', get_lang('AdvancedParameters'));
+    $form->addElement('html', '<div id="id_qualify_options" style="display:none">');
 
     if ((api_is_course_admin() || api_is_course_coach() || api_is_course_tutor()) && !($my_thread)) {
 
@@ -2877,16 +2856,8 @@ function show_edit_post_form($current_post, $current_thread, $current_forum, $fo
             : array('ToolbarSet' => 'ForumStudent', 'Width' => '100%', 'Height' => '400', 'UserStatus' => 'student')
     );
     $form->addRule('post_text', get_lang('ThisFieldIsRequired'), 'required');
-    $form->addElement(
-        'advanced_settings',
-        '<a href="javascript://" onclick="return advanced_parameters()"><span id="img_plus_and_minus">'.Display::return_icon(
-            'div_show.gif',
-            get_lang('Show'),
-            array('style' => 'vertical-align:middle')
-        ).''.get_lang('AdvancedParameters').'</span></a>'
-    );
-
-    $form->addElement('html', '<div id="id_qualify" style="display:none">');
+    $form->addElement('advanced_settings', 'id_qualify', get_lang('AdvancedParameters'));
+    $form->addElement('html', '<div id="id_qualify_options" style="display:none">');
 
     if (!isset($_GET['edit'])) {
         if (Gradebook::is_active()) {
@@ -3198,9 +3169,7 @@ function display_user_image($user_id, $name, $origin = '')
 
         return $link.'<img src="'.$friends_profile['file'].'" '.$friends_profile['style'].' alt="'.$name.'"  title="'.$name.'" /></a>';
     } else {
-        return $link.'<img src="'.api_get_path(
-            WEB_CODE_PATH
-        )."img/unknown.jpg".'" alt="'.$name.'"  title="'.$name.'" /></a>';
+        return $link.Display::return_icon('unknown.jpg', $name).'</a>';
     }
 }
 
@@ -3275,7 +3244,7 @@ function get_whats_new()
     $_course = api_get_course_info();
 
     $table_posts = Database :: get_course_table(TABLE_FORUM_POST);
-    $tracking_last_tool_access = Database::get_statistic_table(TABLE_STATISTIC_TRACK_E_LASTACCESS);
+    $tracking_last_tool_access = Database::get_main_table(TABLE_STATISTIC_TRACK_E_LASTACCESS);
 
     // Note: This has to be replaced by the tool constant later. But temporarily bb_forum is used since this is the only thing that is in the tracking currently.
     //$tool = TOOL_FORUM;

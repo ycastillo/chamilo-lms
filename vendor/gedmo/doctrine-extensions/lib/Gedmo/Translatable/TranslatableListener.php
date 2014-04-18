@@ -291,6 +291,7 @@ class TranslatableListener extends MappedEventSubscriber
     {
         $locale = $this->locale;
         if (isset(self::$configurations[$this->name][$meta->name]['locale'])) {
+            /** @var \ReflectionClass $class */
             $class = $meta->getReflectionClass();
             $reflectionProperty = $class->getProperty(self::$configurations[$this->name][$meta->name]['locale']);
             if (!$reflectionProperty) {
@@ -299,6 +300,9 @@ class TranslatableListener extends MappedEventSubscriber
             }
             $reflectionProperty->setAccessible(true);
             $value = $reflectionProperty->getValue($object);
+            if (is_object($value) && method_exists($value, '__toString')) {
+                $value = (string)$value;
+            }
             try {
                 $this->validateLocale($value);
                 $locale = $value;
@@ -405,8 +409,13 @@ class TranslatableListener extends MappedEventSubscriber
                 // load the pending translations without key
                 $wrapped = AbstractWrapper::wrap($object, $om);
                 $objectId = $wrapped->getIdentifier();
+                $translationClass = $this->getTranslationClass($ea, get_class($object));
                 foreach ($this->pendingTranslationInserts[$oid] as $translation) {
-                    $translation->setForeignKey($objectId);
+                    if ($ea->usesPersonalTranslation($translationClass)) {
+                        $translation->setObject($objectId);
+                    } else {
+                        $translation->setForeignKey($objectId);
+                    }
                     $ea->insertTranslationRecord($translation);
                 }
                 unset($this->pendingTranslationInserts[$oid]);
@@ -502,7 +511,7 @@ class TranslatableListener extends MappedEventSubscriber
      * @param TranslatableAdapter $ea
      * @param object $object
      * @param boolean $isInsert
-     * @throws UnexpectedValueException - if locale is not valid, or
+     * @throws \UnexpectedValueException - if locale is not valid, or
      *      primary key is composite, missing or invalid
      * @return void
      */

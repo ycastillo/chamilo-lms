@@ -9,18 +9,15 @@
 $language_file = array('admin');
 
 $cidReset = true;
+
+$cidReset = true;
 require_once '../inc/global.inc.php';
 
 $extraFieldType =  isset($_REQUEST['type']) ? $_REQUEST['type'] : null;
 
 $this_section = SECTION_PLATFORM_ADMIN;
-if ($extraFieldType == 'question') {
-    if (!(api_is_platform_admin() || api_is_question_manager())) {
-        api_not_allowed(true);
-    }
-} else {
-    api_protect_admin_script();
-}
+
+api_protect_admin_script();
 
 //Add the JS needed to use the jqgrid
 $htmlHeadXtra[] = api_get_jqgrid_js();
@@ -31,7 +28,6 @@ $interbreadcrumb[]=array('url' => 'index.php','name' => get_lang('PlatformAdmin'
 $tool_name = null;
 
 $action = isset($_GET['action']) ? $_GET['action'] : null;
-
 if (!in_array($extraFieldType, ExtraField::getValidExtraFieldTypes())) {
     api_not_allowed();
 }
@@ -103,19 +99,6 @@ $(function() {
                 break;
         }
     });
-
-    var value = 1;
-    $("#advanced_parameters").on("click", function() {
-        $("#options").toggle(function() {
-            if (value == 1) {
-                $("#advanced_parameters").addClass("btn-hide");
-                value = 0;
-            } else {
-                $("#advanced_parameters").removeClass("btn-hide");
-                value = 1;
-            }
-        });
-    });
 });
 </script>';
 
@@ -134,13 +117,13 @@ switch ($action) {
 
         // The validation or display
         if ($form->validate()) {
-            if ($check) {
-                $values = $form->exportValues();
-                $res    = $obj->save($values);
-                if ($res) {
-                    Display::display_confirmation_message(get_lang('ItemAdded'));
-                }
+            //if ($check) {
+            $values = $form->exportValues();
+            $res    = $obj->save($values);
+            if ($res) {
+                Display::display_confirmation_message(get_lang('ItemAdded'));
             }
+            //}
             $obj->display();
         } else {
             echo '<div class="actions">';
@@ -158,11 +141,11 @@ switch ($action) {
 
         // The validation or display
         if ($form->validate()) {
-            if ($check) {
-                $values = $form->exportValues();
-                $res    = $obj->update($values);
-                Display::display_confirmation_message(sprintf(get_lang('ItemUpdated'), $values['name']), false);
-            }
+            //if ($check) {
+            $values = $form->exportValues();
+            $res    = $obj->update($values);
+            Display::display_confirmation_message(sprintf(get_lang('ItemUpdated'), $values['field_variable']), false);
+            //}
             $obj->display();
         } else {
             echo '<div class="actions">';
@@ -175,12 +158,12 @@ switch ($action) {
         break;
     case 'delete':
         // Action handling: delete
-        if ($check) {
-            $res = $obj->delete($_GET['id']);
-            if ($res) {
-                Display::display_confirmation_message(get_lang('ItemDeleted'));
-            }
+        //if ($check) {
+        $res = $obj->delete($_GET['id']);
+        if ($res) {
+            Display::display_confirmation_message(get_lang('ItemDeleted'));
         }
+        //}
         $obj->display();
         break;
     default:
@@ -188,3 +171,46 @@ switch ($action) {
         break;
 }
 Display :: display_footer();
+
+
+/*
+
+CREATE TABLE IF NOT EXISTS lp_field(
+    id INT NOT NULL auto_increment,
+    field_type int NOT NULL DEFAULT 1,
+    field_variable	varchar(64) NOT NULL,
+    field_display_text	varchar(64),
+    field_default_value text,
+    field_order int,
+    field_visible tinyint default 0,
+    field_changeable tinyint default 0,
+    field_filter tinyint default 0,
+    tms	DATETIME NOT NULL default '0000-00-00 00:00:00',
+    PRIMARY KEY(id)
+);
+DROP TABLE IF EXISTS lp_field_options;
+CREATE TABLE IF NOT EXISTS lp_field_options (
+    id int NOT NULL auto_increment,
+    field_id int NOT NULL,
+    option_value text,
+    option_display_text varchar(64),
+    option_order int,
+    tms	DATETIME NOT NULL default '0000-00-00 00:00:00',
+    PRIMARY KEY (id)
+);
+DROP TABLE IF EXISTS lp_field_values;
+CREATE TABLE IF NOT EXISTS lp_field_values(
+    id bigint NOT NULL auto_increment,
+    lp_id int unsigned NOT NULL,
+    field_id int NOT NULL,
+    field_value	text,
+    comment VARCHAR(100) default '',
+    tms DATETIME NOT NULL default '0000-00-00 00:00:00',
+    PRIMARY KEY(id)
+);
+
+ALTER TABLE lp_field_values ADD INDEX (lp_id, field_id);
+
+
+
+ */

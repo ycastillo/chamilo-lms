@@ -9,7 +9,7 @@
  */
 namespace Chash\Command\Translation;
 
-use Chash\Command\Database\CommonChamiloDatabaseCommand;
+use Chash\Command\Database\CommonDatabaseCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -17,9 +17,11 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
 /**
+ * Class DisableLanguageCommand
  * Definition of the translation:disable command
+ * @package Chash\Command\Translation
  */
-class DisableLanguageCommand extends CommonChamiloDatabaseCommand
+class DisableLanguageCommand extends CommonDatabaseCommand
 {
     protected function configure()
     {
@@ -35,11 +37,16 @@ class DisableLanguageCommand extends CommonChamiloDatabaseCommand
             );
     }
 
+    /**
+     * @param InputInterface $input
+     * @param OutputInterface $output
+     * @return int|null|void
+     */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         parent::execute($input, $output);
         $_configuration = $this->getHelper('configuration')->getConfiguration();
-        $dbh = $this->getHelper('configuration')->getConnection();
+        $connection = $this->getConnection();
         $lang = mysql_real_escape_string($input->getArgument('language'));
         $ls = "SELECT id, english_name, available FROM language WHERE english_name = '$lang'";
         $lq = mysql_query($ls);

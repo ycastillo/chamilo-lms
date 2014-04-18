@@ -98,6 +98,8 @@ $(function() {
 
 // Filters the type of questions we can add.
 Question::display_type_menu($objExercise);
+// Re sets the question list
+$objExercise->setQuestionList();
 echo '<div style="clear:both;"></div>';
 echo '<div id="message"></div>';
 $token = Security::get_token();
@@ -109,6 +111,7 @@ echo Question::getMediaLabels();
 
 // If we are in a test.
 $inATest = isset($exerciseId) && $exerciseId > 0;
+
 if (!$inATest) {
 	echo "<p class='warning-message'>".get_lang("ChoiceQuestionType")."</p>";
 } else {
@@ -123,11 +126,12 @@ if (!$inATest) {
     echo "<div style='clear:both'>&nbsp;</div>";
 
     echo '<div id="question_list">';
+
     if ($nbrQuestions) {
         // Always getting list from DB.
 
         $objExercise->setCategoriesGrouping(false);
-        $questionList = $objExercise->selectQuestionList(true);
+        $questionList = $objExercise->getQuestionListWithMediasUncompressed();
 
         // Style for columns.
         $styleQuestion = "width:50%; float:left;";
@@ -139,16 +143,17 @@ if (!$inATest) {
         $category_list = Testcategory::getListOfCategoriesNameForTest($objExercise->id, false);
 
         if (is_array($questionList)) {
-			foreach ($questionList as $id) {
-				//To avoid warning messages
+            foreach ($questionList as $id) {
+				// To avoid warning messages.
 				if (!is_numeric($id)) {
 					continue;
 				}
+                /** @var Question $objQuestionTmp */
 				$objQuestionTmp = Question :: read($id);
 				$question_class = get_class($objQuestionTmp);
 
 				$clone_link = '<a href="'.api_get_self().'?'.api_get_cidreq().'&clone_question='.$id.'">'.Display::return_icon('cd.gif',get_lang('Copy'), array(), ICON_SIZE_SMALL).'</a>';
-				$edit_link  = '<a href="'.api_get_self().'?'.api_get_cidreq().'&fromExercise='.$exerciseId.'&type='.$objQuestionTmp->selectType().'&myid=1&editQuestion='.$id.'">'.Display::return_icon('edit.png',get_lang('Modify'), array(), ICON_SIZE_SMALL).'</a>';
+				$edit_link  = '<a href="'.api_get_self().'?'.api_get_cidreq().'&type='.$objQuestionTmp->selectType().'&myid=1&editQuestion='.$id.'">'.Display::return_icon('edit.png',get_lang('Modify'), array(), ICON_SIZE_SMALL).'</a>';
 				if ($objExercise->edit_exercise_in_lp == true) {
 				     $delete_link = '<a id="delete_'.$id.'" class="opener"  href="'.api_get_self().'?'.api_get_cidreq().'&exerciseId='.$exerciseId.'&deleteQuestion='.$id.'" >'.Display::return_icon('delete.png',get_lang('RemoveFromTest'), array(), ICON_SIZE_SMALL).'</a>';
 				}
@@ -208,7 +213,7 @@ if (!$inATest) {
                         echo '<br />';
                         //echo get_lang('Level').': '.$objQuestionTmp->selectLevel();
                         echo '<br />';
-                        echo ExerciseLib::showQuestion($objQuestionTmp, false, null, null, false, true, false, true, $objExercise->feedback_type, true);
+                        echo $objExercise->showQuestion($objQuestionTmp, false, null, null, false, true, false, true, $objExercise->feedback_type, true);
                         echo '</p>';
                     echo '</div>';
                 echo '</div>';

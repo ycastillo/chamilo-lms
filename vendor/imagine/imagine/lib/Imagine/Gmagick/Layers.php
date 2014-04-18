@@ -12,10 +12,12 @@
 namespace Imagine\Gmagick;
 
 use Imagine\Image\AbstractLayers;
-use Imagine\Gmagick\Image;
 use Imagine\Exception\RuntimeException;
+use Imagine\Exception\NotSupportedException;
 use Imagine\Exception\OutOfBoundsException;
 use Imagine\Exception\InvalidArgumentException;
+use Imagine\Image\Metadata\MetadataBag;
+use Imagine\Image\Palette\PaletteInterface;
 
 class Layers extends AbstractLayers
 {
@@ -23,23 +25,29 @@ class Layers extends AbstractLayers
      * @var Image
      */
     private $image;
+
     /**
      * @var \Gmagick
      */
     private $resource;
+
     /**
      * @var integer
      */
     private $offset = 0;
+
     /**
      * @var array
      */
     private $layers = array();
 
-    public function __construct(Image $image, \Gmagick $resource)
+    private $palette;
+
+    public function __construct(Image $image, PaletteInterface $palette, \Gmagick $resource)
     {
         $this->image = $image;
         $this->resource = $resource;
+        $this->palette = $palette;
     }
 
     /**
@@ -64,7 +72,7 @@ class Layers extends AbstractLayers
      */
     public function coalesce()
     {
-        throw new RuntimeException("Gmagick does not support coalescing");
+        throw new NotSupportedException('Gmagick does not support coalescing');
     }
 
     /**
@@ -73,20 +81,26 @@ class Layers extends AbstractLayers
     public function animate($format, $delay, $loops)
     {
         if ('gif' !== strtolower($format)) {
-            throw new InvalidArgumentException('Animated picture is currently only supported on gif');
+            throw new NotSupportedException('Animated picture is currently only supported on gif');
         }
 
-        foreach (array('Loops' => $loops, 'Delay' => $delay) as $name => $value) {
-            if (!is_int($value) || $value < 0) {
-                throw new InvalidArgumentException(sprintf('%s must be a positive integer.', $name));
-            }
+        if (!is_int($loops) || $loops < 0) {
+            throw new InvalidArgumentException('Loops must be a positive integer.');
+        }
+
+        if (null !== $delay && (!is_int($delay) || $delay < 0)) {
+            throw new InvalidArgumentException('Delay must be either null or a positive integer.');
         }
 
         try {
             foreach ($this as $offset => $layer) {
                 $this->resource->setimageindex($offset);
                 $this->resource->setimageformat($format);
-                $this->resource->setimagedelay($delay / 10);
+
+                if (null !== $delay) {
+                    $this->resource->setimagedelay($delay / 10);
+                }
+
                 $this->resource->setimageiterations($loops);
             }
         } catch (\GmagickException $e) {
@@ -116,7 +130,7 @@ class Layers extends AbstractLayers
         if (!isset($this->layers[$offset])) {
             try {
                 $this->resource->setimageindex($offset);
-                $this->layers[$offset] = new Image($this->resource->getimage());
+                $this->layers[$offset] = new Image($this->resource->getimage(), $this->palette, new MetadataBag());
             } catch (\GmagickException $e) {
                 throw new RuntimeException(
                     sprintf('Failed to extract layer %d', $offset),

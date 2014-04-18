@@ -30,7 +30,7 @@ class FillBlanks extends Question
     /**
      * Constructor
      */
-    function FillBlanks()
+    public function FillBlanks()
     {
         parent::question();
         $this->type      = FILL_IN_BLANKS;
@@ -39,7 +39,7 @@ class FillBlanks extends Question
 
     /**
      * function which redifines Question::createAnswersForm
-     * @param \Formvalidator instance
+     * @param \FormValidator instance
      */
     public function createAnswersForm($form)
     {
@@ -193,9 +193,12 @@ class FillBlanks extends Question
         $objAnswer->save();
     }
 
-    function return_header($feedback_type = null, $counter = null, $score = null, $show_media = false)
+    /**
+     * {@inheritdoc}
+     */
+    function return_header($feedback_type = null, $counter = null, $score = null, $show_media = false, $hideTitle = 0)
     {
-        $header = parent::return_header($feedback_type, $counter, $score, $show_media);
+        $header = parent::return_header($feedback_type, $counter, $score, $show_media, $hideTitle);
         $header .= '<table class="'.$this->question_table_class.'">
 			<tr>
                 <th>'.get_lang("Answer").'</th>

@@ -8,8 +8,15 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
-class ShowConnInfoCommand extends CommonChamiloDatabaseCommand
+/**
+ * Class ShowConnInfoCommand
+ * @package Chash\Command\Database
+ */
+class ShowConnInfoCommand extends CommonDatabaseCommand
 {
+    /**
+     *
+     */
     protected function configure()
     {
         parent::configure();
@@ -19,6 +26,11 @@ class ShowConnInfoCommand extends CommonChamiloDatabaseCommand
             ->setDescription('Shows database connection credentials for the current Chamilo install');
     }
 
+    /**
+     * @param InputInterface $input
+     * @param OutputInterface $output
+     * @return int|null|void
+     */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         parent::execute($input, $output);
@@ -34,7 +46,7 @@ class ShowConnInfoCommand extends CommonChamiloDatabaseCommand
             return;
         }
 
-        $_configuration = $this->getHelper('configuration')->getConfiguration();
+        $_configuration = $this->getConfigurationArray();
 
         $output->writeln("Database connection details:");
         $output->writeln("Host:\t".$_configuration['db_host']);

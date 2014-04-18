@@ -40,9 +40,11 @@ api_protect_admin_script();
 
 // Settings to avoid
 $settings_to_avoid = array(
+    'stylesheets' => '', // handled by the handle_stylesheet() function
+    'server_type' => '',
     'use_session_mode' => 'true',
     'gradebook_enable' => 'false',
-    'example_material_course_creation' => 'true' // ON by default - now we have this option when  we create a course
+    'example_material_course_creation' => 'true' // ON by default - now we have this option when we create a course
 );
 
 $convert_byte_to_mega_list = array(
@@ -51,10 +53,6 @@ $convert_byte_to_mega_list = array(
     'default_document_quotum',
     'default_group_quotum'
 );
-
-if (isset($_POST['style'])) {
-    Display::$preview_style = $_POST['style'];
-}
 
 // Database table definitions.
 $table_settings_current = Database :: get_main_table(TABLE_MAIN_SETTINGS_CURRENT);
@@ -77,17 +75,20 @@ if (isset($_GET['action']) && $_GET['action'] == 'delete_grading') {
     api_delete_setting_option($id);
 }
 
-$form_search = new FormValidator('search_settings', 'get', api_get_self(), null, array('class' => 'well form-inline'));
-$form_search->addElement('text', 'search_field');
+$keyword = isset($_REQUEST['keyword']) ? $_REQUEST['keyword'] : null;
+
+$form_search = new FormValidator('search_settings', 'get', api_get_self(), null, array('class' => 'form-search'));
+$form_search->addElement('text', 'keyword');
 $form_search->addElement('hidden', 'category', 'search_setting');
 $form_search->addElement(
     'style_submit_button',
     'submit_button',
     get_lang('Search'),
-    'value="submit_button", class="search"'
+    array('class' => 'search')
 );
+
 $form_search->setDefaults(
-    array('search_field' => (isset($_REQUEST['search_field']) ? $_REQUEST['search_field'] : null))
+    array('keyword' => $keyword)
 );
 
 $form_search_html = $form_search->return_form();
@@ -96,7 +97,12 @@ $url_id = api_get_current_access_url_id();
 
 $settings = null;
 
-function get_settings($category = null)
+/**
+ * @param string $category
+ * @param string $keyword
+ * @return array
+ */
+function get_settings($category = null, $keyword = null)
 {
     $url_id = api_get_current_access_url_id();
     $settings_by_access_list = array();
@@ -131,22 +137,27 @@ function get_settings($category = null)
             }
         }
     }
+
     if (isset($category) && $category == 'search_setting') {
-        if (!empty($_REQUEST['search_field'])) {
-            $settings = search_setting($_REQUEST['search_field']);
+        if (!empty($keyword)) {
+            $settings = search_setting($keyword);
         }
     }
 
-    return array('settings' => $settings, 'settings_by_access_list' => $settings_by_access_list);
+    return array(
+        'settings' => $settings,
+        'settings_by_access_list' => $settings_by_access_list
+    );
 }
 
 // Build the form.
 if (!empty($_GET['category']) && !in_array($_GET['category'], array('Plugins', 'stylesheets', 'Search'))) {
     $my_category = isset($_GET['category']) ? $_GET['category'] : null;
-    $settings_array = get_settings($my_category);
+    $settings_array = get_settings($my_category, $keyword);
+
     $settings = $settings_array['settings'];
     $settings_by_access_list = $settings_array['settings_by_access_list'];
-    $form = generate_settings_form($settings, $settings_by_access_list);
+    $form = generate_settings_form($settings, $settings_by_access_list, $settings_to_avoid, $convert_byte_to_mega_list);
 
     $message = array();
 
@@ -192,10 +203,10 @@ if (!empty($_GET['category']) && !in_array($_GET['category'], array('Plugins', '
                 $settings_array = get_settings($my_category);
                 $settings = $settings_array['settings'];
                 $settings_by_access_list = $settings_array['settings_by_access_list'];
-                $form = generate_settings_form($settings, $settings_by_access_list);
+                $form = generate_settings_form($settings, $settings_by_access_list, $settings_to_avoid, $convert_byte_to_mega_list);
             }
         }
-        $pdf_export_watermark_path = $_FILES['pdf_export_watermark_path'];
+        $pdf_export_watermark_path = isset($_FILES['pdf_export_watermark_path']) ? $_FILES['pdf_export_watermark_path'] : null;
 
         if (isset($pdf_export_watermark_path) && !empty($pdf_export_watermark_path['name'])) {
             $pdf_export_watermark_path_result = PDF::upload_watermark(
@@ -205,9 +216,7 @@ if (!empty($_GET['category']) && !in_array($_GET['category'], array('Plugins', '
             if ($pdf_export_watermark_path_result) {
                 $message['confirmation'][] = get_lang('UplUploadSucceeded');
             } else {
-                $message['warning'][] = get_lang('UplUnableToSaveFile').' '.get_lang('Folder').': '.api_get_path(
-                    SYS_CODE_PATH
-                ).'default_course_document/images';
+                $message['warning'][] = get_lang('UplUnableToSaveFile').' '.get_lang('Folder').': '.api_get_path(SYS_DEFAULT_COURSE_DOCUMENT_PATH).'/images';
             }
             unset($update_values['pdf_export_watermark_path']);
         }
@@ -223,44 +232,19 @@ if (!empty($_GET['category']) && !in_array($_GET['category'], array('Plugins', '
             $values['allow_message_tool'] = 'true';
         }
 
-
-        // The first step is to set all the variables that have type=checkbox of the category
-        // to false as the checkbox that is unchecked is not in the $_POST data and can
-        // therefore not be set to false.
-        // This, however, also means that if the process breaks on the third of five checkboxes, the others
-        // will be set to false.
-
-        //$r = api_set_settings_category($my_category, 'false', $_configuration['access_url'], array('checkbox', 'radio'));
-
-        //This is a more accurate way of updating to false the checkboxes and radios the settings
-
-        /*
-        foreach ($values as $key => $value) {
-            if (in_array($key, $settings_to_avoid)) { continue; }
-            if ($key == 'search_field' or $key == 'submit_fixed_in_bottom') { continue; }
-            $key = Database::escape_string($key);
-            $sql = "UPDATE $table_settings_current SET selected_value = 'false' WHERE variable = '".$key."' AND access_url = ".intval($url_id)."  AND type IN ('checkbox', 'radio') ";
-            $res = Database::query($sql);
-        }*/
-
         foreach ($settings as $item) {
             $key = $item['variable'];
             if (in_array($key, $settings_to_avoid)) {
                 continue;
             }
-            if ($key == 'search_field' or $key == 'submit_fixed_in_bottom') {
+            if ($key == 'keyword' or $key == 'submit_fixed_in_bottom') {
                 continue;
             }
             $key = Database::escape_string($key);
-            $sql = "UPDATE $table_settings_current SET selected_value = 'false' WHERE variable = '".$key."' AND access_url = ".intval(
-                $url_id
-            )."  AND type IN ('checkbox', 'radio') ";
+            $sql = "UPDATE $table_settings_current SET selected_value = 'false'
+                    WHERE variable = '".$key."' AND access_url = ".intval($url_id)." AND type IN ('checkbox', 'radio') ";
             $res = Database::query($sql);
         }
-
-        /*foreach($settings_to_avoid as $key => $value) {
-            api_set_setting($key, $value, null, null, $_configuration['access_url']);
-        }*/
 
         // Save the settings.
         $keys = array();
@@ -270,7 +254,7 @@ if (!empty($_GET['category']) && !in_array($_GET['category'], array('Plugins', '
                 continue;
             }
             // Avoid form elements which have nothing to do with settings
-            if ($key == 'search_field' or $key == 'submit_fixed_in_bottom') {
+            if ($key == 'keyword' or $key == 'submit_fixed_in_bottom') {
                 continue;
             }
 
@@ -413,6 +397,8 @@ Display :: display_header($tool_name);
 
 // The action images.
 $action_images['platform'] = 'platform.png';
+$action_images['admin'] = 'teacher.png';
+$action_images['registration'] = 'lock.png';
 $action_images['course'] = 'course.png';
 $action_images['session'] = 'session.png';
 $action_images['tools'] = 'tools.png';
@@ -434,13 +420,16 @@ $action_images['search'] = 'search.png';
 $action_images['stylesheets'] = 'stylesheets.png';
 $action_images['templates'] = 'template.png';
 $action_images['plugins'] = 'plugins.png';
-$action_images['shibboleth'] = 'shibboleth.png';
-$action_images['facebook'] = 'facebook.png';
+//$action_images['shibboleth'] = 'shibboleth.png';
+//$action_images['facebook'] = 'facebook.png';
+//$action_images['logtransactions'] = 'tuning.png';
 
 $action_array = array();
 $resultcategories = array();
 
 $resultcategories[] = array('category' => 'Platform');
+$resultcategories[] = array('category' => 'Admin');
+$resultcategories[] = array('category' => 'Registration');
 $resultcategories[] = array('category' => 'Course');
 $resultcategories[] = array('category' => 'Session');
 $resultcategories[] = array('category' => 'Languages');
@@ -456,10 +445,11 @@ $resultcategories[] = array('category' => 'Search');
 $resultcategories[] = array('category' => 'Stylesheets');
 $resultcategories[] = array('category' => 'Templates');
 $resultcategories[] = array('category' => 'Plugins');
-$resultcategories[] = array('category' => 'LDAP');
-$resultcategories[] = array('category' => 'CAS');
-$resultcategories[] = array('category' => 'Shibboleth');
-$resultcategories[] = array('category' => 'Facebook');
+//$resultcategories[] = array('category' => 'LDAP');
+//$resultcategories[] = array('category' => 'CAS');
+//$resultcategories[] = array('category' => 'Shibboleth');
+//$resultcategories[] = array('category' => 'Facebook');
+//$resultcategories[] = array('category' => 'LogTransactions');
 
 
 foreach ($resultcategories as $row) {
@@ -478,10 +468,8 @@ foreach ($resultcategories as $row) {
 }
 
 echo Display::actions($action_array);
-
 echo '<br />';
-
-echo $form_search_html;
+echo '<div class="well">'.$form_search_html."</div>";
 
 if ($watermark_deleted) {
     Display :: display_normal_message(get_lang('FileDeleted'));
@@ -552,6 +540,10 @@ if (!empty($_GET['category'])) {
         case 'Stylesheets':
             // Displaying the extensions: Stylesheets.
             handle_stylesheets();
+            if (isset($_POST)) {
+                api_set_setting_last_update();
+            }
+            $form->display();
             break;
         case 'Search':
             handle_search();
@@ -560,8 +552,8 @@ if (!empty($_GET['category'])) {
             handle_templates();
             break;
         case 'search_setting':
-            search_setting($_REQUEST['search_field']);
-            if (isset($_REQUEST['search_field'])) {
+            search_setting($keyword);
+            if (!empty($keyword)) {
                 $form->display();
             }
             break;

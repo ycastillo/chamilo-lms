@@ -11,30 +11,21 @@
 
 namespace Imagine\Gd;
 
-use Imagine\Image\Color;
+use Imagine\Image\AbstractImagine;
+use Imagine\Image\Metadata\MetadataBag;
+use Imagine\Image\Palette\Color\ColorInterface;
+use Imagine\Image\Palette\RGB;
+use Imagine\Image\Palette\PaletteInterface;
 use Imagine\Image\BoxInterface;
-use Imagine\Image\ImagineInterface;
+use Imagine\Image\Palette\Color\RGB as RGBColor;
 use Imagine\Exception\InvalidArgumentException;
 use Imagine\Exception\RuntimeException;
 
 /**
  * Imagine implementation using the GD library
  */
-final class Imagine implements ImagineInterface
+final class Imagine extends AbstractImagine
 {
-    /**
-     * @var array
-     */
-    private $types = array(
-        IMAGETYPE_GIF      => 'gif',
-        IMAGETYPE_JPEG     => 'jpeg',
-        IMAGETYPE_JPEG2000 => 'jpeg',
-        IMAGETYPE_PNG      => 'png',
-        IMAGETYPE_UNKNOWN  => 'unknown',
-        IMAGETYPE_WBMP     => 'wbmp',
-        IMAGETYPE_XBM      => 'xbm'
-    );
-
     /**
      * @var array
      */
@@ -68,7 +59,7 @@ final class Imagine implements ImagineInterface
     /**
      * {@inheritdoc}
      */
-    public function create(BoxInterface $size, Color $color = null)
+    public function create(BoxInterface $size, ColorInterface $color = null)
     {
         $width  = $size->getWidth();
         $height = $size->getHeight();
@@ -79,7 +70,15 @@ final class Imagine implements ImagineInterface
             throw new RuntimeException('Create operation failed');
         }
 
-        $color = $color ? $color : new Color('fff');
+        $palette = null !== $color ? $color->getPalette() : new RGB();
+        $color = $color ? $color : $palette->color('fff');
+
+        if (!$color instanceof RGBColor) {
+            throw new InvalidArgumentException(
+                'GD driver only supports RGB colors'
+            );
+        }
+
         $index = imagecolorallocatealpha(
             $resource, $color->getRed(), $color->getGreen(), $color->getBlue(),
             round(127 * $color->getAlpha() / 100)
@@ -97,7 +96,7 @@ final class Imagine implements ImagineInterface
             imagecolortransparent($resource, $index);
         }
 
-        return $this->wrap($resource);
+        return $this->wrap($resource, $palette, new MetadataBag());
     }
 
     /**
@@ -105,22 +104,21 @@ final class Imagine implements ImagineInterface
      */
     public function open($path)
     {
-        $handle = @fopen($path, 'r');
+        $data = @file_get_contents($path);
 
-        if (false === $handle) {
+        if (false === $data) {
             throw new InvalidArgumentException(sprintf(
                 'File %s doesn\'t exist', $path
             ));
         }
 
-        try {
-            $image = $this->read($handle);
-        } catch (\Exception $e) {
-            fclose($handle);
-            throw new RuntimeException(sprintf('Unable to open image %s', $path), $e->getCode(), $e);
+        $resource = @imagecreatefromstring($data);
+
+        if (!is_resource($resource)) {
+            throw new InvalidArgumentException(sprintf('Unable to open image %s', $path));
         }
 
-        return $image;
+        return $this->wrap($resource, new RGB(), $this->getMetadataReader()->readFile($path));
     }
 
     /**
@@ -134,7 +132,7 @@ final class Imagine implements ImagineInterface
             throw new InvalidArgumentException('An image could not be created from the given input');
         }
 
-        return $this->wrap($resource);
+        return $this->wrap($resource, new RGB(), $this->getMetadataReader()->readData($string));
     }
 
     /**
@@ -158,7 +156,7 @@ final class Imagine implements ImagineInterface
     /**
      * {@inheritdoc}
      */
-    public function font($file, $size, Color $color)
+    public function font($file, $size, ColorInterface $color)
     {
         if (!$this->info['FreeType Support']) {
             throw new RuntimeException('GD is not compiled with FreeType support');
@@ -167,7 +165,7 @@ final class Imagine implements ImagineInterface
         return new Font($file, $size, $color);
     }
 
-    private function wrap($resource)
+    private function wrap($resource, PaletteInterface $palette, MetadataBag $metadata)
     {
         if (!imageistruecolor($resource)) {
             list($width, $height) = array(imagesx($resource), imagesy($resource));
@@ -196,6 +194,6 @@ final class Imagine implements ImagineInterface
             imageantialias($resource, true);
         }
 
-        return new Image($resource);
+        return new Image($resource, $palette, $metadata);
     }
 }

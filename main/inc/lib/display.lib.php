@@ -35,14 +35,7 @@ class Display
     {
         global $app;
         $app['classic_layout'] = true;
-        $app['title'] = $tool_name;
-
-        if ($app['allowed'] == true) {
-            ob_start(array($app['template'], 'manage_display'));
-        } else {
-            $app->run();
-            exit;
-        }
+        $app['template']->setTitle($tool_name);
     }
 
     /**
@@ -50,11 +43,6 @@ class Display
      */
     public static function display_footer()
     {
-        global $app;
-        $out = ob_get_contents();
-        ob_end_clean();
-        $app['template']->assign('content', $out);
-        $app->run();
     }
 
     /**
@@ -75,7 +63,7 @@ class Display
     {
         global $app;
         global $tool_name, $show_learnpath;
-        $disable_js_and_css_files       = true;
+        $app['template']->disableJsAndCss = true;
         $app['template.show_header']    = false;
         $app['template.show_footer']    = false;
         $app['template.show_learnpath'] = $show_learnpath;
@@ -91,7 +79,7 @@ class Display
         $app['template.show_header']    = false;
         $app['template.show_footer']    = false;
         $app['template.show_learnpath'] = $show_learnpath;
-        $app['title'] = $tool_name;
+        $app['template']->setTitle($tool_name);
         self::$global_template = $app['template'];
     }
 
@@ -106,18 +94,155 @@ class Display
      */
     public static function display_introduction_section($tool, $editor_config = null)
     {
-        echo self::return_introduction_section($tool, $editor_config);
+        global $app;
+        $urlGenerator = $app['url_generator'];
+        echo self::return_introduction_section($urlGenerator, $tool);
     }
 
-    public static function return_introduction_section($tool, $editor_config = null)
+    /**
+     * @param Symfony\Component\Routing\RouterInterface $urlGenerator
+     * @param string $tool
+     * @param array $toolList
+     * @return null|string
+     */
+    public static function return_introduction_section($urlGenerator, $tool, $toolList = array())
     {
         $is_allowed_to_edit = api_is_allowed_to_edit();
-        $moduleId           = $tool;
+        $courseInfo = api_get_course_info();
+        $introduction_section = null;
+
         if (api_get_setting('enable_tool_introduction') == 'true' || $tool == TOOL_COURSE_HOMEPAGE) {
             $introduction_section = null;
-            require api_get_path(LIBRARY_PATH).'introductionSection.inc.php';
-            return $introduction_section;
+            $TBL_INTRODUCTION = Database::get_course_table(TABLE_TOOL_INTRO);
+            $session_id = api_get_session_id();
+            $course_id = api_get_course_int_id();
+
+            /* Retrieves the module introduction text, if exist */
+            $sql = "SELECT intro_text FROM $TBL_INTRODUCTION
+                    WHERE
+                        c_id = $course_id AND
+                        id='".Database::escape_string($tool)."' AND
+                        session_id = '".intval($session_id)."'";
+            $intro_dbQuery = Database::query($sql);
+            $introContent = null;
+            if (Database::num_rows($intro_dbQuery) > 0) {
+                $row = Database::fetch_array($intro_dbQuery);
+                $introContent = $row['intro_text'];
+            }
+
+            $introContent = CourseHome::replaceTextWithToolUrls($introContent, $toolList);
+
+            /* Determines the correct display */
+            $displayIntro = false;
+
+            if ($is_allowed_to_edit) {
+                $displayIntro = true;
+            }
+
+            $thematicDescription = '';
+
+            if ($tool == TOOL_COURSE_HOMEPAGE) {
+                $thematic = new Thematic($courseInfo);
+                $thematic->set_course_int_id(api_get_course_int_id());
+                if (api_get_course_setting('display_info_advance_inside_homecourse') == '1') {
+                    $information_title = get_lang('InfoAboutLastDoneAdvance');
+                    $last_done_advance =  $thematic->get_last_done_thematic_advance();
+                    $thematic_advance_info = $thematic->get_thematic_advance_list($last_done_advance);
+                } else if(api_get_course_setting('display_info_advance_inside_homecourse') == '2') {
+                    $information_title = get_lang('InfoAboutNextAdvanceNotDone');
+                    $next_advance_not_done = $thematic->get_next_thematic_advance_not_done();
+                    $thematic_advance_info = $thematic->get_thematic_advance_list($next_advance_not_done);
+                } else if(api_get_course_setting('display_info_advance_inside_homecourse') == '3') {
+                    $information_title = get_lang('InfoAboutLastDoneAdvanceAndNextAdvanceNotDone');
+                    $last_done_advance =  $thematic->get_last_done_thematic_advance();
+                    $next_advance_not_done = $thematic->get_next_thematic_advance_not_done();
+                    $thematic_advance_info = $thematic->get_thematic_advance_list($last_done_advance);
+                    $thematic_advance_info2 = $thematic->get_thematic_advance_list($next_advance_not_done);
+                }
+
+                if (!empty($thematic_advance_info)) {
+
+                    $thematic_advance = get_lang('CourseThematicAdvance').'&nbsp;'.$thematic->get_total_average_of_thematic_advances().'%';
+                    $thematic_info = $thematic->get_thematic_list($thematic_advance_info['thematic_id']);
+
+                    $thematic_advance_info['start_date'] = api_get_local_time($thematic_advance_info['start_date']);
+                    $thematic_advance_info['start_date'] = api_format_date($thematic_advance_info['start_date'], DATE_TIME_FORMAT_LONG);
+
+                    $thematicDescription = '<div class="thematic-postit">
+                                                  <div class="thematic-postit-top"><h3><a class="thematic-postit-head" style="" href="#"> '.$thematic_advance.'</h3></a></div>
+                                                  <div class="thematic-postit-center" style="display:none">';
+                    $thematicDescription .= '<div><strong>'.$thematic_info['title'].'</strong></div>';
+                    $thematicDescription .= '<div style="font-size:8pt;"><strong>'.$thematic_advance_info['start_date'].'</strong></div>';
+                    $thematicDescription .= '<div>'.$thematic_advance_info['content'].'</div>';
+                    $thematicDescription .= '<div>'.get_lang('DurationInHours').' : '.$thematic_advance_info['duration'].'</div>';
+
+                    if (!empty($thematic_advance_info2)){
+                        $thematic_info2 = $thematic->get_thematic_list($thematic_advance_info2['thematic_id']);
+                        $thematic_advance_info2['start_date'] = api_get_local_time($thematic_advance_info2['start_date']);
+                        $thematic_advance_info2['start_date'] = api_format_date($thematic_advance_info2['start_date'], DATE_TIME_FORMAT_LONG);
+
+                        $thematicDescription .= '<div><strong>'.$thematic_info2['title'].'</strong></div>';
+                        $thematicDescription .= '<div style="font-size:8pt;"><strong>'.$thematic_advance_info2['start_date'].'</strong></div>';
+                        $thematicDescription .= '<div>'.$thematic_advance_info2['content'].'</div>';
+                        $thematicDescription .= '<div>'.get_lang('DurationInHours').' : '.$thematic_advance_info2['duration'].'</div>';
+                        $thematicDescription .= '<br />';
+                    }
+                    $thematicDescription .= '</div>
+                                              <div class="thematic-postit-bottom"></div>
+                                              </div>';
+                }
+            }
+
+            $introduction_section .= '<div id="introduction_block" class="row"><div class="col-md-12">';
+            $introduction_section .=  $thematicDescription;
+
+            if (!empty($introContent)) {
+                $introduction_section .=  $introContent;
+            }
+            $introduction_section .=  '</div>';
+
+            if ($displayIntro) {
+                if (empty($introContent)) {
+                    // Displays "Add intro" commands
+                    $introduction_section .=  '<div id="introduction_block_action" class="col-md-2 col-md-offset-10">';
+
+                    $url = $urlGenerator->generate(
+                        'introduction.controller:editAction',
+                        array('tool' => $tool, 'course' => api_get_course_id())
+                    );
+
+                    $introduction_section .=  "<a href=\"".$url."?".api_get_cidreq()."\">";
+                    $introduction_section .=  Display::return_icon('introduction_add.gif', get_lang('AddIntro')).' ';
+                    $introduction_section .=  "</a>";
+
+                    $introduction_section .= "</div>";
+
+                } else {
+                    // Displays "edit intro && delete intro" commands
+                    $introduction_section .=  '<div id="introduction_block_action" class="col-md-2 col-md-offset-10">';
+                    $url = $urlGenerator->generate(
+                        'introduction.controller:editAction',
+                        array('tool' => $tool, 'course' => api_get_course_id())
+                    );
+
+                    $introduction_section .=  "<a href=\"".$url."?".api_get_cidreq()."\">";
+                    $introduction_section .=  Display::return_icon('edit.png', get_lang('Modify')).' ';
+                    $introduction_section .=  "</a>";
+
+                    $url = $urlGenerator->generate(
+                        'introduction.controller:deleteAction',
+                        array('tool' => $tool, 'course' => api_get_course_id())
+                    );
+
+                    $introduction_section .=  "<a onclick=\"javascript:if(!confirm('".addslashes(api_htmlentities(get_lang('ConfirmYourChoice')))."')) return false;\" href=\"".$url."?".api_get_cidreq()."\">";
+                    $introduction_section .=  Display::return_icon('delete.png', get_lang('AddIntro')).' ';
+                    $introduction_section .=  "</a>";
+                    $introduction_section .=  "</div>";
+                }
+            }
+            $introduction_section .=  '</div>';
         }
+        return $introduction_section;
     }
 
     /**
@@ -586,25 +711,39 @@ class Display
             $sourceurl = str_replace('&isHidden=true', '', $sourceurl);
             $sourceurl = str_replace('&isHidden=false', '', $sourceurl);
 
-            $output_string_menu .= ' <a href="'.$sourceurl.'&isHidden=false"><img src="../../main/img/expand.gif" alt="'.'Show menu1'.'" padding:"2px"/></a>';
+            $output_string_menu .= ' <a href="'.$sourceurl.'&isHidden=false">
+            '.Display::return_icon('expand.gif', 'Show menu1').'
+            </a>';
         } elseif ($isHidden == 'false' && $_SESSION['hideMenu']) {
             $sourceurl = str_replace('&isHidden=true', '', $sourceurl);
             $sourceurl = str_replace('&isHidden=false', '', $sourceurl);
 
             $_SESSION['hideMenu'] = 'shown';
-            $output_string_menu .= '<div id="leftimg"><a href="'.$sourceurl.'&isHidden=true"><img src="../../main/img/collapse.gif" alt="'.'Hide menu2'.'" padding:"2px"/></a></div>';
+            $output_string_menu .= '<div id="leftimg"><a href="'.$sourceurl.'&isHidden=true">
+                '.Display::return_icon('collapse.gif', 'Hide menu2').'
+            </a>
+            </div>';
         } elseif ($_SESSION['hideMenu']) {
             if ($_SESSION['hideMenu'] == 'shown') {
-                $output_string_menu .= '<div id="leftimg"><a href="'.$sourceurl.'&isHidden=true"><img src="../../main/img/collapse.gif" alt="'.'Hide menu3'.' padding:"2px"/></a></div>';
+                $output_string_menu .= '<div id="leftimg"><a href="'.$sourceurl.'&isHidden=true">
+                '.Display::return_icon('collapse.gif', 'Hide menu3').'
+                </a>
+                </div>';
             }
             if ($_SESSION['hideMenu'] == 'hidden') {
                 $sourceurl = str_replace('&isHidden=true', '', $sourceurl);
-                $output_string_menu .= '<a href="'.$sourceurl.'&isHidden=false"><img src="../../main/img/expand.gif" alt="'.'Hide menu4'.' padding:"2px"/></a>';
+                $output_string_menu .= '<a href="'.$sourceurl.'&isHidden=false">
+                '.Display::return_icon('expand.gif', 'Hide menu4').'
+                </a>';
             }
         } elseif (!$_SESSION['hideMenu']) {
             $_SESSION['hideMenu'] = 'shown';
             if (isset($_cid)) {
-                $output_string_menu .= '<div id="leftimg"><a href="'.$sourceurl.'&isHidden=true"><img src="main/img/collapse.gif" alt="'.'Hide menu5'.' padding:"2px"/></a></div>';
+                $output_string_menu .= '<div id="leftimg">
+                <a href="'.$sourceurl.'&isHidden=true">
+                    '.Display::return_icon('collapse.gif', 'Hide menu5').'
+                </a>
+                </div>';
             }
         }
     }
@@ -645,12 +784,11 @@ class Display
         $return_only_path = false
     ) {
 
-        $code_path   = api_get_path(SYS_CODE_PATH);
-        $w_code_path = api_get_path(WEB_CODE_PATH);
+        $code_path   = api_get_path(SYS_IMG_PATH);
+        $w_code_path = api_get_path(WEB_IMG_PATH);
 
         $image      = trim($image);
         $theme      = 'css/'.api_get_visual_theme().'/icons/';
-        $icon       = '';
         $size_extra = '';
 
         if (isset($size)) {
@@ -660,16 +798,18 @@ class Display
             $size = ICON_SIZE_SMALL;
         }
 
-        //Checking the theme icons folder example: main/css/chamilo/icons/XXX
+        // Checking the theme icons folder example: main/css/chamilo/icons/XXX
+
         if (is_file($code_path.$theme.$size_extra.$image)) {
             $icon = $w_code_path.$theme.$size_extra.$image;
-        } elseif (is_file($code_path.'img/icons/'.$size_extra.$image)) {
+        } elseif (is_file($code_path.'icons/'.$size_extra.$image)) {
             //Checking the main/img/icons/XXX/ folder
-            $icon = $w_code_path.'img/icons/'.$size_extra.$image;
+            $icon = $w_code_path.'icons/'.$size_extra.$image;
         } else {
             //Checking the img/ folder
-            $icon = $w_code_path.'img/'.$image;
+            $icon = $w_code_path.$image;
         }
+
         $icon = api_get_cdn_path($icon);
         if ($return_only_path) {
             return $icon;
@@ -685,16 +825,17 @@ class Display
     }
 
     /**
-     * Returns the htmlcode for an image
+     * Returns the html code for an image
      *
-     * @param string $image the filename of the file (in the main/img/ folder
+     * @param string $image_path the filename of the file (in the main/img/ folder
      * @param string $alt_text the alt text (probably a language variable)
      * @param array additional attributes (for instance height, width, onclick, ...)
+     * @param bool $applyFilter
      * @author Julio Montoya 2010
+     * @return string
      */
     public static function img($image_path, $alt_text = '', $additional_attributes = array(), $applyFilter = true)
     {
-
         // Sanitizing the parameter $image_path
         if ($applyFilter) {
             $image_path = Security::filter_img_path($image_path);
@@ -718,12 +859,13 @@ class Display
     }
 
     /**
-     * Returns the htmlcode for a tag (h3, h1, div, a, button), etc
+     * Returns the html code for a tag (h3, h1, div, a, button), etc
      *
-     * @param string $image the filename of the file (in the main/img/ folder
-     * @param string $alt_text the alt text (probably a language variable)
-     * @param array additional attributes (for instance height, width, onclick, ...)
+     * @param string $tag the filename of the file (in the main/img/ folder
+     * @param string $content the alt text (probably a language variable)
+     * @param array $additional_attributes (for instance height, width, onclick, ...)
      * @author Julio Montoya 2010
+     * @return string
      */
     public static function tag($tag, $content, $additional_attributes = array())
     {
@@ -739,13 +881,17 @@ class Display
         if (in_array($tag, array('img', 'input', 'br'))) {
             $return_value = '<'.$tag.' '.$attribute_list.' />';
         } else {
-            $return_value = '<'.$tag.' '.$attribute_list.' > '.$content.'</'.$tag.'>';
+            $return_value = '<'.$tag.' '.$attribute_list.' >'.$content.'</'.$tag.'>';
         }
         return $return_value;
     }
 
     /**
      * Creates a URL anchor
+     * @param string $name
+     * @param string $url
+     * @param array $extra_attributes
+     * @return string
      */
     public static function url($name, $url, $extra_attributes = array())
     {
@@ -945,9 +1091,9 @@ class Display
 
     public static function form_row($label, $form_item)
     {
-        $label     = self::span($label, array('class' => 'control-label'));
-        $form_item = self::div($form_item, array('class' => 'controls'));
-        return self::div($label.$form_item, array('class' => 'control-group'));
+        $label     = self::span($label, array('class' => 'col-sm-2 control-label'));
+        $form_item = self::div($form_item, array('class' => 'col-sm-10'));
+        return self::div($label.$form_item, array('class' => 'form-group'));
     }
 
     /**
@@ -1183,7 +1329,7 @@ class Display
      */
     public static function show_notification($course_info)
     {
-        $t_track_e_access = Database::get_statistic_table(TABLE_STATISTIC_TRACK_E_LASTACCESS);
+        $t_track_e_access = Database::get_main_table(TABLE_STATISTIC_TRACK_E_LASTACCESS);
         $user_id          = api_get_user_id();
 
         $course_tool_table = Database::get_course_table(TABLE_TOOL_LIST);
@@ -1194,7 +1340,8 @@ class Display
 
         $course_info['id_session'] = intval($course_info['id_session']);
         // Get the user's last access dates to all tools of this course
-        $sqlLastTrackInCourse = "SELECT * FROM $t_track_e_access USE INDEX (c_id, access_user_id)
+        //$sqlLastTrackInCourse = "SELECT * FROM $t_track_e_access USE INDEX (c_id, access_user_id)
+        $sqlLastTrackInCourse = "SELECT * FROM $t_track_e_access
                                  WHERE  c_id = ".$course_id." AND
                                         access_user_id = '$user_id' AND
                                         access_session_id ='".$course_info['id_session']."'";
@@ -1290,7 +1437,7 @@ class Display
         // Show all tool icons where there is something new.
         $retvalue = '&nbsp;';
         while (list($key, $notification) = each($notifications)) {
-            $lastDate = date('d/m/Y H:i', convert_sql_date($notification['lastedit_date']));
+            $lastDate = date('d/m/Y H:i', api_convert_sql_date($notification['lastedit_date']));
             $type     = $notification['lastedit_type'];
             if (empty($course_info['id_session'])) {
                 $my_course['id_session'] = 0;
@@ -1654,7 +1801,8 @@ class Display
     {
         $html = null;
         if (!empty($items)) {
-            $html = '<div class="new_actions"><ul class="nav nav-pills">';
+            $html = '<div class="new_actions">
+                        <ul class="nav nav-pills">';
             foreach ($items as $value) {
                 $class = null;
                 if (isset($value['active']) && $value['active']) {
@@ -1737,171 +1885,197 @@ class Display
             $html .= Display::tag('li', Display::url($item['title'], $item['href']));
         }
         $html .= '</ul>
-            </div> </div>';
+            </div></div>';
         return $html;
+    }
+
+
+    /**
+     * @param string $file
+     * @param array $params
+     * @return null|string
+     */
+    public static function getMediaPlayer($file, $params = array())
+    {
+        $fileInfo = pathinfo($file);
+
+        switch ($fileInfo['extension']) {
+            case 'wav':
+                if (isset($params['url'])) {
+                    return DocumentManager::readNanogongFile($params['url']);
+                }
+                break;
+            case 'mp3':
+            case 'webm':
+                $autoplay = null;
+                if (isset($params['autoplay']) && $params['autoplay'] == 'true') {
+                    $autoplay = 'autoplay';
+                }
+                $width = isset($params['width']) ? 'width="'.$params['width'].'"' : null;
+                $id = isset($params['id']) ? $params['id'] : $fileInfo['basename'];
+                $class = isset($params['class']) ? ' class="'.$params['class'].'"' : null;
+
+                $html = '<audio id="'.$id.'" '.$class.' controls '.$autoplay.' '.$width.' src="'.$file.'" >';
+                $html .= '  <object width="'.$params['width'].'" height="50" type="application/x-shockwave-flash" data="'.api_get_path(WEB_LIBRARY_JS_PATH).'mediaelement/flashmediaelement.swf">
+                                <param name="movie" value="'.api_get_path(WEB_LIBRARY_JS_PATH).'mediaelement/flashmediaelement.swf" />
+                                <param name="flashvars" value="controls=true&file='.$fileInfo['basename'].'" />
+                            </object>';
+                $html .= '</audio>';
+                return $html;
+                break;
+        }
+
+        return null;
     }
 
     /**
      *
+     * @param int $nextValue
      * @param array $list
      * @param int $current
+     * @param int $fixedValue
      * @param array $conditions
      * @param string $link
+     * @param bool $isMedia
+     * @param bool $addHeaders
+
      * @return string
      */
-    public static function progress_pagination_bar($questionList, $current, $conditions = array(), $link = null, $counter = null, $addLetters = false, $fixValue = null)
-    {
-        if (empty($counter)) {
-            $counter = 1;
+    public static function progressPaginationBar(
+        $nextValue,
+        $list,
+        $current,
+        $fixedValue = null,
+        $conditions = array(),
+        $link = null,
+        $isMedia = false,
+        $addHeaders = true,
+        $linkAttributes = array()
+    ) {
+        if ($addHeaders) {
+            $pagination_size = 'pagination-mini';
+            $html = '<div class="exercise_pagination pagination '.$pagination_size.'"><ul>';
+        } else {
+            $html = null;
         }
-
-        $fixedCounter = $counter;
-        $pagination_size = 'pagination-mini';
-        $html = '<div class="exercise_pagination pagination '.$pagination_size.'"><ul>';
-        $cleanCounter = 1;
-        $defaultClass = "before";
 
         $affectAllItems = false;
 
-        if ($addLetters && $fixValue) {
-            if ($current == $fixValue) {
-                $affectAllItems = true;
-            }
+        if ($isMedia && isset($fixedValue) && ($nextValue + 1 == $current)) {
+            $affectAllItems = true;
         }
 
-        foreach ($questionList as $item_id) {
-            $class = $defaultClass;
-
-            foreach ($conditions as $condition) {
-                $array = isset($condition['items']) ? $condition['items'] : array();
-                $class_to_applied = $condition['class'];
-                $type = isset($condition['type']) ? $condition['type'] : 'positive';
-                $mode = isset($condition['mode']) ? $condition['mode'] : 'add';
-                switch ($type) {
-                    case 'positive':
-                        if (in_array($item_id, $array)) {
-                            if ($mode == 'overwrite') {
-                                $class = " $defaultClass $class_to_applied";
-                            } else {
-                                $class .= " $class_to_applied";
-                            }
-                        }
-                        break;
-                    case 'negative':
-                        if (!in_array($item_id, $array)) {
-                            if ($mode == 'overwrite') {
-                                $class = " $defaultClass $class_to_applied";
-                            } else {
-                                $class .= " $class_to_applied";
-                            }
-                        }
-                        break;
-                }
-            }
-
-            if ($addLetters && $fixValue) {
-                $current = $counter;
-                if ($affectAllItems) {
-                    if ($current == $counter) {
-                        //if ($class == $defaultClass) {
-                            $class = "before current";
-                        //}
-                    }
-                }
+        $localCounter = 0;
+        foreach ($list as $itemId) {
+            $isCurrent = false;
+            if ($affectAllItems) {
+                $isCurrent = true;
             } else {
-                // Default behaviour
-                if ($current == $counter) {
-                    $class = "before current";
+                if (!$isMedia) {
+                    $isCurrent = $current == ($localCounter + $nextValue + 1) ? true : false;
                 }
             }
 
-            if (empty($link)) {
-                $link_to_show = "#";
-            } else {
-                $link_counter = $counter - 1;
-                $link_to_show = $link.$link_counter;
-            }
+            $html .= self::parsePaginationItem(
+                $itemId,
+                $isCurrent,
+                $conditions,
+                $link,
+                $nextValue,
+                $isMedia,
+                $localCounter,
+                $fixedValue,
+                $linkAttributes
+            );
 
-            $label = $counter;
-
-            if ($addLetters) {
-                $label = $fixValue.' '.chr(96 + $cleanCounter);
-                $link_to_show = $link.($fixedCounter - 1);
-            }
-
-            $html .= '<li class = "'.$class.'"><a href="'.$link_to_show.'">'.$label.' '.$item_id.' </a></li>';
-            $counter++;
-            $cleanCounter++;
+            $localCounter++;
         }
-        $html .= '</ul></div>';
+
+        if ($addHeaders) {
+            $html .= '</ul></div>';
+        }
         return $html;
     }
 
     /**
-     * Shows a list of numbers that represents the question to answer in a exercise
      *
-     * @param array $questionList unflatten question list with medias
-     * @param array $categories
-     * @param array $mediaQuestions
-     * @param int $current
+     * @param int $itemId
+     * @param bool $isCurrent
      * @param array $conditions
      * @param string $link
+     * @param int $nextValue
+     * @param bool $isMedia
+     * @param int $localCounter
+     * @param int $fixedValue
      * @return string
      */
-    public static function progress_pagination_bar_with_categories($flattenQuestionList, $categories, $current, $conditions = array(), $link = null)
+    static function parsePaginationItem(
+        $itemId,
+        $isCurrent,
+        $conditions,
+        $link,
+        $nextValue = 0,
+        $isMedia = false,
+        $localCounter = null,
+        $fixedValue = null,
+        $linkAttributes = array())
     {
-        $counter = 1;
-        $html = null;
-        $mediaUsedCounter = 0;
+        $defaultClass = "before";
+        $class = $defaultClass;
 
-        if (!empty($categories)) {
-            foreach ($categories as $category) {
-                //var_dump($counter);
-                $questionList = $category['question_list'];
-                // In this category there are media questions
-                $mediaQuestionId = $category['media_question'];
-
-                $useLetters = false;
-                $fixValue = null;
-
-                if ($mediaQuestionId != 999) {
-                    $useLetters = true;
-                    $fixValue = $counter;
-                    $mediaUsedCounter++;
-                }
-
-                $categoryName = $category['name'];
-
-                if (isset($category['parent_info'])) {
-                    $categoryName  = $category['parent_info']['title'];
-                }
-
-                $html .= '<div class="row">';
-                $html .= '<div class="span2">'.$categoryName.'</div>';
-                $html .= '<div class="span8">';
-                $html .= self::progress_pagination_bar(
-                    $questionList,
-                    $current,
-                    $conditions,
-                    $link,
-                    $counter,
-                    $useLetters,
-                    $fixValue
-                );
-                $html .= '</div>';
-                $html .= '</div>';
-
-                if ($mediaQuestionId != 999) {
-                    $fixValue = $counter + count($questionList);
-                } else {
-                    $counter = $counter + count($questionList)- 1;
-                }
-                $counter++;
+        foreach ($conditions as $condition) {
+            $array = isset($condition['items']) ? $condition['items'] : array();
+            $class_to_applied = $condition['class'];
+            $type = isset($condition['type']) ? $condition['type'] : 'positive';
+            $mode = isset($condition['mode']) ? $condition['mode'] : 'add';
+            switch ($type) {
+                case 'positive':
+                    if (in_array($itemId, $array)) {
+                        if ($mode == 'overwrite') {
+                            $class = " $defaultClass $class_to_applied";
+                        } else {
+                            $class .= " $class_to_applied";
+                        }
+                    }
+                    break;
+                case 'negative':
+                    if (!in_array($itemId, $array)) {
+                        if ($mode == 'overwrite') {
+                            $class = " $defaultClass $class_to_applied";
+                        } else {
+                            $class .= " $class_to_applied";
+                        }
+                    }
+                    break;
             }
         }
 
-        return $html;
+        if ($isCurrent) {
+            $class = "before current";
+        }
+
+        if ($isMedia && $isCurrent) {
+            $class = "before current";
+        }
+
+        if (empty($link)) {
+            $link_to_show = "#";
+        } else {
+            $link_to_show = $link.($nextValue + $localCounter);
+        }
+
+        $label = $nextValue + $localCounter + 1;
+
+        if ($isMedia) {
+            $label = ($fixedValue + 1) .' '.chr(97 + $localCounter);
+            $link_to_show = $link.$fixedValue.'#questionanchor'.$itemId;
+        }
+
+        $link = Display::url($label.' ', $link_to_show, $linkAttributes);
+
+        return  '<li class = "'.$class.'">'.$link.'</li>';
     }
+
 
     /**
      * @param int $current
@@ -1915,6 +2089,47 @@ class Display
             $label = sprintf(get_lang('PaginationXofY'), $current, $total);
             $html = self::url($label, '#', array('class' => 'btn disabled'));
         }
+        return $html;
+    }
+
+    public static function getSlider($name, $options)
+    {
+        $html =
+            '<div id="'.$name.'" class="carousel slide" data-ride="carousel">
+                <ol class="carousel-indicators">';
+
+        for ($i = 0; $i < count($options); $i++) {
+            $active = null;
+            if ($i == 0) {
+                $active = 'active';
+            }
+            $html .= '<li data-target="#'.$name.'" class ="'.$active.' data-slide-to="'.$i.'"></li>';
+        }
+        $html .= '</ol><div class="carousel-inner">';
+        $counter = 0;
+        foreach ($options as $option) {
+            $title = $option['title'];
+            $content = $option['content'];
+            //$title = $option['img']
+            $active = null;
+            if ($counter == 0) {
+                $active = 'active';
+            }
+            $html .=  '<div class=" '.$active.' item">
+                            <div class="new_html_code"></div>
+                            <div class="carousel-caption">
+                                <h2>'.$title.'</h2>
+                                <p>'.$content.'</p>
+                            </div>
+                        </div>';
+            $counter++;
+        }
+        $html .= '</div>';
+
+        $html .= '<a class="carousel-control left" href="#'.$name.'" data-slide="prev"> <span class="glyphicon glyphicon-chevron-left"></span></a>';
+        $html .= '<a class="carousel-control right" href="#'.$name.'" data-slide="next"> <span class="glyphicon glyphicon-chevron-right"></span></a>';
+        $html .= '</div>';
+
         return $html;
     }
 }

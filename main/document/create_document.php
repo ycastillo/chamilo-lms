@@ -26,7 +26,6 @@ var hide_bar = function() {
     $("#template_col").hide();
     $("#doc_form").removeClass("span9");
     $("#doc_form").addClass("span11");
-    $("#hide_bar_template").css({"background-image" : \'url("../img/hide2.png")\'})
 }
 
 $(document).ready(function() {
@@ -41,119 +40,17 @@ $(document).ready(function() {
             $("#template_col").show();
             $("#doc_form").removeClass("span11");
             $("#doc_form").addClass("span9");
-            $(this).css("background-image", \'url("../img/hide0.png")\');
         }
     );
 });
 
-function InnerDialogLoaded() {
-	/*
-	var B=new window.frames[0].FCKToolbarButton(\'Templates\',window.frames[0].FCKLang.Templates);
-	return B.ClickFrame();
-	*/
+function setFocus() {
+   $("#document_title").focus();
+}
 
-	var isIE  = (navigator.appVersion.indexOf(\'MSIE\') != -1) ? true : false ;
-	var EditorFrame = null ;
-
-	if ( !isIE ) {
-		EditorFrame = window.frames[0] ;
-	} else {
-		// For this dynamic page window.frames[0] enumerates frames in a different order in IE.
-		// We need a sure method to locate the frame that contains the online editor.
-		for ( var i = 0, n = window.frames.length ; i < n ; i++ ) {
-			if ( window.frames[i].location.toString().indexOf(\'InstanceName=content\') != -1 ) {
-				EditorFrame = window.frames[i] ;
-			}
-		}
-	}
-
-	if ( !EditorFrame ) {
-		return null ;
-	}
-
-	var B = new EditorFrame.FCKToolbarButton(\'Templates\', EditorFrame.FCKLang.Templates);
-	return B.ClickFrame();
-};
-
-	var temp=false;
-	var temp2=false;
-	var load_default_template = '.((isset($_POST['submit']) || empty($_SERVER['QUERY_STRING'])) ? 'false' : 'true').';
-
-	function FCKeditor_OnComplete( editorInstance ) {
-		editorInstance.Events.AttachEvent( \'OnSelectionChange\', check_for_title ) ;
-		document.getElementById(\'frmModel\').innerHTML = "<iframe style=\'height: 525px; width: 180px;\' scrolling=\'no\' frameborder=\'0\' src=\''.api_get_path(
-    WEB_LIBRARY_PATH
-).'fckeditor/editor/fckdialogframe.html \'>";
-	}
-
-	function check_for_title() {
-		if (temp) {
-			// This functions shows that you can interact directly with the editor area
-			// DOM. In this way you have the freedom to do anything you want with it.
-
-			// Get the editor instance that we want to interact with.
-			var oEditor = FCKeditorAPI.GetInstance(\'content\') ;
-
-			// Get the Editor Area DOM (Document object).
-			var oDOM = oEditor.EditorDocument ;
-
-			var iLength ;
-			var contentText ;
-			var contentTextArray;
-			var bestandsnaamNieuw = "";
-			var bestandsnaamOud = "";
-
-			// The are two diffent ways to get the text (without HTML markups).
-			// It is browser specific.
-
-			if( document.all )		// If Internet Explorer.
-			{
-				contentText = oDOM.body.innerText ;
-			}
-			else					// If Gecko.
-			{
-				var r = oDOM.createRange() ;
-				r.selectNodeContents( oDOM.body ) ;
-				contentText = r.toString() ;
-			}
-
-			var index=contentText.indexOf("/*<![CDATA");
-			contentText=contentText.substr(0,index);
-
-			// Compose title if there is none
-			contentTextArray = contentText.split(\' \') ;
-			var x=0;
-			for(x=0; (x<5 && x<contentTextArray.length); x++)
-			{
-				if(x < 4)
-				{
-					bestandsnaamNieuw += contentTextArray[x] + \' \';
-				}
-				else
-				{
-					bestandsnaamNieuw += contentTextArray[x];
-				}
-			}
-		}
-		temp=true;
-	}
-
-	function trim(s) {
-        while(s.substring(0,1) == \' \') {
-            s = s.substring(1,s.length);
-        }
-        while(s.substring(s.length-1,s.length) == \' \') {
-            s = s.substring(0,s.length-1);
-        }
-        return s;
-	}
-	function setFocus() {
-	   $("#document_title").focus();
-    }
-
-	$(window).load(function () {
-        setFocus();
-    });
+$(window).load(function () {
+    setFocus();
+});
 </script>';
 
 require_once api_get_path(SYS_CODE_PATH).'document/document.inc.php';
@@ -161,6 +58,7 @@ require_once api_get_path(SYS_CODE_PATH).'document/document.inc.php';
 //I'm in the certification module?
 $is_certificate_mode = false;
 $_course = api_get_course_info();
+$groupId = api_get_group_id();
 
 if (isset($_REQUEST['certificate']) && $_REQUEST['certificate'] == 'true') {
     $is_certificate_mode = true;
@@ -180,7 +78,7 @@ $course_id = api_get_course_int_id();
 $document_data = DocumentManager::get_document_data_by_id($_REQUEST['id'], api_get_course_id(), true);
 if (empty($document_data)) {
     if (api_is_in_group()) {
-        $group_properties = GroupManager::get_group_properties(api_get_group_id());
+        $group_properties = GroupManager::get_group_properties($groupId);
         $document_id = DocumentManager::get_document_id(api_get_course_info(), $group_properties['directory']);
         $document_data = DocumentManager::get_document_data_by_id($document_id, api_get_course_id());
 
@@ -226,7 +124,7 @@ $doc_tree = explode('/', $dir);
 $count_dir = count($doc_tree) - 2; // "2" because at the begin and end there are 2 "/"
 
 if (api_is_in_group()) {
-    $group_properties = GroupManager::get_group_properties(api_get_group_id());
+    $group_properties = GroupManager::get_group_properties($groupId);
 
     // Level correction for group documents.
     if (!empty($group_properties['directory'])) {
@@ -271,18 +169,15 @@ if (!is_dir($filepath)) {
     $dir = '/';
 }
 
-$to_group_id = 0;
-
 if (!$is_certificate_mode) {
     $req_gid = null;
     if (api_is_in_group()) {
-        $req_gid = '&amp;gidReq='.api_get_group_id();
+        $req_gid = '&amp;gidReq='.$groupId;
         $interbreadcrumb[] = array(
-            "url" => "../group/group_space.php?gidReq=".api_get_group_id(),
+            "url" => "../group/group_space.php?gidReq=".$groupId,
             "name" => get_lang('GroupSpace')
         );
         $noPHP_SELF = true;
-        $to_group_id = api_get_group_id();
         $path = explode('/', $dir);
         if ('/'.$path[1] != $group_properties['directory']) {
             api_not_allowed(true);
@@ -293,9 +188,9 @@ if (!$is_certificate_mode) {
         "name" => get_lang('Documents')
     );
 } else {
-    $interbreadcrumb[] = array('url' => '../gradebook/'.$_SESSION['gradebook_dest'], 'name' => get_lang('Gradebook'));
+    $interbreadcrumb[] = array('url' => api_get_path(WEB_CODE_PATH).'gradebook/'.$_SESSION['gradebook_dest'], 'name' => get_lang('Gradebook'));
 }
-if (!($is_allowed_to_edit || $_SESSION['group_member_with_upload_rights'] || is_my_shared_folder(
+if (!($is_allowed_to_edit || GroupManager::groupMemberWithUploadRights() || is_my_shared_folder(
     $_user['user_id'],
     Security::remove_XSS($dir),
     api_get_session_id()
@@ -319,7 +214,7 @@ $select_cat = isset($_GET['selectcat']) ? intval($_GET['selectcat']) : null;
 // Create a new form
 $form = new FormValidator('create_document', 'post', api_get_self().'?'.api_get_cidreq().'&dir='.Security::remove_XSS(
     urlencode($dir)
-).'&selectcat='.$select_cat, null, array('class' => 'form-vertical'));
+).'&selectcat='.$select_cat, null, array('class' => 'form-horizontal'));
 
 // form title
 $form->addElement('header', $nameTools);
@@ -347,7 +242,7 @@ function document_exists($filename)
     global $filepath;
     $filename = addslashes(trim($filename));
     $filename = Security::remove_XSS($filename);
-    $filename = replace_dangerous_char($filename);
+    $filename = api_replace_dangerous_char($filename);
     $filename = FileManager::disable_dangerous_file($filename);
 
     return !file_exists($filepath.$filename.'.html');
@@ -355,13 +250,13 @@ function document_exists($filename)
 
 // Add group to the form
 if ($is_certificate_mode) {
-    $form->addElement('text', 'title', get_lang('CertificateName'), 'class="span4" id="document_title"');
+    $form->addElement('text', 'title', get_lang('CertificateName'), array('id' => 'document_title'));
 } else {
-    $form->addElement('text', 'title', get_lang('Title'), 'class="span4" id="document_title"');
+    $form->addElement('text', 'title', get_lang('Title'), array('id' => 'document_title'));
 }
 
 // Show read-only box only in groups
-if (!empty($_SESSION['_gid'])) {
+if (!empty($groupId)) {
     $group[] = $form->createElement('checkbox', 'readonly', '', get_lang('ReadOnly'));
 }
 $form->addRule('title', get_lang('ThisFieldIsRequired'), 'required');
@@ -371,13 +266,13 @@ $current_session_id = api_get_session_id();
 $form->add_html_editor('content', '', false, false, $html_editor_config);
 
 // Comment-field
-$folders = DocumentManager::get_all_document_folders($_course, $to_group_id, $is_allowed_to_edit);
+$folders = DocumentManager::get_all_document_folders($_course, $groupId, $is_allowed_to_edit);
 
 // If we are not in the certificates creation, display a folder chooser for the
 // new document created
 
 if (!$is_certificate_mode && !is_my_shared_folder($_user['user_id'], $dir, $current_session_id)) {
-    $folders = DocumentManager::get_all_document_folders($_course, $to_group_id, $is_allowed_to_edit);
+    $folders = DocumentManager::get_all_document_folders($_course, $groupId, $is_allowed_to_edit);
 
     $parent_select = $form->addElement('select', 'curdirpath', array(null, get_lang('DestinationDirectory')));
 
@@ -518,7 +413,7 @@ if ($form->validate()) {
     $filename = $values['title'];
     $filename = addslashes(trim($filename));
     $filename = Security::remove_XSS($filename);
-    $filename = replace_dangerous_char($filename);
+    $filename = api_replace_dangerous_char($filename);
     $filename = FileManager::disable_dangerous_file($filename);
 
     //Setting the title
@@ -581,7 +476,7 @@ if ($form->validate()) {
         if (!is_file($filepath.'css/frames.css')) {
             // Make a copy of the current css for the new document
             copy(
-                api_get_path(SYS_CODE_PATH).'css/'.api_get_setting('stylesheets').'/frames.css',
+                api_get_path(SYS_CSS_PATH).'themes/'.api_get_setting('stylesheets').'/frames.css',
                 $filepath.'css/frames.css'
             );
             $doc_id = FileManager::add_document(
@@ -636,7 +531,7 @@ if ($form->validate()) {
                 $document_id,
                 'DocumentAdded',
                 $_user['user_id'],
-                $to_group_id,
+                $groupId,
                 null,
                 null,
                 null,
@@ -705,30 +600,9 @@ if ($form->validate()) {
         }
     }
 
+    $interbreadcrumb[] = array('url' => '#', 'name' => $nameTools);
+
     Display :: display_header($nameTools, "Doc");
-
-    // actions
-    echo '<div class="actions">';
-
-    // link back to the documents overview
-    if ($is_certificate_mode) {
-        echo '<a href="document.php?certificate=true&id='.$folder_id.'&selectcat='.Security::remove_XSS(
-            $_GET['selectcat']
-        ).'">'.Display::return_icon(
-            'back.png',
-            get_lang('Back').' '.get_lang('To').' '.get_lang('CertificateOverview'),
-            '',
-            ICON_SIZE_MEDIUM
-        ).'</a>';
-    } else {
-        echo '<a href="document.php?curdirpath='.Security::remove_XSS($dir).'">'.Display::return_icon(
-            'back.png',
-            get_lang('Back').' '.get_lang('To').' '.get_lang('DocumentsOverview'),
-            '',
-            ICON_SIZE_MEDIUM
-        ).'</a>';
-    }
-    echo '</div>';
 
     if ($is_certificate_mode) {
         $all_information_by_create_certificate = DocumentManager::get_all_info_to_certificate(
@@ -743,15 +617,6 @@ if ($form->validate()) {
         $create_certificate = get_lang('CreateCertificateWithTags');
         Display::display_normal_message($create_certificate.': <br /><br/>'.$str_info, false);
     }
-    // HTML-editor
-    echo '<div class="row-fluid" style="overflow:hidden">
-            <div id="template_col" class="span2" style="width:162px">
-                <div id="frmModel" style="overflow: visible;"></div>
-            </div>
-            <div id="hide_bar_template"></div>
-            <div id="doc_form" class="span9">
-                    '.$form->return_form().'
-            </div>
-          </div>';
+    echo $form->return_form();
     Display :: display_footer();
 }

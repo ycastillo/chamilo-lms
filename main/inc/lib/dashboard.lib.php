@@ -47,7 +47,7 @@ class DashboardManager {
 			$plugin_info_file = $dashboard_pluginpath.$testplugin."/$testplugin.info";
 			$plugin_info = array();
 			if (file_exists($plugin_info_file) && is_readable($plugin_info_file)) {
-				$plugin_info = parse_info_file($plugin_info_file);
+				$plugin_info = api_parse_info_file($plugin_info_file);
 
     			// change index to lower case
     			$plugin_info = array_change_key_case($plugin_info);
@@ -73,7 +73,7 @@ class DashboardManager {
 		if (count($disabled_blocks_data) > 0) {
 			foreach ($disabled_blocks_data as $disabled_block) {
 				echo '<tr style="background-color:#eee">';
-				echo '<td><center><input type="checkbox" name="disabled_block" value="true" checked disabled /></center>';
+				echo '<td><input type="checkbox" name="disabled_block" value="true" checked disabled />';
 				for ($j = 0 ; $j < count($table_cols); $j++) {
 					if (isset($disabled_block[strtolower($table_cols[$j])])) {
 						if ($j == 2) {
@@ -96,7 +96,7 @@ class DashboardManager {
 
 		echo '</table>';
 		echo '<br />';
-		echo '<button class="save" type="submit" name="submit_dashboard_plugins" value="'.get_lang('EnableDashboardPlugins').'">'.get_lang('EnableDashboardPlugins').'</button></form>';
+		echo '<button class="btn btn-primary" type="submit" name="submit_dashboard_plugins" value="'.get_lang('EnableDashboardPlugins').'">'.get_lang('EnableDashboardPlugins').'</button></form>';
 	}
 
 	/**
@@ -207,7 +207,7 @@ class DashboardManager {
 					$plugin_info_file = $dashboard_pluginpath.$testplugin."/$testplugin.info";
 					$plugin_info = array();
 					if (file_exists($plugin_info_file)) {
-						$plugin_info = parse_info_file($plugin_info_file);
+						$plugin_info = api_parse_info_file($plugin_info_file);
 					}
 
 					// change keys to lower case
@@ -232,12 +232,10 @@ class DashboardManager {
 					$ins = "INSERT INTO $tbl_block(name, description, path, controller) VALUES ('$plugin_name', '$plugin_description', '$plugin_path', '$plugin_controller')";
 					Database::query($ins);
 				}
-				$affected_rows = Database::affected_rows();
+				// $affected_rows = Database::affected_rows();
 			}
-
 		}
-
-		return $affected_rows;
+		return true;
 	}
 
 	/**

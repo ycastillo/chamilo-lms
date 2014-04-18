@@ -2,15 +2,22 @@
 
 namespace Chash\Command\Translation;
 
-use Chash\Command\Database\CommonChamiloDatabaseCommand;
+use Chash\Command\Database\CommonDatabaseCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
-class ImportLanguageCommand extends CommonChamiloDatabaseCommand
+/**
+ * Class ImportLanguageCommand
+ * @package Chash\Command\Translation
+ */
+class ImportLanguageCommand extends CommonDatabaseCommand
 {
+    /**
+     *
+     */
     protected function configure()
     {
         parent::configure();
@@ -24,6 +31,11 @@ class ImportLanguageCommand extends CommonChamiloDatabaseCommand
             );
     }
 
+    /**
+     * @param InputInterface $input
+     * @param OutputInterface $output
+     * @return int|null|void
+     */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         parent::execute($input, $output);
@@ -34,16 +46,15 @@ class ImportLanguageCommand extends CommonChamiloDatabaseCommand
 
         $file = $input->getArgument('file');
 
-        $connection = $this->getHelper('configuration')->getConnection();
+        $connection = $this->getConnection();
 
         if (is_file($file) && is_readable($file)) {
             $phar = new \PharData($file);
             if ($phar->hasMetadata()) {
                 $langInfo = $phar->getMetadata();
 
-                $connection = $this->getHelper('configuration')->getConnection();
                 if ($connection) {
-                    $q              = mysql_query(
+                    $q = mysql_query(
                         "SELECT * FROM language WHERE dokeos_folder = '{$langInfo['dokeos_folder']}' "
                     );
                     $langInfoFromDB = mysql_fetch_array($q, MYSQL_ASSOC);

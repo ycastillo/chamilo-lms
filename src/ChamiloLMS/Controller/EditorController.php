@@ -5,36 +5,71 @@ namespace ChamiloLMS\Controller;
 
 use Silex\Application;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpKernel\HttpKernelInterface;
 use ChamiloLMS\Component\Editor\Connector;
+use ChamiloLMS\Component\Editor\Finder;
+
+use Symfony\Component\Routing\Annotation\Route;
+use Sensio\Bundle\FrameworkExtraBundle\Configuration\Method;
+use ChamiloLMS\Component\Editor\Driver\elFinderVolumePersonalDriver;
 
 /**
  * @package ChamiloLMS.Controller
  * @author Julio Montoya <gugli100@gmail.com>
  */
-class EditorController
+class EditorController extends CommonController
 {
     /**
-     * @param Application $app
-     * @return Response
+     * Gets that rm.wav sound
+     * @Route("/sounds/{file}")
+     * @Method({"GET"})
      */
-    public function filemanagerAction(Application $app)
+    public function getSoundAction($file)
     {
-        $response = $app['template']->render_template('javascript/elfinder.tpl');
+        $file = api_get_path(LIBRARY_PATH).'elfinder/rm.wav';
+        return $this->app->sendFile($file);
+    }
+
+    /**
+     * @Route("/filemanager")
+     * @Method({"GET"})
+     */
+    public function fileManagerAction()
+    {
+        $this->getTemplate()->assign('course', $this->getCourse());
+        $this->getTemplate()->assign('user', $this->getUser());
+        $response = $this->getTemplate()->renderTemplate($this->getHtmlEditor()->getEditorTemplate());
+        return new Response($response, 200, array());
+    }
+
+    /**
+     * @Route("/templates")
+     * @Method({"GET"})
+     */
+    public function getTemplatesAction()
+    {
+        $templates = $this->getManager()->getRepository('ChamiloLMS\Entity\SystemTemplate')->findAll();
+        $templates = $this->getHtmlEditor()->formatTemplates($templates);
+        $this->getTemplate()->assign('templates', $templates);
+        $response = $this->getTemplate()->renderTemplate('javascript/editor/ckeditor/templates.tpl');
 
         return new Response($response, 200, array());
     }
 
     /**
-     * @param Application $app
+     * @Route("/connector")
+     * @Method({"GET"})
      */
-    public function connectorAction(Application $app)
+    public function connectorAction()
     {
-        $chamiloConnector = new Connector();
-        $opts = $chamiloConnector->getOperations();
+        error_reporting(-1);
+        $connector = $this->getEditorConnector();
+        $driverList = $this->getRequest()->get('driver_list');
 
-        error_reporting(0);
+        if (!empty($driverList)) {
+            $connector->setDriverList(explode(',', $driverList));
+        }
+
+        $operations = $connector->getOperations();
 
         include_once api_get_path(LIBRARY_PATH).'elfinder/php/elFinderConnector.class.php';
         include_once api_get_path(LIBRARY_PATH).'elfinder/php/elFinder.class.php';
@@ -42,7 +77,8 @@ class EditorController
         include_once api_get_path(LIBRARY_PATH).'elfinder/php/elFinderVolumeLocalFileSystem.class.php';
 
         // Run elFinder
-        $connector = new \elFinderConnector(new \elFinder($opts));
-        $connector->run();
+        $finder = new Finder($operations);
+        $elFinderConnector = new \elFinderConnector($finder);
+        $elFinderConnector->run();
     }
 }

@@ -36,16 +36,18 @@ require_once 'lib/gradebook_data_generator.class.php';
 require_once 'lib/fe/gradebooktable.class.php';
 require_once 'lib/fe/displaygradebook.php';
 require_once 'lib/fe/userform.class.php';
+require_once api_get_path(LIBRARY_PATH).'ezpdf/class.ezpdf.php';
+require_once api_get_path(LIBRARY_PATH).'gradebook.lib.php';
 
 /*
-$htmlHeadXtra[] = api_get_css(api_get_path(WEB_LIBRARY_PATH).'javascript/jqplot/jquery.jqplot.min.css');
+$htmlHeadXtra[] = api_get_css(api_get_path(WEB_LIBRARY_JS_PATH).'jqplot/jquery.jqplot.min.css');
 $htmlHeadXtra[] = api_get_js('jqplot/jquery.jqplot.min.js');
 $htmlHeadXtra[] = api_get_js('jqplot/plugins/jqplot.donutRenderer.min.js');*/
 
 $htmlHeadXtra[] = '<script>
 
-var show_icon = "../img/view_more_stats.gif";
-var hide_icon = "../img/view_less_stats.gif";
+var show_icon = "'.api_get_path(WEB_IMG_PATH).'view_more_stats.gif";
+var hide_icon = "'.api_get_path(WEB_IMG_PATH).'view_less_stats.gif";
 
 $(document).ready(function() {
 
@@ -64,10 +66,6 @@ $(document).ready(function() {
         $(this).addClass("view_children");
         $(this).find("img").attr("src", show_icon);
     });
-
-
-
-
 /*
   var s1 = [["a",25]];
   var s2 = [["a", 0], ["a", 10], ["a", 10], ["a", 5]];
@@ -731,7 +729,7 @@ $no_qualification = false;
 if ($category != '0') {
 	$cat = new Category();
 	$category_id   = intval($_GET['selectcat']);
-	$course_id     = Database::get_course_by_category($category_id);
+	$course_id     = CourseManager::get_course_by_category($category_id);
 	$show_message  = $cat->show_message_resource_delete($course_id);
 
 	if ($show_message == '') {
@@ -819,7 +817,7 @@ if (isset($first_time) && $first_time==1 && api_is_allowed_to_edit(null,true)) {
 		foreach ($cats as $cat) {
 			$allcat  = $cat->get_subcategories($stud_id, $course_code, $session_id);
 			$alleval = $cat->get_evaluations($stud_id);
-			$alllink = $cat->get_links($stud_id);
+			$alllink = $cat->get_links($stud_id, true);
 
 			if ($cat->get_parent_id() != 0 ) {
 				$i++;

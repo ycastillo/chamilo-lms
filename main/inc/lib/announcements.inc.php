@@ -7,22 +7,32 @@
  */
 
 /**
+ * Announcements handler class
  * @author jmontoya
- *
  */
 class AnnouncementManager
 {
-
+    /**
+     *
+     */
     public function __construct()
     {
 
     }
 
+    /**
+     * @return array
+     */
     public static function get_tags()
     {
         return array('((user_name))', '((teacher_name))', '((teacher_email))', '((course_title))', '((course_link))');
     }
 
+    /**
+     * @param $content
+     * @param $course_code
+     * @return mixed
+     */
     public static function parse_content($content, $course_code)
     {
         $reader_info = api_get_user_info(api_get_user_id());
@@ -279,6 +289,11 @@ class AnnouncementManager
         }
     }
 
+    /**
+     * Get last announcement order in the list (by max display_order)
+     * @return int 0 or the integer display_order of the last announcement
+     * @assert () === 0
+     */
     public static function get_last_announcement_order()
     {
         $tbl_announcement = Database::get_course_table(TABLE_ANNOUNCEMENT);
@@ -294,15 +309,61 @@ class AnnouncementManager
 
         return $order;
     }
-
+    /**
+     * Get last announcement in a course by id (not iid)
+     * @param int Course ID (will get from context if none provided)
+     * @return int 0 or the integer id last announcement inserted
+     * @assert () === 0
+     */
+    public static function get_last_announcement_id($course_id=null)
+    {
+        $tbl_announcement = Database::get_course_table(TABLE_ANNOUNCEMENT);
+        if (empty($course_id)) {
+            $course_id = api_get_course_int_id();
+        } else {
+            $course_id = filter_var($course_id, FILTER_SANITIZE_NUMBER_INT);
+        }
+        $sql_max = "SELECT MAX(id) FROM $tbl_announcement WHERE c_id = $course_id";
+        $res_max = Database::query($sql_max);
+        $id = 0;
+        if (Database::num_rows($res_max)) {
+            $row_max = Database::fetch_array($res_max);
+            $id = $row_max[0];
+        }
+        return $id;
+    }
+    /**
+     * Get last announcement attachment in a course by id (not iid)
+     * @param int Course ID (will get from context if none provided)
+     * @return int 0 or the integer id last announcement attachment inserted
+     * @assert () === 0
+     */
+    public static function get_last_announcement_attachment_id($course_id=null)
+    {
+        $tbl_announcement_att = Database::get_course_table(TABLE_ANNOUNCEMENT_ATTACHMENT);
+        if (empty($course_id)) {
+            $course_id = api_get_course_int_id();
+        } else {
+            $course_id = filter_var($course_id, FILTER_SANITIZE_NUMBER_INT);
+        }
+        $sql_max = "SELECT MAX(id) FROM $tbl_announcement_att WHERE c_id = $course_id";
+        $res_max = Database::query($sql_max);
+        $id = 0;
+        if (Database::num_rows($res_max)) {
+            $row_max = Database::fetch_array($res_max);
+            $id = $row_max[0];
+        }
+        return $id;
+    }
     /**
      * Store an announcement in the database (including its attached file if any)
      * @param string    Announcement title (pure text)
      * @param string    Content of the announcement (can be HTML)
      * @param int       Display order in the list of announcements
      * @param array     Array of users and groups to send the announcement to
-     * @param array        uploaded file $_FILES
+     * @param array     uploaded file $_FILES
      * @param string    Comment describing the attachment
+     * @param bool $sendEmail
      * @return int      false on failure, ID of the announcement on success
      */
     public static function add_announcement(
@@ -311,7 +372,8 @@ class AnnouncementManager
         $sent_to,
         $file = array(),
         $file_comment = null,
-        $end_date = null
+        $end_date = null,
+        $sendEmail = false
     ) {
         $_course = api_get_course_info();
         $tbl_announcement = Database::get_course_table(TABLE_ANNOUNCEMENT);
@@ -329,26 +391,28 @@ class AnnouncementManager
         $course_id = api_get_course_int_id();
 
         $order = self::get_last_announcement_order();
+        $aid = self::get_last_announcement_id($course_id)+1;
 
         // store in the table announcement
         $sql = "INSERT INTO $tbl_announcement SET
-				c_id 			= '$course_id',
-				content 		= '$newContent',
-				title 			= '$emailTitle',
+                c_id 			= '$course_id',
+                id                      = $aid,
+                content 		= '$newContent',
+                title 			= '$emailTitle',
                 end_date        = '$end_date',
-				display_order 	= '$order',
-				session_id		= ".api_get_session_id();
+                display_order 	= '$order',
+                session_id		= ".api_get_session_id();
         $result = Database::query($sql);
         if ($result === false) {
             return false;
         } else {
             //Store the attach file
-            $last_id = Database::insert_id();
+            $last_id = $aid;
             if (!empty($file)) {
                 self::add_announcement_attachment_file($last_id, $file_comment, $_FILES['user_upload']);
             }
 
-            // store in item_property (first the groups, then the users
+            // store in item_property (first the groups, then the users)
             if (!is_null($sent_to)) {
                 // !is_null($sent_to): when no user is selected we send it to everyone
                 $send_to = self::separate_users_groups($sent_to);
@@ -392,21 +456,32 @@ class AnnouncementManager
                 );
             }
 
+            if ($sendEmail && !empty($sendEmail)) {
+                self::send_email($last_id);
+            }
+
             return $last_id;
         }
     }
 
-    /*
-      STORE ANNOUNCEMENT  GROUP ITEM
+    /**
+     * @param $emailTitle
+     * @param $newContent
+     * @param $to
+     * @param $to_users
+     * @param array $file
+     * @param string $file_comment
+     * @param bool $sendEmail
+     * @return bool|int
      */
-
     public static function add_group_announcement(
         $emailTitle,
         $newContent,
         $to,
         $to_users,
         $file = array(),
-        $file_comment = ''
+        $file_comment = '',
+        $sendEmail = false
     ) {
         $_course = api_get_course_info();
 
@@ -419,10 +494,12 @@ class AnnouncementManager
 
         $now = api_get_utc_datetime();
         $course_id = api_get_course_int_id();
+        $aid = self::get_last_announcement_id($course_id)+1;
 
         // store in the table announcement
         $sql = "INSERT INTO $tbl_announcement SET
                 c_id 			= '$course_id',
+                id			= $aid,
                 content 		= '$newContent',
                 title 			= '$emailTitle',
                 end_date 		= '$now',
@@ -435,7 +512,7 @@ class AnnouncementManager
         }
 
         //store the attach file
-        $last_id = Database::insert_id();
+        $last_id = $aid;
 
         if (!empty($file)) {
             self::add_announcement_attachment_file($last_id, $file_comment, $file);
@@ -476,12 +553,12 @@ class AnnouncementManager
             }
         }
 
+        if ($sendEmail && !empty($sendEmail)) {
+            self::send_email($last_id);
+        }
+
         return $last_id;
     }
-
-    /*
-      EDIT ANNOUNCEMENT
-     */
 
     /**
      * This function stores the announcement item in the announcement table
@@ -493,9 +570,10 @@ class AnnouncementManager
      * @param array     users that will receive the announcement
      * @param mixed     attachment
      * @param string file comment
+     * @param bool $sendEmail
      *
      */
-    public static function edit_announcement($id, $emailTitle, $newContent, $to, $file = array(), $file_comment = '')
+    public static function edit_announcement($id, $emailTitle, $newContent, $to, $file = array(), $file_comment = '', $sendEmail = false)
     {
         $_course = api_get_course_info();
 
@@ -565,12 +643,16 @@ class AnnouncementManager
             // the message is sent to everyone, so we set the group to 0
             api_item_property_update($_course, TOOL_ANNOUNCEMENT, $id, "AnnouncementUpdated", api_get_user_id(), '0');
         }
+
+        if ($sendEmail && !empty($sendEmail)) {
+            self::send_email($id);
+        }
     }
 
-    /*
-      MAIL FUNCTIONS
+    /**
+     * @param int $insert_id
+     * @return bool
      */
-
     public static function update_mail_sent($insert_id)
     {
         $tbl_announcement = Database::get_course_table(TABLE_ANNOUNCEMENT);
@@ -592,7 +674,6 @@ class AnnouncementManager
      */
     public static function get_all_annoucement_by_user_course($course_code, $user_id)
     {
-
         $course_info = api_get_course_info($course_code);
         $course_id = $course_info['real_id'];
 
@@ -637,240 +718,12 @@ class AnnouncementManager
         return false;
     }
 
-    /*
-      SHOW_TO_FORM
-     */
-
-    /**
-     * this function shows the form for sending a message to a specific group or user.
-     */
-    public static function show_to_form($to_already_selected)
-    {
-
-        $user_list = self::get_course_users();
-        $group_list = self::get_course_groups();
-
-        if ($to_already_selected == '' || $to_already_selected == 'everyone') {
-            $to_already_selected = array();
-        }
-
-        echo "<table id=\"recipient_list\" style=\"display: none;\">";
-        echo '<tr>';
-
-        // the form containing all the groups and all the users of the course
-        echo '<td>';
-        echo "<strong>".get_lang('Users')."</strong><br />";
-        self::construct_not_selected_select_form($group_list, $user_list, $to_already_selected);
-        echo "</td>";
-
-        // the buttons for adding or removing groups/users
-        echo '<td valign="middle">';
-        echo '<button class="arrowr" type="button" onClick="javascript: move(this.form.elements[0], this.form.elements[3])" onClick="javascript: move(this.form.elements[0], this.form.elements[3])"></button>';
-        echo '<br /> <br />';
-        echo '<button class="arrowl" type="button" onClick="javascript: move(this.form.elements[3], this.form.elements[0])" onClick="javascript: move(this.form.elements[3], this.form.elements[0])"></button>';
-        echo "</td>";
-
-        echo "<td>";
-
-        // the form containing the selected groups and users
-        echo "<strong>".get_lang('DestinationUsers')."</strong><br />";
-        self::construct_selected_select_form($group_list, $user_list, $to_already_selected);
-        echo "</td>";
-        echo "</tr>";
-        echo "</table>";
-    }
-
-    /**
-     * this function shows the form for sending a message to a specific group or user.
-     */
-    public static function show_to_form_group($group_id, $to = array())
-    {
-        $group_users = GroupManager::get_subscribed_users($group_id);
-
-        echo "<table id=\"recipient_list\" style=\"display: none;\">";
-        echo "<tr>";
-        echo "<td>";
-        echo "<select name=\"not_selected_form[]\" size=5 class=\"span4\" multiple>";
-        foreach ($group_users as $user) {
-            echo '<option value="'.$user['user_id'].'" title="'.sprintf(
-                get_lang('LoginX'),
-                $user['username']
-            ).'" >'.api_get_person_name($user['firstname'], $user['lastname']).'</option>';
-        }
-        echo '</select>';
-        echo "</td>";
-
-        // the buttons for adding or removing groups/users
-        echo "<td valign=\"middle\">";
-        echo '<button class="arrowr" type="button" onClick="javascript: move(this.form.elements[1], this.form.elements[4])" onClick="javascript: move(this.form.elements[1], this.form.elements[4])"></button>';
-        echo '<br /> <br />';
-        echo '<button class="arrowl" type="button" onClick="javascript: move(this.form.elements[4], this.form.elements[1])" onClick="javascript: move(this.form.elements[4], this.form.elements[1])"></button>';
-        echo "</td>";
-        echo "<td>";
-
-        echo "<select id=\"selectedform\" name=\"selectedform[]\" size=5 class=\"span4\" multiple>";
-        if (!empty($to)) {
-            foreach ($to as $user) {
-                $user = explode(':', $user);
-                if ($user[0] == 'USER') {
-                    $user = api_get_user_info($user[1]);
-                    echo '<option value="'.$user['user_id'].'" title="'.sprintf(
-                        get_lang('LoginX'),
-                        $user['username']
-                    ).'" >'.api_get_person_name($user['firstname'], $user['lastname']).'</option>';
-                }
-            }
-        }
-        echo '</select>';
-
-        echo "</td>";
-        echo "</tr>";
-        echo "</table>";
-    }
-
-    /*
-      CONSTRUCT_NOT_SELECT_SELECT_FORM
-     */
-
-    /**
-     * this function shows the form for sending a message to a specific group or user.
-     */
-    public static function construct_not_selected_select_form(
-        $group_list = null,
-        $user_list = null,
-        $to_already_selected
-    ) {
-
-        echo '<select name="not_selected_form[]" size="7" class="span4" multiple>';
-        // adding the groups to the select form
-        if ($group_list) {
-            foreach ($group_list as $this_group) {
-                if (is_array($to_already_selected)) {
-                    if (!in_array(
-                        "GROUP:".$this_group['id'],
-                        $to_already_selected
-                    )
-                    ) { // $to_already_selected is the array containing the groups (and users) that are already selected
-                        $user_label = ($this_group['userNb'] > 0) ? get_lang('Users') : get_lang('LowerCaseUser');
-                        $user_disabled = ($this_group['userNb'] > 0) ? "" : "disabled=disabled";
-                        echo "<option $user_disabled value=\"GROUP:".$this_group['id']."\">",
-                        "G: ", $this_group['name'], " - ".$this_group['userNb']." ".$user_label.
-                            "</option>";
-                    }
-                }
-            }
-            // a divider
-            echo "<option value=\"\">---------------------------------------------------------</option>";
-        }
-        // adding the individual users to the select form
-        if ($user_list) {
-            foreach ($user_list as $this_user) {
-                if (is_array($to_already_selected)) {
-                    if (!in_array(
-                        "USER:".$this_user['user_id'],
-                        $to_already_selected
-                    )
-                    ) { // $to_already_selected is the array containing the users (and groups) that are already selected
-                        echo "<option value=\"USER:".$this_user['user_id']."\" title='".sprintf(
-                            get_lang('LoginX'),
-                            $this_user['username']
-                        )."'>",
-                        "", api_get_person_name($this_user['firstname'], $this_user['lastname']),
-                        "</option>";
-                    }
-                }
-            }
-        }
-        echo "</select>";
-    }
-
-    /*
-      CONSTRUCT_SELECTED_SELECT_FORM
-     */
-
-    /**
-     * this function shows the form for sending a message to a specific group or user.
-     */
-    public static function construct_selected_select_form($group_list = null, $user_list = null, $to_already_selected)
-    {
-        // we separate the $to_already_selected array (containing groups AND users into
-        // two separate arrays
-        $groupuser = array();
-        if (is_array($to_already_selected)) {
-            $groupuser = self::separate_users_groups($to_already_selected);
-        }
-        $groups_to_already_selected = $groupuser['groups'];
-        $users_to_already_selected = $groupuser['users'];
-
-        // we load all the groups and all the users into a reference array that we use to search the name of the group / user
-        $ref_array_groups = self::get_course_groups();
-        $ref_array_users = self::get_course_users();
-
-        // we construct the form of the already selected groups / users
-        echo '<select id="selectedform" name="selectedform[]" size="7" multiple class="span4">';
-        if (is_array($to_already_selected)) {
-            foreach ($to_already_selected as $groupuser) {
-                list($type, $id) = explode(":", $groupuser);
-                if ($type == "GROUP") {
-                    echo "<option value=\"".$groupuser."\">G: ".$ref_array_groups[$id]['name']."</option>";
-                } else {
-                    foreach ($ref_array_users as $key => $value) {
-                        if ($value['user_id'] == $id) {
-                            echo "<option value=\"".$groupuser."\" title='".sprintf(
-                                get_lang('LoginX'),
-                                $value['username']
-                            )."'>".api_get_person_name($value['firstname'], $value['lastname'])."</option>";
-                            break;
-                        }
-                    }
-                }
-            }
-        } else {
-            if ($to_already_selected == 'everyone') {
-                // adding the groups to the select form
-                if (is_array($ref_array_groups)) {
-                    foreach ($ref_array_groups as $this_group) {
-                        //api_display_normal_message("group " . $thisGroup[id] . $thisGroup[name]);
-                        if (!is_array($to_already_selected) || !in_array(
-                            "GROUP:".$this_group['id'],
-                            $to_already_selected
-                        )
-                        ) { // $to_already_selected is the array containing the groups (and users) that are already selected
-                            echo "<option value=\"GROUP:".$this_group['id']."\">",
-                            "G: ", $this_group['name'], " &ndash; ".$this_group['userNb']." ".get_lang('Users').
-                                "</option>";
-                        }
-                    }
-                }
-                // adding the individual users to the select form
-                foreach ($ref_array_users as $this_user) {
-                    if (!is_array($to_already_selected) || !in_array(
-                        "USER:".$this_user['user_id'],
-                        $to_already_selected
-                    )
-                    ) { // $to_already_selected is the array containing the users (and groups) that are already selected
-                        echo "<option value=\"USER:", $this_user['user_id'], "\"  title='".sprintf(
-                            get_lang('LoginX'),
-                            $user['username']
-                        )."'>",
-                        "", api_get_person_name($this_user['firstname'], $this_user['lastname']),
-                        "</option>";
-                    }
-                }
-            }
-        }
-        echo "</select>";
-    }
-
-    /*
-      DATA FUNCTIONS
-     */
 
     /**
      * Returns announcement info from its id
      *
-     * @param type $course_id
-     * @param type $annoucement_id
+     * @param int $course_id
+     * @param int $annoucement_id
      * @return array
      */
     public static function get_by_id($course_id, $annoucement_id)
@@ -881,13 +734,13 @@ class AnnouncementManager
         $tbl_announcement = Database::get_course_table(TABLE_ANNOUNCEMENT);
         $tbl_item_property = Database::get_course_table(TABLE_ITEM_PROPERTY);
 
-        $sql = "SELECT DISTINCT announcement.id, announcement.title, announcement.content
-                           FROM $tbl_announcement announcement INNER JOIN $tbl_item_property toolitemproperties
-                           ON   announcement.id = toolitemproperties.ref AND
-                                announcement.c_id = $course_id AND
-                                toolitemproperties.c_id = $course_id
-                           WHERE toolitemproperties.tool='announcement' AND
-                                 announcement.id = $annoucement_id";
+        $sql = "SELECT DISTINCT announcement.*
+                   FROM $tbl_announcement announcement INNER JOIN $tbl_item_property toolitemproperties
+                   ON   announcement.id = toolitemproperties.ref AND
+                        announcement.c_id = $course_id AND
+                        toolitemproperties.c_id = $course_id
+                   WHERE toolitemproperties.tool='announcement' AND
+                         announcement.id = $annoucement_id";
         $result = Database::query($sql);
         if (Database::num_rows($result)) {
             return Database::fetch_array($result);
@@ -895,45 +748,6 @@ class AnnouncementManager
 
         return array();
     }
-
-    /**
-     * this function gets all the users of the course,
-     * including users from linked courses
-     * @todo deprecate this function, use CourseManager class
-     */
-    public static function get_course_users()
-    {
-        //this would return only the users from real courses:
-        $session_id = api_get_session_id();
-        if ($session_id != 0) {
-            $user_list = CourseManager::get_real_and_linked_user_list(api_get_course_id(), true, $session_id);
-        } else {
-            $user_list = CourseManager::get_real_and_linked_user_list(api_get_course_id(), false, 0);
-        }
-
-        return $user_list;
-    }
-
-    /**
-     * this function gets all the groups of the course,
-     * not including linked courses
-     */
-    public static function get_course_groups()
-    {
-        $session_id = api_get_session_id();
-        if ($session_id != 0) {
-            $new_group_list = CourseManager::get_group_list_of_course(api_get_course_id(), $session_id, 1);
-        } else {
-            $new_group_list = CourseManager::get_group_list_of_course(api_get_course_id(), 0, 1);
-        }
-
-        return $new_group_list;
-    }
-
-    /*
-     *
-      LOAD_EDIT_USERS
-     */
 
     /**
      * This tools loads all the users and all the groups who have received
@@ -953,7 +767,7 @@ class AnnouncementManager
             $to_user = $row['to_user_id'];
 
             if (empty($to_user) && empty($to_group)) {
-                return "everyone";
+                //return "everyone";
             }
 
             if (!empty($to_user) && !empty($to_group)) {
@@ -968,13 +782,8 @@ class AnnouncementManager
                 $to[] = "USER:".$to_user;
             }
         }
-
         return $to;
     }
-
-    /*
-      USER_GROUP_FILTER_JAVASCRIPT
-     */
 
     /**
      * returns the javascript for setting a filter
@@ -1005,13 +814,6 @@ class AnnouncementManager
     public static function to_javascript()
     {
         $www = api_get_path(WEB_PATH);
-        /*
-         * Do not allow this kind of behaviour. js minifieds should be manage by the template class or assetic or whatever see #4757 for more info
-          if (api_get_setting('server_type') == 'test') {
-          $src = $www . 'main/announcements/resources/js/main.js';
-          } else {
-          $src = $www . 'main/announcements/resources/js/main.min.js';
-          } */
         $src = $www.'main/announcements/resources/js/main.js';
         $result = Javascript::tag($src);
         $root = Chamilo::url();
@@ -1147,8 +949,7 @@ class AnnouncementManager
      */
     public static function sent_to($tool, $id)
     {
-        global $tbl_item_property;
-
+        $tbl_item_property = Database::get_course_table(TABLE_ITEM_PROPERTY);
         $tool = Database::escape_string($tool);
         $id = intval($id);
 
@@ -1242,9 +1043,10 @@ class AnnouncementManager
                 $safe_file_comment = Database::escape_string($file_comment);
                 $safe_file_name = Database::escape_string($file_name);
                 $safe_new_file_name = Database::escape_string($new_file_name);
+                $aid = self::get_last_announcement_attachment_id($course_id)+1;
                 // Storing the attachments if any
-                $sql = "INSERT INTO $tbl_announcement_attachment (c_id, filename, comment, path, announcement_id, size) VALUES
-                        ($course_id, '$safe_file_name', '$file_comment', '$safe_new_file_name' , '$announcement_id', '".intval(
+                $sql = "INSERT INTO $tbl_announcement_attachment (c_id, id, filename, comment, path, announcement_id, size) VALUES
+                        ($course_id, $aid, '$safe_file_name', '$file_comment', '$safe_new_file_name' , '$announcement_id', '".intval(
                     $file['size']
                 )."' )";
                 Database::query($sql);

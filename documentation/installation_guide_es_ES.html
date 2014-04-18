@@ -20,15 +20,15 @@
             <ul class="nav">
                 <li><a href="index.html">Home</a></li>
                 <li ><a href="readme.html">About</a></li>
-                <li ><a href="license.html">License</a></li>            
-                <li><a href="credits.html">Credits</a></li>            
-                <li><a href="dependencies.html">Dependencies</a></li>            
+                <li ><a href="license.html">License</a></li>
+                <li><a href="credits.html">Credits</a></li>
+                <li><a href="dependencies.html">Dependencies</a></li>
                 <li><a href="changelog.html">Changelog</a></li>
-            </ul>        
+            </ul>
             </div><!--/.nav-collapse -->
         </div>
     </div>
-</div>    
+</div>
 
 
 <div class="container">
@@ -36,25 +36,18 @@
     <li>
         <a href="index.html">Documentación</a>
         <span class="divider">/</span>
-    </li>    
+    </li>
     <li>Guía de Instalación</li>
-</ul>   
+</ul>
 <h1>Chamilo 1.9 - Guía de Instalación</h1>
 
 <p>Gracias por descargar Chamilo, la suite de aprendizaje de código abierto profesional.</p>
-<ul>  
+<ul>
   <li>Prueba Chamilo en <a href="http://campus.chamilo.org">nuesto Campus libre</a></li>
 </ul>
-
-
 <p>Esta guía explica como instalar Chamilo LIBRE. Por favor, léala completamente antes de proceder con la instalación.</p>
-
-
-
 <h2><b>Contenidos</b></h2>
-
 <ol>
-
   <li><a href="#1._Pre-requisites">Prerrequisitos</a></li>
   <li><a href="#2._Installation_of_Chamilo_LMS">Instalación de Chamilo LMS</a></li>
   <li><a href="#3._Upgrade_from_a_previous_version_of">Actualizar desde una versión previa de Chamilo o Dok€os</a></li>
@@ -80,7 +73,7 @@
 Chamilo puede ser instalado indiferentemente en servidores Windows, Linux, Mac OS X y UNIX. Sin embargo, nosotros recomendamos el uso de un servidor Linux para una óptima flexibilidad, control remoto y escalabilidad.
 </p>
 <p>
-Chamilo es fundamentalmente un LMS que se ejecuta con Apache (1.3, 2.0 o 2.2), MySQL 5.1 (o MariaDB) y PHP 5.3 (o 5.4) (trilogía también llamada AMP).
+Chamilo es fundamentalmente un LMS que se ejecuta con Apache (1.3, 2.0 o 2.2), MySQL 5.1 (o MariaDB) y PHP 5.3.3 (o 5.4) (trilogía también llamada AMP).
 </p>
 <p>
 Todo este software es software de código abierto y está disponible libremente.
@@ -127,12 +120,10 @@ Los siguientes directorios necesitan tener permisos de lectura, escritura y ejec
 <p>
 Remplace [chamilo] por el directorio en el cual está ubicado su Chamilo:
 <ul>
-  <li>[chamilo]/main/inc/conf/</li>
-  <li>[chamilo]/main/upload/users/</li>
-  <li>[chamilo]/main/default_course_document/images/</li>
-  <li>[chamilo]/archive/</li>
-  <li>[chamilo]/courses/</li>
-  <li>[chamilo]/home/</li>
+  <li>[chamilo]/config/</li>
+  <li>[chamilo]/data/</li>
+  <li>[chamilo]/temp/</li>
+  <li>[chamilo]/logs/</li>
 </ul>
 Opcionalmente, puede hacer lo mismo a los directorios siguientes si desea
 activar la subida de paquetes de estilos CSS y la definición de sub-idiomas:
@@ -145,7 +136,7 @@ activar la subida de paquetes de estilos CSS y la definición de sub-idiomas:
 <p>
 Desde Chamilo 1.8.8, también puede habilitar funciones de indexación de texto completo que requieren la instalación de la extensión del módulo PHP php5-xapian. Si usted hace uso de él, usted tendrá que permitir que el sistema pueda escribir en el directorio searchdb:
 <ul>
-<li>[chamilo]/searchdb</li>
+<li>[chamilo]/data/searchdb</li>
 </ul>
 </p>
 <p>
@@ -190,7 +181,7 @@ seleccione "Configurar la página de inicio" en la sección de administración d
   <li><strong>Proteger su directorio de instalación: </strong>si el (directorio de Chamilo) directorio /main/install sigue accesible, alguien podría instalar de nuevo sobre la versión existente (usted puede perder sus datos de esta manera). Por ello es muy importante que mueva el directorio a algún lugar fuera de los directorios web para que no se encuentre accesible, cambie su nombre, bórrelo completamente o edite sus propiedades para que nadie pueda leerlo o ejecutarlo.</li>
 
   <li><strong>Para mayor seguridad: </strong> hacer que todos los archivos posean permisos de escritura facilita la instalación y resuelve muchas dudas a las personas con poca experiencia en administración. Sin embargo, es más seguro hacer que el propietario de los archivos y carpetas de Chamilo sea un usuario distinto y conceder sólo al servidor web permisos de lectura sobre todos los ficheros, y permisos de escritura a los directorios previamente mencionados. De esta manera, estos archivos sólo necesitan ser accesibles y escribibles por el propietario el proceso Apache, no por el mundo entero. También sería recomendable hacer que todos los directorios con permisos de escritura rechazaran la interpretación de los archivos PHP ( a excepción de la raíz de los directorios de cursos). No dude en contratar a un administrador con experiencia para hacer eso, puede que sea un poco más caro ahora, pero estará feliz de no tener que perder todos sus datos por el ataque de un hacker a su sitio.</li>
-  
+
   <li><strong>Configurar su instalación de Chamilo: </strong>
 en la sección de administración de Chamilo, usted puede usar las Opciones de Configuración de Chamilo para ajustar el comportamiento de su instalación.</li>
 
@@ -213,11 +204,11 @@ Para obtener lo mejor de Chamilo, necesita ajustar la configuración de PHP. Con
 </ul>
 </p>
 <div class="code">
-			  max_execution_time = 300 ;Tiempo máximo de ejecucion para cada script, en segundos<br />
-			  max_input_time = 600 ;Tiempo máximo que cada script que puede emplear para analizar los datos solicitados<br />
-			  memory_limit = 256M ;Maxima cantidad de memoria que un script puede consumir (128MB)<br />
-			  post_max_size = 100M<br />
-			  upload_max_filesize = 100M
+    max_execution_time = 300 ;Tiempo máximo de ejecucion para cada script, en segundos<br />
+    max_input_time = 600 ;Tiempo máximo que cada script que puede emplear para analizar los datos solicitados<br />
+    memory_limit = 256M ;Maxima cantidad de memoria que un script puede consumir (128MB)<br />
+    post_max_size = 100M<br />
+    upload_max_filesize = 100M
 </div>
 
 <p>
@@ -237,7 +228,7 @@ En versiones de Chamilo/Dok€os anteriores se requería que register_globals es
 necesario, puede (y debería) estar configurado en Off y Chamilo funcionará bien.<span>Se considera una mala elección en términos de seguridad configurar register_globals a On.</span>
 </p>
 
-<p><strong>Nota:</strong> si se usa PHP 5.3 o superior, se necesita configurar la variable <em>date.timezone</em> a la zona horaria de su servidor.
+<p><strong>Nota:</strong> si se usa PHP 5.3.3 o superior, se necesita configurar la variable <em>date.timezone</em> a la zona horaria de su servidor.
 Por ejemplo, si su servidor está en la zona horaria 'America/Lima', modificar en el php.ini:</p>
 
 <div class="code">
@@ -259,7 +250,7 @@ date.timezone = 'America/Lima'
 <li>php-ctype</li>
 <li>php-gd</li>
 <li>php-iconv</li>
-<li>php-json</li> 
+<li>php-json</li>
 <li>php-mbstring</li>
 <li>php-intl</li>
 <li>php-curl</li>
@@ -270,7 +261,7 @@ date.timezone = 'America/Lima'
 </p>
 
 <hr />
-<h2><a name="3._Upgrade_from_a_previous_version_of"></a>3. Actualizar desde una versión previa de Chamilo LMS (1.*) o Dok€os (<2.0)</h2>
+<h2><a name="3._Upgrade_from_a_previous_version_of"></a>3. Actualizar desde una versión previa de Chamilo LMS (1.*) o Dok€os (&lt;2.0)</h2>
 
 <p>
 Antes de actualizar, le recomendamos <b>seriamente</b> que haga una copia de seguridad de los directorios
@@ -291,7 +282,7 @@ Dado que se trata sólo de un cambio de versión menor  previa de Chamilo 1.9.*,
 <li>Revisar que no ha dejado alguna hoja de estilo personalizada o imagen (si es que tiene, asegúrese de guardar una copia de respaldo)</li>
 <li>Descargar el paquete de instalación de Chamilo 1.9 desde la página de descarga de Chamilo</li>
 <li>Descomprimir los nuevos archivos de Chamilo 1.9 sobre los archivos de la versión anterior (o descomprimirlos en una nueva carpeta y después copiarlos sobre los archivos de la versión anterior)</li>
-<li>Editar el archivo main/inc/conf/configuration.php: hacia el final del archivo, localizar el número de la versión (p.e. ‘1.9.2’) y cambiarlo por la nueva versión (p.e.‘1.9.4’)</li>
+<li>Editar el archivo main/inc/conf/configuration.php: hacia el final del archivo, localizar el número de la versión (p.e. ‘1.9.4’) y cambiarlo por la nueva versión (p.e.‘1.9.8’)</li>
 <li>Ya está! Ningún otro procedimiento de actualización es requerido.</li>
 </ul>
 </p>
@@ -369,7 +360,7 @@ directorio actual de la versión antigua</li>
 </p>
 <p>
 <em> NOTA: </em> La actualización desde 1.6.x a 1.9.x implica una revisión de
-los gráficos y estilos personalizados. La nueva versión usa un completo nuevo conjunto 
+los gráficos y estilos personalizados. La nueva versión usa un completo nuevo conjunto
 de iconos y estilos, lo cual significa que aquellos provenientes de la versión 1.6 no pueden ser
 simplemente reusados. La buena noticia es que la versión 1.9.x le permite crear
 su propio estilo en un directorio css separado, el cual se puede reusar en
@@ -429,11 +420,11 @@ Escribir en la línea de comandos:
   <li>mkdir /var/www/chamilo/version_antigua</li>
   <li>mv /var/www/chamilo/* /var/www/chamilo/version_antigua/</li>
   <li>chmod -R 0777 /var/www/chamilo/version_antigua/</li>
-  <li>wget http://www.chamilo.org/files/chamilo-1.9.tar.gz</li>
-  <li>tar zxvf chamilo-1.9.tar.gz</li>
-  <li>sudo cp -ra chamilo-1.9/* /var/www/chamilo/</li>
-  <li>rm chamilo-1.9.tar.gz</li>
-  <li>sudo rm -r chamilo-1.9/</li>
+  <li>wget http://www.chamilo.org/files/chamilo-1.9.8.tar.gz</li>
+  <li>tar zxvf chamilo-1.9.8.tar.gz</li>
+  <li>sudo cp -ra chamilo-1.9.8/* /var/www/chamilo/</li>
+  <li>rm chamilo-1.9.8.tar.gz</li>
+  <li>sudo rm -r chamilo-1.9.8/</li>
 </ul>
 
 <br />
@@ -603,9 +594,9 @@ Usted puede habilitar la escritura de ecuaciones matemáticas dentro del editor 
 	(existe un FCKConfig.ToolbarSets por herramienta). Por ejemplo:
 	        <div class="code">FCKConfig.ToolbarSets["Test"] = [<br />
 	['Bold','Italic','Underline','StrikeThrough','Subscript','Superscript','Link','Unlink','ImageManager','MP3','OrderedList','UnorderedList','Table','mimetex']<br />
-	
+
 	] ;</div>
-	
+
 	        Usted puede agregarlo a todas las herramientas, o sólo a alguna de ellas (por ej., documentos y ejercicios)<br />
 	        <br />
 			</li>
@@ -617,34 +608,34 @@ Usted puede habilitar la escritura de ecuaciones matemáticas dentro del editor 
     <li>6. Realice estos cambios:
 
 	<i>Agregar el directorio cgi-bin correspondiente a su configuración de Apache puede ser realizada de esta manera, en Apache 2:</i>
-	
+
 	<div class="code">
 			  ScriptAlias /cgi-bin/ /var/www/cgi-bin/<br />
-	
+
 	  &lt;Directory "/var/www/cgi-bin"&gt;<br />
-	
+
 	        &nbsp;&nbsp;AllowOverride None<br />
-	
+
 	        &nbsp;&nbsp;Options ExecCGI -MultiViews +SymLinksIfOwnerMatch<br />
-	
+
 	        &nbsp;&nbsp;Order allow,deny<br />
-	
+
 	        &nbsp;&nbsp;Allow from all<br />
-	
+
 	  &lt;/Directory&gt;<br />
-	
+
 		</div>
-	
-	
+
+
 	<i>Agregar un enlace simbólico bajo Windows, puede ser realizado mediante la creación de un
 	acceso directo al archivo mimetex.exe desde el directorio cgi-bin, o bajo
 	Linux usando el siguiente comando:</i>
-	
+
 	<div class="code">ln -s /var/www/chamilo/main/inc/lib/mimetex/mimetex.cgi /var/www/cgi-bin/mimetex.cgi</div>
 	<p>Si no quiere modificar su Apache, alternativamente a  este punto 6: copie mimetex.exe (para Windows) o mimetex.cgi (para Linux) en su cgi-bin/ </p>
 	<p>&nbsp;</p>
 	</li>
-	
+
 	<li>7. Asegurarse que el archivo mimetex.cgi (o mimetex.exe) ha sido subido al servidor usando el formato BINARY. Es posible que el servidor de un error 500 cuando se intenta entrar a cgi-bin/mimetex.cgi a pesar de que los permisos están correctos.
 	   Probar volviendo a subir el archivo usando FTP (ASCII format) o si no usando el "administrador de archivos" o CPanel. Si el error persiste contactar con el administrador del servidor para habilitar el acceso público del archivo cgi-bin/mimetex.cgi.
 	</li>
@@ -715,7 +706,7 @@ sudo /etc/init.d/apache2 restart
 </pre>
 </p>
 <p>
-A continuación, vaya a la página de administración -> Ajustes de configuración -> Buscar y habilitar la herramienta de búsqueda. Siga las recomendaciones de la página para obtener la suite completa de indexación instalada. Una vez que haya terminado, todos los documentos importados en su portal Chamilo en un formato reconocido serán indexados y buscados. En formación de administradores de Chamilo ( el cual puede preguntar a cualquier <a href="http://www.chamilo.org/en/providers">Proveedor Oficial de Chamilo</a>) incluyen una revisión completa de la función de búsqueda de texto completo.
+A continuación, vaya a la página de administración -&gt; Ajustes de configuración -&gt; Buscar y habilitar la herramienta de búsqueda. Siga las recomendaciones de la página para obtener la suite completa de indexación instalada. Una vez que haya terminado, todos los documentos importados en su portal Chamilo en un formato reconocido serán indexados y buscados. En formación de administradores de Chamilo ( el cual puede preguntar a cualquier <a href="http://www.chamilo.org/en/providers">Proveedor Oficial de Chamilo</a>) incluyen una revisión completa de la función de búsqueda de texto completo.
 </p>
 
 <hr style="width: 100%; height: 2px;" />
@@ -727,11 +718,11 @@ Nota: Este paso requiere un servidor dedicado o un servidor dedicado virtual ya 
 En Debian o Ubuntu 11.10 y superior, instale LibreOffice.org v3 e iniciarlo como un servidor en segundo plano:
 <pre>
 sudo apt-get install libreoffice
-sudo soffice "--accept=socket,host=127.0.0.1,port=2002,tcpNoDelay=1;urp;" --headless --nodefault --nofirststartwizard --nolockcheck --nologo --norestore
+sudo soffice -accept="socket,host=127.0.0.1,port=2002,tcpNoDelay=1;urp;" -headless -nodefault -nofirststartwizard -nolockcheck -nologo -norestore &amp;
 </pre>
 </p>
 <p>
-A continuación, vaya a la página de administración -> Chamilo Rapid y establecer el host a "localhost" y el puerto a "2002". Guarde los cambios. Vaya a su curso, en la pantalla de herramientas de aprendizaje y verá que apareció un nuevo icono. Importar tu PPT. Esto debería funcionar.
+A continuación, vaya a la página de administración -&gt; Chamilo Rapid y establecer el host a "localhost" y el puerto a "2002". Guarde los cambios. Vaya a su curso, en la pantalla de herramientas de aprendizaje y verá que apareció un nuevo icono. Importar tu PPT. Esto debería funcionar.
 </p>
 <p>
 Nota: A veces, esto no se resuelve tan fácilmente. Usted probablemente tenga que solicitar la asistencia de algún administrador de sistemas con un poco de experiencia en  Java y PHP, o siempre podrá preguntar a uno de los proveedores oficiales de Chamilo para asistirle (pregunte por un contrato comercial garantizado).
@@ -760,11 +751,11 @@ Como Chamilo se hace más popular y atraviesa muchas fronteras ahora, es frecuen
 <p>
 Esto fácilmente se puede modificar editando el archivo main/inc/lib/internationalization_database/name_order_conventions.php, buscando nuestro idioma y cambiando los campos. Es tan simple que se explica por sí mismo y se ve así:
 <pre>
-'simpl_chinese' => array( 'format' => 'title last_name first_name', 'sort_by' => 'last_name' ), // Eastern order
+'simpl_chinese' =&gt; array( 'format' =&gt; 'title last_name first_name', 'sort_by' =&gt; 'last_name' ), // Eastern order
 </pre>
 Siéntase libre de cambiar esto a
 <pre>
-'simpl_chinese' => array( 'format' => 'title first_name lastname', 'sort_by' => 'last_name' ), // Eastern order
+'simpl_chinese' =&gt; array( 'format' =&gt; 'title first_name lastname', 'sort_by' =&gt; 'last_name' ), // Eastern order
 </pre>
 por ejemplo. El efecto debería ser inmediato.
 </p>

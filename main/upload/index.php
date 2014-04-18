@@ -26,7 +26,7 @@ $language_file[] = "scormdocument";
 $language_file[] = "learnpath";
 
 // global settings initialisation
-// also provides access to main api (inc/lib/main_api.lib.php)
+// also provides access to main api (inc/lib/api.lib.php)
 require_once '../inc/global.inc.php';
 
 $htmlHeadXtra[] =
@@ -96,7 +96,6 @@ event_access_tool(TOOL_UPLOAD);
  *    Prepare the header
  */
 
-$htmlHeadXtra[] = '<script language="javascript" src="../inc/lib/javascript/upload.js" type="text/javascript"></script>';
 $htmlHeadXtra[] = '<script type="text/javascript">
 	var myUpload = new upload(0);
 </script>';

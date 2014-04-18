@@ -15,16 +15,11 @@
  */
 // Prevents FF 3.6 + Adobe Reader 9 bug see BT#794 when calling a pdf file in a LP
 
-// The main_api.lib.php, database.lib.php and display.lib.php
-// libraries are included by default.
-
 require_once '../inc/global.inc.php';
 require_once 'learnpath.class.php';
 require_once 'learnpathItem.class.php';
 require_once 'learnpath_functions.inc.php';
 require_once 'resourcelinker.inc.php';
-// Including the global initialization file.
-require_once '../inc/global.inc.php';
 
 api_protect_course_script();
 
@@ -34,17 +29,17 @@ if (isset($_GET['lp_item_id'])) {
     $lp_item_id  = intval($_GET['lp_item_id']);
     if (isset($_SESSION['lpobject'])) {
         $oLP = unserialize($_SESSION['lpobject']);
-    }   
+    }
     if (is_object($oLP)) {
        $src = $oLP->get_link('http', $lp_item_id);
     }
-    
+
     $url_info 		= parse_url($src);
     $real_url_info	= parse_url(api_get_path(WEB_PATH));
 
     // The host must be the same.
     if ($url_info['host'] == $real_url_info['host']) {
-    	$url = Security::remove_XSS($src);    
+    	$url = Security::remove_XSS($src);
     	header("Location: ".$url);
     	exit;
     } else {
@@ -155,11 +150,11 @@ if (is_object($_SESSION['oLP'])) {
                 echo $_SESSION['oLP']->display_item($id);
             echo '</div>';
             echo '</div>';
-            Display::display_footer();
             break;
         case 'preview_document':
+            $app['template.show_header'] = false;
+            $app['template.show_footer'] = false;
             echo $_SESSION['oLP']->display_item($id, null, false);
-            break; 
+            break;
     }
-	
 }

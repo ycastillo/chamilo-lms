@@ -11,8 +11,8 @@
 
 namespace Symfony\Component\Form\Tests\Extension\Core\EventListener;
 
+use Symfony\Component\Form\FormEvent;
 use Symfony\Component\Form\Extension\Core\EventListener\MergeCollectionListener;
-use Symfony\Component\Form\Test\DeprecationErrorHandler;
 
 abstract class MergeCollectionListenerTest extends \PHPUnit_Framework_TestCase
 {
@@ -22,10 +22,6 @@ abstract class MergeCollectionListenerTest extends \PHPUnit_Framework_TestCase
 
     protected function setUp()
     {
-        if (!class_exists('Symfony\Component\EventDispatcher\EventDispatcher')) {
-            $this->markTestSkipped('The "EventDispatcher" component is not available');
-        }
-
         $this->dispatcher = $this->getMock('Symfony\Component\EventDispatcher\EventDispatcherInterface');
         $this->factory = $this->getMock('Symfony\Component\Form\FormFactoryInterface');
         $this->form = $this->getForm('axes');
@@ -84,8 +80,8 @@ abstract class MergeCollectionListenerTest extends \PHPUnit_Framework_TestCase
 
         $this->form->setData($originalData);
 
-        $event = DeprecationErrorHandler::getFormEvent($this->form, $newData);
-        $listener->onBind($event);
+        $event = new FormEvent($this->form, $newData);
+        $listener->onSubmit($event);
 
         // The original object was modified
         if (is_object($originalData)) {
@@ -108,8 +104,8 @@ abstract class MergeCollectionListenerTest extends \PHPUnit_Framework_TestCase
 
         $this->form->setData($originalData);
 
-        $event = DeprecationErrorHandler::getFormEvent($this->form, $newData);
-        $listener->onBind($event);
+        $event = new FormEvent($this->form, $newData);
+        $listener->onSubmit($event);
 
         // The original object was modified
         if (is_object($originalData)) {
@@ -133,8 +129,8 @@ abstract class MergeCollectionListenerTest extends \PHPUnit_Framework_TestCase
 
         $this->form->setData($originalData);
 
-        $event = DeprecationErrorHandler::getFormEvent($this->form, $newData);
-        $listener->onBind($event);
+        $event = new FormEvent($this->form, $newData);
+        $listener->onSubmit($event);
 
         // We still have the original object
         if (is_object($originalData)) {
@@ -157,8 +153,8 @@ abstract class MergeCollectionListenerTest extends \PHPUnit_Framework_TestCase
 
         $this->form->setData($originalData);
 
-        $event = DeprecationErrorHandler::getFormEvent($this->form, $newData);
-        $listener->onBind($event);
+        $event = new FormEvent($this->form, $newData);
+        $listener->onSubmit($event);
 
         // The original object was modified
         if (is_object($originalData)) {
@@ -182,8 +178,8 @@ abstract class MergeCollectionListenerTest extends \PHPUnit_Framework_TestCase
 
         $this->form->setData($originalData);
 
-        $event = DeprecationErrorHandler::getFormEvent($this->form, $newData);
-        $listener->onBind($event);
+        $event = new FormEvent($this->form, $newData);
+        $listener->onSubmit($event);
 
         // We still have the original object
         if (is_object($originalData)) {
@@ -201,9 +197,9 @@ abstract class MergeCollectionListenerTest extends \PHPUnit_Framework_TestCase
     public function testRequireArrayOrTraversable($allowAdd, $allowDelete)
     {
         $newData = 'no array or traversable';
-        $event = DeprecationErrorHandler::getFormEvent($this->form, $newData);
+        $event = new FormEvent($this->form, $newData);
         $listener = new MergeCollectionListener($allowAdd, $allowDelete);
-        $listener->onBind($event);
+        $listener->onSubmit($event);
     }
 
     public function testDealWithNullData()
@@ -215,8 +211,8 @@ abstract class MergeCollectionListenerTest extends \PHPUnit_Framework_TestCase
 
         $this->form->setData($originalData);
 
-        $event = DeprecationErrorHandler::getFormEvent($this->form, $newData);
-        $listener->onBind($event);
+        $event = new FormEvent($this->form, $newData);
+        $listener->onSubmit($event);
 
         $this->assertSame($originalData, $event->getData());
     }
@@ -233,8 +229,8 @@ abstract class MergeCollectionListenerTest extends \PHPUnit_Framework_TestCase
 
         $this->form->setData($originalData);
 
-        $event = DeprecationErrorHandler::getFormEvent($this->form, $newData);
-        $listener->onBind($event);
+        $event = new FormEvent($this->form, $newData);
+        $listener->onSubmit($event);
 
         $this->assertSame($newData, $event->getData());
     }
@@ -251,8 +247,8 @@ abstract class MergeCollectionListenerTest extends \PHPUnit_Framework_TestCase
 
         $this->form->setData($originalData);
 
-        $event = DeprecationErrorHandler::getFormEvent($this->form, $newData);
-        $listener->onBind($event);
+        $event = new FormEvent($this->form, $newData);
+        $listener->onSubmit($event);
 
         $this->assertNull($event->getData());
     }

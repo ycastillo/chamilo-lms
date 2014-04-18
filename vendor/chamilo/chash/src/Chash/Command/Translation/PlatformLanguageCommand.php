@@ -9,7 +9,7 @@
  */
 namespace Chash\Command\Translation;
 
-use Chash\Command\Database\CommonChamiloDatabaseCommand;
+use Chash\Command\Database\CommonDatabaseCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -17,10 +17,15 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
 /**
+ * Class PlatformLanguageCommand
  * Definition of the translation:platform_language command
+ * @package Chash\Command\Translation
  */
-class PlatformLanguageCommand extends CommonChamiloDatabaseCommand
+class PlatformLanguageCommand extends CommonDatabaseCommand
 {
+    /**
+     *
+     */
     protected function configure()
     {
         parent::configure();
@@ -35,11 +40,16 @@ class PlatformLanguageCommand extends CommonChamiloDatabaseCommand
             );
     }
 
+    /**
+     * @param InputInterface $input
+     * @param OutputInterface $output
+     * @return int|null|void
+     */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         parent::execute($input, $output);
         $_configuration = $this->getHelper('configuration')->getConfiguration();
-        $dbh = $this->getHelper('configuration')->getConnection();
+        $connection = $this->getConnection();
         $lang = mysql_real_escape_string($input->getArgument('language'));
         if (empty($lang)) {
             $ls = "SELECT selected_value FROM settings_current WHERE variable='platformLanguage'";

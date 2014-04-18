@@ -1,5 +1,7 @@
 <?php
+/* For licensing terms, see /license.txt */
 
+require_once dirname(__FILE__).'/../../vendor/autoload.php';
 require_once dirname(__FILE__).'/../../main/inc/global.inc.php';
 
 // Variable $helperSet is defined inside cli-config.php
@@ -42,14 +44,14 @@ $cli->addCommands(array(
     new \Doctrine\DBAL\Migrations\Tools\Console\Command\StatusCommand(),
     new \Doctrine\DBAL\Migrations\Tools\Console\Command\VersionCommand(),
 
-    //Chamilo commands
-    new ChamiloLMS\Command\Database\UpgradeCommand(),
+    // Chamilo commands
+    /*new ChamiloLMS\Command\Database\UpgradeCommand(),
     new ChamiloLMS\Command\Database\InstallCommand(),
     new ChamiloLMS\Command\Database\StatusCommand(),
-    new ChamiloLMS\Command\Database\SetupCommand(),
+    new ChamiloLMS\Command\Database\SetupCommand(),*/
 
-    //Chash commands
-    new Chash\Command\Database\RunSQLCommand(),
+    // Chash commands
+    /*new Chash\Command\Database\RunSQLCommand(),
     new Chash\Command\Database\DumpCommand(),
     new Chash\Command\Database\RestoreCommand(),
     new Chash\Command\Database\SQLCountCommand(),
@@ -58,7 +60,7 @@ $cli->addCommands(array(
     new Chash\Command\Files\CleanTempFolderCommand(),
     new Chash\Command\Files\CleanConfigFiles(),
     new Chash\Command\Translation\ExportLanguageCommand(),
-    new Chash\Command\Translation\ImportLanguageCommand()
+    new Chash\Command\Translation\ImportLanguageCommand()*/
 
 ));
 $cli->run();

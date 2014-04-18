@@ -32,16 +32,6 @@ class QuestionManagerController
      */
     public function editQuestionAction(Application $app, $id)
     {
-        $extraJS = array();
-        //@todo improve this JS includes should be added using twig
-        $extraJS[]      = '<link href="'.api_get_path(
-            WEB_LIBRARY_PATH
-        ).'javascript/tag/style.css" rel="stylesheet" type="text/css" />';
-        $extraJS[]      = '<script src="'.api_get_path(
-            WEB_LIBRARY_PATH
-        ).'javascript/tag/jquery.fcbkcomplete.js" type="text/javascript" language="javascript"></script>';
-        $app['extraJS'] = $extraJS;
-
         // Setting exercise obj.
         $exercise                      = new \Exercise();
         $exercise->edit_exercise_in_lp = true;
@@ -61,8 +51,15 @@ class QuestionManagerController
 
         $extraFields = new \ExtraField('question');
         $extraFields->addElements($form, $id);
+        // Validating if there are extra fields to modify.
+        if (count($form->_elements) > 1) {
+            $form->addElement('button', 'submit', get_lang('Update'));
 
-        $form->addElement('button', 'submit', get_lang('Update'));
+            $app['template']->assign('question', $question);
+            $app['template']->assign('form', $form->toHtml());
+        } else {
+            $app['template']->assign('message', \Display::return_message(get_lang('ThereAreNotExtrafieldsAvailable'), 'warning'));
+        }
 
         // If form was submitted.
         if ($form->validate()) {
@@ -76,8 +73,6 @@ class QuestionManagerController
             return $app->redirect($url);
         }
 
-        $app['template']->assign('question', $question);
-        $app['template']->assign('form', $form->toHtml());
         $response = $app['template']->render_template('admin/questionmanager/edit_question.tpl');
 
         return new Response($response, 200, array());
@@ -104,7 +99,7 @@ class QuestionManagerController
     public function getCategoriesAction(Application $app, $id)
     {
         // Getting CQuizCategory repo.
-        $repo = $app['orm.em']->getRepository('Entity\CQuizCategory');
+        $repo = $app['orm.em']->getRepository('ChamiloLMS\Entity\CQuizCategory');
 
         $options  = array(
             'decorate'      => true,
@@ -141,18 +136,10 @@ class QuestionManagerController
         // Getting CQuizCategory repo.
         /** @var \Doctrine\ORM\EntityManager $em */
         $em   = $app['orm.em'];
-        $repo = $em->getRepository('Entity\CQuizCategory');
+        $repo = $em->getRepository('ChamiloLMS\Entity\CQuizCategory');
 
-        /** @var \Entity\CQuizCategory $category */
+        /** @var \ChamiloLMS\Entity\CQuizCategory $category */
         $category = $repo->find($categoryId);
-        //$questions = $category->getQuestions();
-
-        /*$questionFields = $em->getRepository('Entity\QuestionField')->findAll();
-        $rules = array();
-        foreach ($questionFields as $extraField) {
-            $extraField->getFieldVariable();
-            $rules[] = ;
-        }*/
 
         $questionColumns = \Question::getQuestionColumns();
         $columnModel     = $questionColumns['column_model'];
@@ -219,14 +206,11 @@ class QuestionManagerController
      */
     public function questionsAction(Application $app)
     {
-        $extraJS = array();
-        //@todo improve this JS includes should be added using twig
-        $extraJS[]      = api_get_jqgrid_js();
-        $app['extraJS'] = $extraJS;
+        $app['template']->addResource(api_get_jqgrid_js());
 
         // Getting CQuizCategory repo.
         /** @var \Gedmo\Tree\Entity\Repository\NestedTreeRepository $repo */
-        $repo = $app['orm.em']->getRepository('Entity\CQuizCategory');
+        $repo = $app['orm.em']->getRepository('ChamiloLMS\Entity\CQuizCategory');
 
         $categoryId = $app['request']->get('categoryId');
         $subtree    = null;
@@ -275,7 +259,7 @@ class QuestionManagerController
         /** @var \Doctrine\ORM\QueryBuilder $qb */
         $qb = $app['orm.em']->createQueryBuilder()
             ->select('node')
-            ->from('Entity\CQuizCategory', 'node')
+            ->from('ChamiloLMS\Entity\CQuizCategory', 'node')
             ->where('node.cId <> 0 AND node.lvl = 0')
             ->orderBy('node.root, node.lft', 'ASC');
 
@@ -291,7 +275,7 @@ class QuestionManagerController
         $query = $app['orm.em']
             ->createQueryBuilder()
             ->select('node')
-            ->from('Entity\CQuizCategory', 'node')
+            ->from('ChamiloLMS\Entity\CQuizCategory', 'node')
             ->where('node.cId = 0 AND node.lvl = 0')
             ->orderBy('node.root, node.lft', 'ASC')
             ->getQuery();
@@ -313,16 +297,6 @@ class QuestionManagerController
      */
     public function newCategoryAction(Application $app)
     {
-        $extraJS = array();
-        //@todo improve this JS includes should be added using twig
-        $extraJS[]      = '<link href="'.api_get_path(
-            WEB_LIBRARY_PATH
-        ).'javascript/tag/style.css" rel="stylesheet" type="text/css" />';
-        $extraJS[]      = '<script src="'.api_get_path(
-            WEB_LIBRARY_PATH
-        ).'javascript/tag/jquery.fcbkcomplete.js" type="text/javascript"></script>';
-        $app['extraJS'] = $extraJS;
-
         $url  = $app['url_generator']->generate('admin_category_new');
         $form = new \FormValidator('new', 'post', $url);
 
@@ -358,12 +332,6 @@ class QuestionManagerController
      */
     public function editCategoryAction(Application $app, $id)
     {
-        $extraJS = array();
-        //@todo improve this JS includes should be added using twig
-        $extraJS[] = '<link href="'.api_get_path(WEB_LIBRARY_PATH).'javascript/tag/style.css" rel="stylesheet" type="text/css" />';
-        $extraJS[] = '<script src="'.api_get_path(WEB_LIBRARY_PATH).'javascript/tag/jquery.fcbkcomplete.js" type="text/javascript"></script>';
-        $app['extraJS'] = $extraJS;
-
         $objcat = new \Testcategory($id);
 
         if (!empty($objcat->c_id) || empty($objcat->id)) {
@@ -407,7 +375,7 @@ class QuestionManagerController
      */
     public function deleteCategoryAction(Application $app, $id)
     {
-        $repo     = $app['orm.em']->getRepository('Entity\CQuizCategory');
+        $repo     = $app['orm.ems']['db_write']->getRepository('ChamiloLMS\Entity\CQuizCategory');
         $category = $repo->find($id);
         if (empty($category)) {
             $app->abort(404);

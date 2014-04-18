@@ -10,26 +10,28 @@
  */
 
 require_once 'career.lib.php';
-require_once 'fckeditor/fckeditor.php';
 
 define ('PROMOTION_STATUS_ACTIVE',  1);
-define ('PROMOTION_STATUS_INACTIVE',0);
+define ('PROMOTION_STATUS_INACTIVE', 0);
 /**
  * @package chamilo.library
  */
-class Promotion extends Model {
+class Promotion extends Model
+{
 
-    var $table;
-    var $columns = array('id','name','description','career_id','status','created_at','updated_at');
+    public $table;
+    public $columns = array('id', 'name', 'description', 'career_id', 'status', 'created_at', 'updated_at');
 
-	public function __construct() {
+    public function __construct()
+    {
         $this->table =  Database::get_main_table(TABLE_PROMOTION);
 	}
 
      /**
      * Get the count of elements
      */
-    public function get_count() {
+    public function get_count()
+    {
         $row = Database::select('count(*) as count', $this->table, array(),'first');
         return $row['count'];
     }
@@ -43,61 +45,61 @@ class Promotion extends Model {
 	* @return  integer     New promotion ID on success, false on failure
 	*/
 	public function copy($id, $career_id = null, $copy_sessions = false) {
-		$pid = false;
-		$promotion = $this->get($id);
-		if (!empty($promotion)) {
-			$new = array();
-			foreach ($promotion as $key => $val) {
-				switch ($key) {
-					case 'id':
-					case 'updated_at':
-						break;
-					case 'name':
-						$val .= ' '.get_lang('Copy');
-						$new[$key] = $val;
-						break;
-					case 'created_at':
-						$val = api_get_utc_datetime();
-						$new[$key] = $val;
-						break;
-					case 'career_id':
-						if (!empty($career_id)) {
-							$val = (int)$career_id;
-						}
-						$new[$key] = $val;
-					default:
-						$new[$key] = $val;
-					break;
-				}
-			}
+        $pid = false;
+        $promotion = $this->get($id);
+        if (!empty($promotion)) {
+            $new = array();
+            foreach ($promotion as $key => $val) {
+                switch ($key) {
+                    case 'id':
+                    case 'updated_at':
+                        break;
+                    case 'name':
+                        $val .= ' '.get_lang('CopyLabelSuffix');
+                        $new[$key] = $val;
+                        break;
+                    case 'created_at':
+                        $val = api_get_utc_datetime();
+                        $new[$key] = $val;
+                        break;
+                    case 'career_id':
+                        if (!empty($career_id)) {
+                            $val = (int)$career_id;
+                        }
+                        $new[$key] = $val;
+                    default:
+                        $new[$key] = $val;
+                    break;
+                }
+            }
 
-			if ($copy_sessions) {
-				/**
-				 * When copying a session we do:
-				 * 1. Copy a new session from the source
-				 * 2. Copy all courses from the session (no user data, no user list)
-				 * 3. Create the promotion
-				 */
-				$session_list   = SessionManager::get_all_sessions_by_promotion($id);
+            if ($copy_sessions) {
+                /**
+                 * When copying a session we do:
+                 * 1. Copy a new session from the source
+                 * 2. Copy all courses from the session (no user data, no user list)
+                 * 3. Create the promotion
+                 */
+                $session_list   = SessionManager::get_all_sessions_by_promotion($id);
 
-				if (!empty($session_list)) {
-					$pid = $this->save($new);
-					if (!empty($pid)) {
+                if (!empty($session_list)) {
+                    $pid = $this->save($new);
+                    if (!empty($pid)) {
                         $new_session_list = array();
 
-						foreach($session_list as $item) {
-							$sid = SessionManager::copy_session($item['id'], true, false, true, true);
+                        foreach ($session_list as $item) {
+                            $sid = SessionManager::copy_session($item['id'], true, false, false, true);
                             $new_session_list[] = $sid;
-						}
+                        }
 
                         if (!empty($new_session_list)) {
                             SessionManager::suscribe_sessions_to_promotion($pid, $new_session_list);
                         }
-					}
-				}
-			} else {
-				$pid = $this->save($new);
-			}
+                    }
+                }
+            } else {
+                $pid = $this->save($new);
+            }
 		}
 		return $pid;
 	}
@@ -107,7 +109,8 @@ class Promotion extends Model {
      * @param   int     career id
      * @return  array   results
      */
-    public function get_all_promotions_by_career_id($career_id, $order = false) {
+    public function get_all_promotions_by_career_id($career_id, $order = false)
+    {
         return Database::select('*', $this->table, array('where'=>array('career_id = ?'=>$career_id),'order' =>$order));
     }
 
@@ -143,26 +146,16 @@ class Promotion extends Model {
         }
     }
 
-
     /**
      * Returns a Form validator Obj
-     * @todo the form should be auto generated
      * @param   string  url
      * @param   string  header name
      * @return  obj     form validator obj
      */
 
     function return_form($url, $action = 'add') {
-
-		$oFCKeditor = new FCKeditor('description') ;
-		$oFCKeditor->ToolbarSet = 'careers';
-		$oFCKeditor->Width		= '100%';
-		$oFCKeditor->Height		= '200';
-		$oFCKeditor->Value		= '';
-		$oFCKeditor->CreateHtml();
-
 		$form = new FormValidator('promotion', 'post', $url);
-        // Settting the form elements
+        // Setting the form elements
         $header = get_lang('Add');
         if ($action == 'edit') {
         	$header = get_lang('Modify');
@@ -217,9 +210,14 @@ class Promotion extends Model {
     	return $id;
     }
 
-    public function delete($id) {
-    	parent::delete($id);
-    	event_system(LOG_PROMOTION_DELETE, LOG_PROMOTION_ID, $id, api_get_utc_datetime(), api_get_user_id());
+    public function delete($id)
+    {
+    	if (parent::delete($id)) {
+            SessionManager::clear_session_ref_promotion($id);
+    	    event_system(LOG_PROMOTION_DELETE, LOG_PROMOTION_ID, $id, api_get_utc_datetime(), api_get_user_id());
+        } else {
+            return false;
+        }
     }
 
 

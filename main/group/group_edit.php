@@ -43,10 +43,10 @@ if (!api_is_allowed_to_edit(false, true) && !$is_group_member) {
  */
 function search_members_keyword($firstname, $lastname, $username, $official_code, $keyword)
 {
-    if (api_strripos($firstname, $keyword) !== false || api_strripos($lastname, $keyword) !== false || api_strripos(
-        $username,
-        $keyword
-    ) !== false || api_strripos($official_code, $keyword) !== false
+    if (api_strripos($firstname, $keyword) !== false ||
+        api_strripos($lastname, $keyword) !== false ||
+        api_strripos($username, $keyword) !== false ||
+        api_strripos($official_code, $keyword) !== false
     ) {
         return true;
     } else {
@@ -54,9 +54,9 @@ function search_members_keyword($firstname, $lastname, $username, $official_code
     }
 }
 
-
 /**
- * function to sort users after getting the list in the db. Necessary because there are 2 or 3 queries. Called by usort()
+ * Function to sort users after getting the list in the DB.
+ * Necessary because there are 2 or 3 queries. Called by usort()
  */
 function sort_users($user_a, $user_b)
 {
@@ -108,10 +108,7 @@ function check_group_members($value)
     if ($value['max_member_no_limit'] == GroupManager::MEMBER_PER_GROUP_NO_LIMIT) {
         return true;
     }
-    if (isset($value['max_member']) && isset($value['group_members']) && $value['max_member'] < count(
-        $value['group_members']
-    )
-    ) {
+    if (isset($value['max_member']) && isset($value['group_members']) && $value['max_member'] < count($value['group_members'])) {
         return array('group_members' => get_lang('GroupTooMuchMembers'));
     }
     return true;
@@ -140,15 +137,15 @@ $form->add_textfield('name', get_lang('GroupName'));
 // Description
 $form->addElement('textarea', 'description', get_lang('Description'), array('class' => 'span6', 'rows' => 6));
 
-//Getting course info
-$course = $app['orm.em']->getRepository('Entity\Course')->find(api_get_course_int_id());
+// Getting course info
+$course = $app['orm.em']->getRepository('ChamiloLMS\Entity\Course')->find(api_get_course_int_id());
 
 //Getting subscribed students
-$subscribedUsers = $app['orm.em']->getRepository('Entity\Course')->getSubscribedStudents($course);
+$subscribedUsers = $app['orm.em']->getRepository('ChamiloLMS\Entity\Course')->getSubscribedStudents($course);
 $subscribedUsers = $subscribedUsers->getQuery();
 $subscribedUsers = $subscribedUsers->execute();
 
-//Getting all users
+// Getting all users
 $complete_user_list = array();
 foreach ($subscribedUsers as $user) {
     $complete_user_list[$user->getUserId()] = $user->getCompleteNameWithClasses();
@@ -158,16 +155,7 @@ $possible_users = array();
 foreach ($complete_user_list as $userId => $user) {
     $possible_users[$userId] = $user;
 }
-/*
-$complete_user_list = GroupManager :: fill_groups_list($current_group['id']);
 
-usort($complete_user_list, 'sort_users');
-$possible_users = array();
-foreach ($complete_user_list as $index => $user) {
-    $possible_users[$user['user_id']] = api_get_person_name($user['firstname'],$user['lastname']).' ('.$user['username'].')';
-}
-
-*/
 // Group tutors
 $group_tutor_list = GroupManager :: get_subscribed_tutors($current_group['id']);
 $selected_users = array();
@@ -182,7 +170,6 @@ $group_tutors_element->setButtonAttributes('remove');
 // Group members
 $group_member_list = GroupManager :: get_subscribed_users($current_group['id']);
 
-
 $selected_users = array();
 foreach ($group_member_list as $userId => $userName) {
     $selected_users[] = $userId;
@@ -193,21 +180,8 @@ foreach ($group_member_list as $userId => $userName) {
 $possible_users = array();
 
 foreach ($complete_user_list as $userId => $userName) {
-    //if ($user['number_groups_left'] > 0 || in_array($userId, $selected_users)) {
-    //if (in_array($userId, $selected_users)) {
-        $possible_users[$userId] = $userName;
-    //}
+    $possible_users[$userId] = $userName;
 }
-
-/*
-foreach ($complete_user_list as $index => $user) {
-    if ($user['number_groups_left'] > 0 || in_array($user['user_id'], $selected_users)) {
-        $possible_users[$user['user_id']] = api_get_person_name(
-            $user['firstname'],
-            $user['lastname']
-        ).' ('.$user['username'].')';
-    }
-}*/
 
 $group_members_element = $form->addElement(
     'advmultiselect',
@@ -215,6 +189,7 @@ $group_members_element = $form->addElement(
     get_lang('GroupMembers'),
     $possible_users
 );
+
 $group_members_element->setButtonAttributes('add');
 $group_members_element->setButtonAttributes('remove');
 $form->addFormRule('check_group_members');
@@ -418,10 +393,11 @@ if ($form->validate()) {
     }
     $self_registration_allowed = isset($values['self_registration_allowed']) ? 1 : 0;
     $self_unregistration_allowed = isset($values['self_unregistration_allowed']) ? 1 : 0;
+
     GroupManager :: set_group_properties(
         $current_group['id'],
-        strip_tags($values['name']),
-        strip_tags($values['description']),
+        $values['name'],
+        $values['description'],
         $max_member,
         $values['doc_state'],
         $values['work_state'],
@@ -478,7 +454,6 @@ if ($defaults['maximum_number_of_students'] == GroupManager::MEMBER_PER_GROUP_NO
     $defaults['max_member_no_limit'] = 1;
     $defaults['max_member'] = $defaults['maximum_number_of_students'];
 }
-
 
 if (!empty($_GET['keyword']) && !empty($_GET['submit'])) {
     $keyword_name = Security::remove_XSS($_GET['keyword']);

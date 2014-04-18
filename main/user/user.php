@@ -584,7 +584,7 @@ function active_filter($active, $url_params, $row) {
 	}
 	$result = '';
 	if ($row[count($row)-1]<>$_user['user_id']) {  // you cannot lock yourself out otherwise you could disable all the accounts including your own => everybody is locked out and nobody can change it anymore.
-		$result = '<center><img src="../img/icons/16/'.$image.'.png" border="0" style="vertical-align: middle;" alt="'.get_lang(ucfirst($action)).'" title="'.get_lang(ucfirst($action)).'"/></center>';
+		$result = Display::return_icon($image.'.png', get_lang(ucfirst($action)), array(), ICON_SIZE_TINY);
 	}
 	return $result;
 }
@@ -602,13 +602,20 @@ function modify_filter($user_id) {
 	$result = "";
 
 	if ($is_allowed_to_track) {
-		$result .= '<a href="../mySpace/myStudents.php?'.api_get_cidreq().'&student='.$user_id.'&amp;details=true&amp;course='.$_course['id'].'&amp;origin=user_course&amp;id_session='.api_get_session_id().'" title="'.get_lang('Tracking').'"  ><img border="0" alt="'.get_lang('Tracking').'" src="../img/icons/22/stats.png" /></a>';
+		$result .= '<a href="'.api_get_path(WEB_CODE_PATH).'mySpace/myStudents.php?'.api_get_cidreq().'&student='.$user_id.'&amp;details=true&amp;course='.$_course['id'].'&amp;origin=user_course&amp;id_session='.api_get_session_id().'" title="'.get_lang('Tracking').'"  >
+		'.Display::return_icon('stats.png', get_lang('Tracking')).'</a>';
 	}
 
     //if platform admin, show the login_as icon (this drastically shortens
     // time taken by support to test things out)
     if (api_is_platform_admin()) {
-        $result .= ' <a href="'.api_get_path(WEB_CODE_PATH).'admin/user_list.php?action=login_as&amp;user_id='.$user_id.'&amp;sec_token='.Security::getCurrentToken().'">'.Display::return_icon('login_as.gif', get_lang('LoginAs')).'</a>&nbsp;&nbsp;';
+        // If not forbidden globally
+        if (empty($_configuration['login_as_forbidden_globally'])) {
+            // If global admin, authorize, otherwise check db setting allows it
+            if (api_is_global_platform_admin() or api_get_setting('login_as_allowed')==='true') {
+                $result .= ' <a href="'.api_get_path(WEB_CODE_PATH).'admin/user_list.php?action=login_as&amp;user_id='.$user_id.'&amp;sec_token='.$_SESSION['sec_token'].'">'.Display::return_icon('login_as.gif', get_lang('LoginAs')).'</a>&nbsp;&nbsp;';
+            }
+        }
     }
 
 	if (api_is_allowed_to_edit(null, true)) {

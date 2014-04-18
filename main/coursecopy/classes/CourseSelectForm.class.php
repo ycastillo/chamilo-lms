@@ -16,7 +16,8 @@ class CourseSelectForm
 	 * @param array $hidden_fiels Hidden fields to add to the form.
 	 * @param boolean the document array will be serialize. This is used in the course_copy.php file
 	 */
-	static function display_form($course, $hidden_fields = null, $avoid_serialize=false) {
+	static function display_form($course, $hidden_fields = null, $avoid_serialize=false)
+    {
         global $charset;
 		$resource_titles[RESOURCE_EVENT]                = get_lang('Events');
 		$resource_titles[RESOURCE_ANNOUNCEMENT] 		= get_lang('Announcements');
@@ -34,17 +35,20 @@ class CourseSelectForm
 		$resource_titles[RESOURCE_WIKI]                 = get_lang('Wiki');
 		$resource_titles[RESOURCE_THEMATIC]             = get_lang('Thematic');
 		$resource_titles[RESOURCE_ATTENDANCE]           = get_lang('Attendance');
+        $resource_titles[RESOURCE_WORK]                 = get_lang('ToolStudentPublication');
+
+        $iconPath = api_get_path(WEB_IMG_PATH);
 ?>
 		<script>
 			function exp(item) {
 				el = document.getElementById('div_'+item);
 				if (el.style.display=='none'){
 					el.style.display='';
-					document.getElementById('img_'+item).src='../img/1.gif';
+					document.getElementById('img_'+item).src='<?php echo $iconPath; ?>1.gif';
 				}
 				else{
 					el.style.display='none';
-					document.getElementById('img_'+item).src='../img/0.gif';
+					document.getElementById('img_'+item).src='<?php echo $iconPath; ?>0.gif';
 				}
 			}
 
@@ -137,11 +141,9 @@ class CourseSelectForm
 			echo get_lang('DestinationCourse').' : '.$course_infos['title'];
 			echo '</h3>';
 		}
-        echo '<script src="'.api_get_path(WEB_CODE_PATH).'inc/lib/javascript/upload.js" type="text/javascript"></script>';
 		echo '<script type="text/javascript">var myUpload = new upload(1000);</script>';
-		echo '<form method="post" id="upload_form" name="course_select_form" onsubmit="javascript: myUpload.start(\'dynamic_div\',\''.api_get_path(WEB_CODE_PATH).'img/progress_bar.gif\',\''.get_lang('PleaseStandBy', '').'\',\'upload_form\')">';
+		echo '<form method="post" id="upload_form" name="course_select_form" onsubmit="javascript: myUpload.start(\'dynamic_div\', \'\' ,\''.get_lang('PleaseStandBy', '').'\',\'upload_form\')">';
 		echo '<input type="hidden" name="action" value="course_select_form"/>';
-
 		if (!empty($hidden_fields['destination_course']) && !empty($hidden_fields['origin_course']) && !empty($hidden_fields['destination_session']) && !empty($hidden_fields['origin_session']) ) {
 			echo '<input type="hidden" name="destination_course" 	value="'.$hidden_fields['destination_course'].'"/>';
 			echo '<input type="hidden" name="origin_course" 		value="'.$hidden_fields['origin_course'].'"/>';
@@ -190,7 +192,7 @@ class CourseSelectForm
 					case RESOURCE_SCORM:
 						break;
                     default :
-						echo '<img id="img_'.$type.'" src="../img/1.gif" onclick="javascript:exp('."'$type'".');" />&nbsp;';
+						echo '<img id="img_'.$type.'" src="'.$iconPath.'1.gif" onclick="javascript:exp('."'$type'".');" />&nbsp;';
 						echo '<b onclick="javascript:exp('."'$type'".');" >'.$resource_titles[$type].'</b><br />';
 						echo '<div id="div_'.$type.'">';
 						if ($type == RESOURCE_LEARNPATH) {
@@ -229,7 +231,7 @@ class CourseSelectForm
         if (!empty($forum_categories)) {
             $type = RESOURCE_FORUMCATEGORY;
 
-            echo '<img id="img_'.$type.'" src="../img/1.gif" onclick="javascript:exp('."'$type'".');" />&nbsp;';
+            echo '<img id="img_'.$type.'" src="'.$iconPath.'1.gif" onclick="javascript:exp('."'$type'".');" />&nbsp;';
             echo '<b onclick="javascript:exp('."'$type'".');" >'.$resource_titles[RESOURCE_FORUM].'</b><br />';
             echo '<div id="div_'.$type.'">';
 
@@ -486,7 +488,7 @@ class CourseSelectForm
 							}
 					default :
 						if (!empty($resources) && is_array($resources)) {
-							foreach($resources as $id => $obj) {
+							foreach ($resources as $id => $obj) {
 								$resource_is_used_elsewhere = $course->is_linked_resource($obj);
                                 //var_dump($obj, $resource_is_used_elsewhere);
 								// check if document is in a quiz (audio/video)
@@ -514,7 +516,9 @@ class CourseSelectForm
 	 * @param array $hidden_fiels Hidden fields to add to the form.
 	 * @param boolean the document array will be serialize. This is used in the course_copy.php file
 	 */
-	 function display_form_session_export($list_course, $hidden_fields = null, $avoid_serialize=false) {
+	 function display_form_session_export($list_course, $hidden_fields = null, $avoid_serialize = false)
+     {
+         $iconPath = api_get_path(WEB_IMG_PATH);
 ?>
 		<script>
 			function exp(item) {
@@ -557,24 +561,22 @@ class CourseSelectForm
 		</script>
 		<?php
 
-		//get destination course title
-		if(!empty($hidden_fields['destination_course'])) {
-			require_once(api_get_path(LIBRARY_PATH).'course.lib.php');
+		// Get destination course title
+		if (!empty($hidden_fields['destination_course'])) {
 			$course_infos = CourseManager::get_course_information($hidden_fields['destination_course']);
 			echo '<h3>';
 				echo get_lang('DestinationCourse').' : '.$course_infos['title'];
 			echo '</h3>';
 		}
 
-		echo '<script src="'.api_get_path(WEB_CODE_PATH).'inc/lib/javascript/upload.js" type="text/javascript"></script>';
 		echo '<script type="text/javascript">var myUpload = new upload(1000);</script>';
-		echo '<form method="post" id="upload_form" name="course_select_form" onsubmit="myUpload.start(\'dynamic_div\',\''.api_get_path(WEB_CODE_PATH).'img/progress_bar.gif\',\''.get_lang('PleaseStandBy').'\',\'upload_form\')">';
+		echo '<form method="post" id="upload_form" name="course_select_form" onsubmit="myUpload.start(\'dynamic_div\',\'\',\''.get_lang('PleaseStandBy').'\',\'upload_form\')">';
 		echo '<input type="hidden" name="action" value="course_select_form"/>';
 		foreach ($list_course as $course){
 			foreach ($course->resources as $type => $resources) {
 				if (count($resources) > 0) {
-					echo '<img id="img_'.$course->code.'" src="../img/1.gif" onclick="javascript:exp('."'$course->code'".');" />';
-					echo '<b  onclick="javascript:exp('."'$course->code'".');" > '.$course->code.'</b><br />';
+					echo '<img id="img_'.$course->code.'" src="'.$iconPath.'1.gif" onclick="javascript:exp('."'$course->code'".');" />';
+					echo '<b onclick="javascript:exp('."'$course->code'".');" > '.$course->code.'</b><br />';
 					echo '<div id="div_'.$course->code.'">';
 					echo '<blockquote>';
 

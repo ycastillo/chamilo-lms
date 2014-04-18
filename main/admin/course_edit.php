@@ -46,9 +46,9 @@ if (api_is_multiple_url_enabled()) {
 	$access_url_rel_user_table= Database :: get_main_table(TABLE_MAIN_ACCESS_URL_REL_USER);
 	$sql = "SELECT u.user_id,lastname,firstname FROM $table_user as u
 			INNER JOIN $access_url_rel_user_table url_rel_user
-			ON (u.user_id=url_rel_user.user_id) WHERE url_rel_user.access_url_id=".api_get_current_access_url_id()." AND status=1".$order_clause;
+			ON (u.user_id=url_rel_user.user_id) WHERE url_rel_user.access_url_id=".api_get_current_access_url_id()." AND status = 1 or status = 2 ".$order_clause;
 } else {
-	$sql = "SELECT user_id,lastname,firstname FROM $table_user WHERE status='1'".$order_clause;
+	$sql = "SELECT user_id,lastname,firstname FROM $table_user WHERE status = 1 or status = 2 ".$order_clause;
 }
 
 $res = Database::query($sql);
@@ -89,6 +89,10 @@ $form->applyFilter('title','trim');
 $element = $form->addElement('text', 'real_code', array(get_lang('CourseCode'), get_lang('ThisValueCantBeChanged')));
 $element->freeze();
 
+// Id
+$element = $form->addElement('text', 'real_id', 'id');
+$element->freeze();
+
 // visual code
 $form->add_textfield('visual_code', array(get_lang('VisualCode'), get_lang('OnlyLettersAndNumbers'), get_lang('ThisValueIsUsedInTheCourseURL')), true, array('class' => 'span4'));
 
@@ -102,30 +106,22 @@ $form->applyFilter('visual_code','html_filter');
 
 //$form->addElement('select', 'course_teachers', get_lang('CourseTeachers'), $teachers, 'multiple=multiple size="4" style="width: 150px;"');
 
-$group=array();
-$group[] = $form->createElement('select', 'platform_teachers', '', $teachers,        ' id="platform_teachers" multiple=multiple size="4" style="width:300px;"');
-$group[] = $form->createElement('select', 'course_teachers', '',   $course_teachers, ' id="course_teachers" multiple=multiple size="4" style="width:300px;"');
+$group = array(
+    $form->createElement('select', 'platform_teachers', '', $teachers,        ' id="platform_teachers" multiple=multiple size="4" style="width:300px;"'),
+    $form->createElement('select', 'course_teachers', '',   $course_teachers, ' id="course_teachers" multiple=multiple size="4" style="width:300px;"')
+);
 
-$element_template = <<<EOT
-	<div class="control-group">
-		<label>
-			<!-- BEGIN required --><span class="form_required">*</span> <!-- END required -->{label}
-		</label>
-		<div class="controls">
-			<table cellpadding="0" cellspacing="0">
-				<tr>
-					<!-- BEGIN error --><span class="form_error">{error}</span><br /><!-- END error -->	<td>{element}</td>
-				</tr>
-			</table>
-		</div>
-	</div>
-EOT;
-
+$multiSelectTemplate = $form->getDoubleMultipleSelectTemplate();
 $renderer = $form->defaultRenderer();
-$renderer -> setElementTemplate($element_template, 'group');
-$form -> addGroup($group,'group',get_lang('CourseTeachers'),'</td><td width="80" align="center">'.
-		'<input class="arrowr" style="width:30px;height:30px;padding-right:12px" type="button" onclick="moveItem(document.getElementById(\'platform_teachers\'), document.getElementById(\'course_teachers\'))" ><br><br>' .
-		'<input class="arrowl" style="width:30px;height:30px;padding-left:13px" type="button" onclick="moveItem(document.getElementById(\'course_teachers\'), document.getElementById(\'platform_teachers\'))" ></td><td>');
+$renderer->setElementTemplate($multiSelectTemplate, 'group');
+$form->addGroup(
+    $group,
+    'group',
+    get_lang('CourseTeachers'),
+    '</td><td width="80" align="center">'.
+    '<input class="arrowr" style="width:30px;height:30px;padding-right:12px" type="button" onclick="moveItem(document.getElementById(\'platform_teachers\'), document.getElementById(\'course_teachers\'))" ><br><br>' .
+	'<input class="arrowl" style="width:30px;height:30px;padding-left:13px" type="button" onclick="moveItem(document.getElementById(\'course_teachers\'), document.getElementById(\'platform_teachers\'))" ></td><td>'
+);
 
 
 $categories_select = $form->addElement('select', 'category_code', get_lang('CourseFaculty'), array() , array('style'=>'width:350px','id'=>'category_code_id', 'class'=>'chzn-select'));
@@ -140,7 +136,6 @@ $form->add_textfield( 'department_url', get_lang('CourseDepartmentURL'),false, a
 $form->applyFilter('department_url','html_filter');
 $form->applyFilter('department_url','trim');
 
-
 $form->addElement('select_language', 'course_language', get_lang('CourseLanguage'));
 $form->applyFilter('select_language','html_filter');
 
@@ -149,6 +144,7 @@ $group[]= $form->createElement('radio', 'visibility', get_lang("CourseAccess"), 
 $group[]= $form->createElement('radio', 'visibility', null, get_lang('OpenToThePlatform'), COURSE_VISIBILITY_OPEN_PLATFORM);
 $group[]= $form->createElement('radio', 'visibility', null, get_lang('Private'), COURSE_VISIBILITY_REGISTERED);
 $group[]= $form->createElement('radio', 'visibility', null, get_lang('CourseVisibilityClosed'), COURSE_VISIBILITY_CLOSED);
+$group[]= $form->createElement('radio', 'visibility', null, get_lang('CourseVisibilityHidden'), COURSE_VISIBILITY_HIDDEN);
 $form->addGroup($group,'', get_lang('CourseAccess'), '<br />');
 
 $group = array();
@@ -230,8 +226,7 @@ function valide() {
 	document.update_course.submit();
 }
 </script>";
-//api_display_tool_title($tool_name);
 // Display the form
 $form->display();
-/* FOOTER */
+
 Display :: display_footer();

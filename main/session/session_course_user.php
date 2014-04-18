@@ -1,17 +1,8 @@
-<?php //$id: $
+<?php
 /* For licensing terms, see /license.txt */
 /**
 *	@package chamilo.admin
 */
-
-// name of the language file that needs to be included
-$language_file='admin';
-
-// resetting the course id
-$cidReset=true;
-
-// including some necessary dokeos files
-require_once '../inc/global.inc.php';
 
 // setting the section (for the tabs)
 $this_section = SECTION_PLATFORM_ADMIN;
@@ -47,7 +38,7 @@ $CourseList=$SessionList=array();
 $courses=$sessions=array();
 $noPHP_SELF=true;
 
-if ($_POST['formSent']) {
+if (isset($_POST['formSent']) && $_POST['formSent']) {
 	$formSent			= $_POST['formSent'];
 	$CourseList			= $_POST['SessionCoursesList'];
 
@@ -78,8 +69,8 @@ if ($_POST['formSent']) {
             $courseId = Database::escape_string($courseId);
 			$sql_delete = "DELETE FROM $tbl_session_rel_course_rel_user
 							WHERE id_user='".$id_user."' AND c_id ='".$courseId."' AND id_session = $id_session";
-			Database::query($sql_delete);
-			if (Database::affected_rows()) {
+			$result = Database::query($sql_delete);
+			if (Database::affected_rows($result)) {
 				//update session rel course table
 				$sql_update  = "UPDATE $tbl_session_rel_course SET nbr_users= nbr_users - 1 WHERE id_session='$id_session' AND c_id = '$courseId'";
 				Database::query($sql_update);
@@ -91,8 +82,8 @@ if ($_POST['formSent']) {
 		if(!in_array($existingCourse['id'], $CourseList)) {
             $courseId = Database::escape_string($existingCourse['id']);
 			$sql_insert = "INSERT IGNORE INTO $tbl_session_rel_course_rel_user(id_session,c_id,id_user) VALUES('$id_session','$courseId','$id_user')";
-			Database::query($sql_insert);
-			if (Database::affected_rows()) {
+			$result = Database::query($sql_insert);
+			if (Database::affected_rows($result)) {
 				//update session rel course table
 				$sql_update  = "UPDATE $tbl_session_rel_course SET nbr_users= nbr_users + 1 WHERE id_session='$id_session' AND c_id='$courseId'";
 				Database::query($sql_update);
@@ -119,13 +110,14 @@ echo '<legend>'.$tool_name.': '.$session_info['name'].' - '.$user_info['complete
 $nosessionCourses = $sessionCourses = array();
 // actual user
 $sql = "SELECT course.id, course.code, title, visual_code, srcru.id_session
-        FROM $tbl_course course inner JOIN $tbl_session_rel_course_rel_user   as srcru
-        ON course.code = srcru.course_code  WHERE srcru.id_user = $id_user AND id_session = $id_session";
+        FROM $tbl_course course INNER JOIN $tbl_session_rel_course_rel_user as srcru
+        ON course.id = srcru.c_id
+        WHERE srcru.id_user = $id_user AND id_session = $id_session";
 
 //all
 $sql_all="SELECT course.id, code, title, visual_code, src.id_session " .
-			"FROM $tbl_course course inner JOIN $tbl_session_rel_course  as src  " .
-			"ON course.code = src.course_code AND id_session = $id_session";
+			"FROM $tbl_course course INNER JOIN $tbl_session_rel_course  as src  " .
+			"ON course.id = src.c_id AND id_session = $id_session";
 $result=Database::query($sql);
 $Courses=Database::store_result($result);
 
@@ -146,7 +138,7 @@ foreach($CoursesAll as $course) {
 unset($Courses);
 ?>
 
-<form name="formulaire" method="post" action="<?php echo api_get_self(); ?>?page=<?php echo Security::remove_XSS($_GET['page']) ?>&id_user=<?php echo $id_user; ?>&id_session=<?php echo $id_session; ?>" style="margin:0px;">
+<form name="formulaire" method="post" action="<?php echo api_get_self(); ?>?id_user=<?php echo $id_user; ?>&id_session=<?php echo $id_session; ?>" style="margin:0px;">
 <input type="hidden" name="formSent" value="1" />
 
 <?php
@@ -201,9 +193,6 @@ unset($sessionCourses);
 
 </form>
 <script>
-
-
-
 function valide(){
 	var options = document.getElementById('destination').options;
 	for (i = 0 ; i<options.length ; i++)
@@ -213,4 +202,3 @@ function valide(){
 }
 </script>
 <?php
-Display::display_footer();

@@ -8,7 +8,9 @@
  */
 class ExtraFieldOption extends Model
 {
-    public $columns = array('id', 'field_id', 'option_value', 'option_display_text', 'option_order', 'tms');
+    public $columns = array(
+        'id', 'field_id', 'option_value', 'option_display_text', 'option_order', 'priority', 'priority_message', 'tms'
+    );
 
     /**
      * Gets the table for the type of object for which we are using an extra field
@@ -29,6 +31,9 @@ class ExtraFieldOption extends Model
                 break;
             case 'question':
                 $this->table = Database::get_main_table(TABLE_MAIN_QUESTION_FIELD_OPTIONS);
+                break;
+            case 'lp':
+                $this->table = Database::get_main_table(TABLE_MAIN_LP_FIELD_OPTIONS);
                 break;
         }
     }
@@ -78,7 +83,7 @@ class ExtraFieldOption extends Model
      */
     public function get_field_options_to_string($field_id, $add_id_in_array = false, $ordered_by = null)
     {
-        $options     = self::get_field_options_by_field($field_id, $add_id_in_array, $ordered_by);
+        $options = self::get_field_options_by_field($field_id, $add_id_in_array, $ordered_by);
         $new_options = array();
         if (!empty($options)) {
             foreach ($options as $option) {
@@ -101,10 +106,39 @@ class ExtraFieldOption extends Model
     public function delete_all_options_by_field_id($field_id)
     {
         $field_id = intval($field_id);
-        $sql      = "DELETE FROM  {$this->table} WHERE field_id = $field_id";
-        $r        = Database::query($sql);
+        $sql = "DELETE FROM  {$this->table} WHERE field_id = $field_id";
+        $r = Database::query($sql);
 
         return $r;
+    }
+
+    /**
+     * @param array $params
+     *
+     * @return int
+     */
+    public function saveOptions($params, $show_query = false)
+    {
+        $optionInfo = self::get_field_option_by_field_and_option($params['field_id'], $params['option_value']);
+
+        // Use URLify only for new items
+        //$optionValue = URLify::filter($params['option_value']);
+        $optionValue = replace_dangerous_char($params['option_value']);
+        $option = $params['option_value'];
+
+        if ($optionInfo == false) {
+            $order = self::get_max_order($params['field_id']);
+            $new_params = array(
+                'field_id'            => $params['field_id'],
+                'option_value'        => trim($optionValue),
+                'option_display_text' => trim($option),
+                'option_order'        => $order,
+                'tms'                 => api_get_utc_datetime(),
+            );
+            return parent::save($new_params, $show_query);
+        }
+
+        return false;
     }
 
     /**
@@ -152,7 +186,8 @@ class ExtraFieldOption extends Model
                             'option_order'        => 0,
                             'tms'                 => $time,
                         );
-                        //Looking if option already exists:
+
+                        // Looking if option already exists:
                         $option_info = self::get_field_option_by_field_id_and_option_display_text(
                             $field_id,
                             $option['label']
@@ -165,6 +200,7 @@ class ExtraFieldOption extends Model
                             $new_params['id'] = $sub_id;
                             parent::update($new_params, $show_query);
                         }
+
                         foreach ($sub_options as $sub_option) {
                             if (!empty($sub_option)) {
                                 $new_params  = array(
@@ -204,10 +240,11 @@ class ExtraFieldOption extends Model
 
                     if ($option_info == false) {
                         $order      = self::get_max_order($field_id);
+
                         $new_params = array(
                             'field_id'            => $field_id,
-                            'option_value'        => $optionValue,
-                            'option_display_text' => $option,
+                            'option_value'        => trim($optionValue),
+                            'option_display_text' => trim($option),
                             'option_order'        => $order,
                             'tms'                 => $time,
                         );
@@ -235,6 +272,15 @@ class ExtraFieldOption extends Model
         if (empty($field_id)) {
             return false;
         }
+
+        if (isset($params['option_value'])) {
+            $params['option_value'] = trim($params['option_value']);
+        }
+
+        if (isset($params['option_display_text'])) {
+            $params['option_display_text'] = trim($params['option_display_text']);
+        }
+
         $params['tms'] = api_get_utc_datetime();
         if (empty($params['option_order'])) {
             $order                  = self::get_max_order($field_id);
@@ -243,7 +289,6 @@ class ExtraFieldOption extends Model
         if ($insert_repeated) {
             parent::save($params, $show_query);
         } else {
-
             $check = self::get_field_option_by_field_and_option($field_id, $params['option_value']);
             if ($check == false) {
                 parent::save($params, $show_query);
@@ -265,7 +310,8 @@ class ExtraFieldOption extends Model
         $field_id     = intval($field_id);
         $option_value = Database::escape_string($option_value);
 
-        $sql    = "SELECT * FROM {$this->table} WHERE field_id = $field_id AND option_value = '".$option_value."'";
+        $sql = "SELECT * FROM {$this->table}
+                WHERE field_id = $field_id AND option_value = '".$option_value."'";
         $result = Database::query($sql);
         if (Database::num_rows($result) > 0) {
             return Database::store_result($result, 'ASSOC');
@@ -283,10 +329,11 @@ class ExtraFieldOption extends Model
      */
     public function get_field_option_by_field_id_and_option_display_text($field_id, $option_display_text)
     {
-        $field_id            = intval($field_id);
+        $field_id = intval($field_id);
         $option_display_text = Database::escape_string($option_display_text);
 
-        $sql    = "SELECT * FROM {$this->table} WHERE field_id = $field_id AND option_display_text = '".$option_display_text."'";
+        $sql = "SELECT * FROM {$this->table}
+                WHERE field_id = $field_id AND option_display_text = '".$option_display_text."'";
         $result = Database::query($sql);
         if (Database::num_rows($result) > 0) {
             return Database::fetch_array($result, 'ASSOC');
@@ -312,7 +359,11 @@ class ExtraFieldOption extends Model
         $option_display_text = Database::escape_string($option_display_text);
         $option_value        = Database::escape_string($option_value);
 
-        $sql    = "SELECT * FROM {$this->table} WHERE field_id = $field_id AND option_display_text = '".$option_display_text."' AND option_value = '$option_value'";
+        $sql = "SELECT * FROM {$this->table}
+                WHERE
+                    field_id = $field_id AND
+                    option_display_text = '".$option_display_text."' AND
+                    option_value = '$option_value'";
         $result = Database::query($sql);
         if (Database::num_rows($result) > 0) {
             return Database::fetch_array($result, 'ASSOC');
@@ -386,7 +437,6 @@ class ExtraFieldOption extends Model
             }
 
             return $string;
-
         }
 
         return $options;
@@ -447,7 +497,7 @@ class ExtraFieldOption extends Model
 
     /**
      * Update the option using the given params
-     * @param array Parameters with the data to be saved
+     * @param array $params data to be saved
      */
     public function update($params)
     {
@@ -465,14 +515,41 @@ class ExtraFieldOption extends Model
         //echo  '<a href="../admin/index.php">'.Display::return_icon('back.png', get_lang('BackTo').' '.get_lang('PlatformAdmin'),'', ICON_SIZE_MEDIUM).'</a>';
         $field_id = isset($_REQUEST['field_id']) ? intval($_REQUEST['field_id']) : null;
         echo '<a href="'.api_get_self(
-        ).'?action=add&type='.$this->type.'&field_id='.$field_id.'">'.Display::return_icon(
-            'add_user_fields.png',
-            get_lang('Add'),
-            '',
-            ICON_SIZE_MEDIUM
-        ).'</a>';
+            ).'?action=add&type='.$this->type.'&field_id='.$field_id.'">'.Display::return_icon(
+                'add_user_fields.png',
+                get_lang('Add'),
+                '',
+                ICON_SIZE_MEDIUM
+            ).'</a>';
         echo '</div>';
         echo Display::grid_html('extra_field_options');
+    }
+
+    public function getPriorityOptions()
+    {
+        return  array(
+            '' => get_lang('SelectAnOption'),
+            1 => get_lang('Success'),
+            2 => get_lang('Info'),
+            3 => get_lang('Warning'),
+            4 => get_lang('Error'),
+        );
+    }
+
+    public function getPriorityMessageType($priority)
+    {
+        switch ($priority) {
+            case 1:
+                return 'success';
+            case 2:
+                return 'info';
+            case 3:
+                return 'warning';
+            case 4:
+                return 'error';
+        }
+        return null;
+
     }
 
     /**
@@ -484,7 +561,7 @@ class ExtraFieldOption extends Model
     public function return_form($url, $action)
     {
         $form_name = $this->type.'_field';
-        $form      = new FormValidator($form_name, 'post', $url);
+        $form = new FormValidator($form_name, 'post', $url);
         // Settting the form elements
         $header = get_lang('Add');
         if ($action == 'edit') {
@@ -501,6 +578,8 @@ class ExtraFieldOption extends Model
         $form->addElement('text', 'option_display_text', get_lang('Name'), array('class' => 'span5'));
         $form->addElement('text', 'option_value', get_lang('Value'), array('class' => 'span5'));
         $form->addElement('text', 'option_order', get_lang('Order'), array('class' => 'span2'));
+        $form->addElement('select', 'priority', get_lang('Priority'), $this->getPriorityOptions());
+        $form->addElement('textarea', 'priority_message', get_lang('PriorityMessage'));
 
         $defaults = array();
 
@@ -522,4 +601,59 @@ class ExtraFieldOption extends Model
 
         return $form;
     }
+
+    /**
+     * @param string $tag
+     * @param int $field_id
+     * @param int $limit
+     * @return array
+     */
+    public function searchByField($tag, $field_id, $limit = 10)
+    {
+        $field_id = intval($field_id);
+        $limit = intval($limit);
+        $tag = Database::escape_string($tag);
+        $sql = "SELECT DISTINCT id, option_display_text
+                FROM {$this->table}
+                WHERE
+                    field_id = '".$field_id."' AND
+                    option_value LIKE '%$tag%'
+                ORDER BY option_value
+                LIMIT 0, $limit
+                ";
+        $result = Database::query($sql);
+        $values = array();
+        if (Database::num_rows($result)) {
+            $values = Database::store_result($result, 'ASSOC');
+        }
+        return $values;
+    }
+
+
+    /**
+     * @param string $tag
+     * @param int $field_id
+     * @param int $limit
+     *
+     * @return string
+     */
+    public function getSearchOptionsByField($tag, $field_id, $limit = 10)
+    {
+        $result = $this->searchByField($tag, $field_id, $limit = 10);
+        $values = array();
+        $json = null;
+        if (!empty($result)) {
+            foreach ($result as $item) {
+                $values[] = array(
+                    'value' => $item['id'],
+                    'caption' => $item['option_display_text'],
+                );
+            }
+            $json = json_encode($values);
+        }
+
+        return $json;
+    }
+
+
 }

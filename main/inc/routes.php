@@ -3,14 +3,84 @@
 
 use Symfony\Component\HttpFoundation\Request;
 use \ChamiloSession as Session;
+use ChamiloLMS\Provider\ReflectionControllerProvider;
 
-/**
- * All calls made in Chamilo (olds ones) are manage in the LegacyController::classicAction function located here:
- * src/ChamiloLMS/Controller/LegacyController.php
- */
+// Check if users is logged in
+$userIsLoggedIn = function (Request $request) use ($app) {
+    $login = $app['url_generator']->generate('login');
+    $security = $app['security'];
+    if (!$security->isGranted('IS_AUTHENTICATED_FULLY')) {
+        return $app->redirect($login);
+    }
+};
 
-$userAccessConditions = function (Request $request) use ($app) {
+// Check if user can access a course.
+$checkLogin = function (Request $request) use ($app) {
 
+    if (api_is_platform_admin()) {
+        return null;
+    }
+
+    $isAllowedInCourse = Session::read('is_allowed_in_course');
+
+    $cidReq = $request->get('cidReq');
+    $courseInfo = api_get_course_info();
+    $login = $app['url_generator']->generate('login');
+
+    // We are in a main/xxx that does not require course validation.
+    // @todo move those calls in a proper controller
+    if (empty($cidReq) && empty($courseInfo)) {
+        return null;
+    }
+
+    if (empty($courseInfo)) {
+        return $app->redirect($login);
+    }
+
+    $isVisible = false;
+    if (isset($courseInfo) && isset($courseInfo['visibility'])) {
+        switch ($courseInfo['visibility']) {
+            default:
+            case COURSE_VISIBILITY_CLOSED: //Completely closed: the course is only accessible to the teachers. - 0
+                if (api_get_user_id() && !api_is_anonymous() && (api_is_allowed_to_edit())) {
+                    $isVisible = true;
+                }
+                break;
+            case COURSE_VISIBILITY_REGISTERED: //Private - access authorized to course members only - 1
+                if (api_get_user_id() && !api_is_anonymous() && $isAllowedInCourse) {
+                    $isVisible = true;
+                }
+                break;
+            case COURSE_VISIBILITY_OPEN_PLATFORM: // Open - access allowed for users registered on the platform - 2
+                if (api_get_user_id() && !api_is_anonymous()) {
+                    $isVisible = true;
+                }
+                break;
+            case COURSE_VISIBILITY_OPEN_WORLD: //Open - access allowed for the whole world - 3
+                $isVisible = true;
+                break;
+        }
+        //If password is set and user is not registered to the course then the course is not visible
+        if ($isAllowedInCourse == false & isset($courseInfo['registration_code']) && !empty($courseInfo['registration_code'])) {
+            $isVisible = false;
+        }
+    }
+
+    // Check session visibility
+    $sessionId = api_get_session_id();
+
+    if (!empty($sessionId)) {
+        //$is_allowed_in_course was set in local.inc.php
+        if (!$isAllowedInCourse) {
+            $isVisible = false;
+        }
+    }
+
+    if (!$isVisible) {
+        return $app->redirect($login);
+        /*$subRequest = Request::create($login, 'GET');
+        return $app->handle($subRequest, HttpKernelInterface::SUB_REQUEST);*/
+    }
 };
 
 /** Setting course session and group global values */
@@ -54,7 +124,7 @@ $settingCourseConditions = function (Request $request) use ($cidReset, $app) {
 
     if ($courseReset) {
         if (!empty($cidReq) && $cidReq != -1) {
-            $courseInfo = api_get_course_info($cidReq);
+            $courseInfo = api_get_course_info($cidReq, true, true);
 
             if (!empty($courseInfo)) {
                 $courseCode = $courseInfo['code'];
@@ -78,8 +148,8 @@ $settingCourseConditions = function (Request $request) use ($cidReset, $app) {
 
     if (!empty($courseCode) && $courseCode != -1) {
         $tbl_course = Database::get_main_table(TABLE_MAIN_COURSE);
-        $time       = api_get_utc_datetime();
-        $sql        = "UPDATE $tbl_course SET last_visit= '$time' WHERE code='$courseCode'";
+        $time = api_get_utc_datetime();
+        $sql = "UPDATE $tbl_course SET last_visit= '$time' WHERE code='$courseCode'";
         Database::query($sql);
     }
 
@@ -114,7 +184,8 @@ $settingCourseConditions = function (Request $request) use ($cidReset, $app) {
     }
 };
 
-$userCourseAdmin = function(Request $request) use ($app) {
+/** Only course admin has access. */
+$userCourseAdmin = function (Request $request) use ($app) {
     if (api_is_allowed_to_edit()) {
         return null;
     } else {
@@ -122,7 +193,7 @@ $userCourseAdmin = function(Request $request) use ($app) {
     }
 };
 
-/** Checks user permissions inside a course teacher? coach? etc */
+/** Set user permissions inside a course teacher? coach? etc */
 $userPermissionsInsideACourse = function (Request $request) use ($app) {
 
     $courseId  = api_get_course_int_id();
@@ -132,9 +203,6 @@ $userPermissionsInsideACourse = function (Request $request) use ($app) {
     //If I'm the admin platform i'm a teacher of the course
     $is_platformAdmin = api_is_platform_admin();
     $courseReset      = Session::read('courseReset');
-
-    //$app['monolog']->addDebug($courseReset);
-    //$app['monolog']->addDebug($courseId);
 
     // Course
     $is_courseMember = false;
@@ -173,7 +241,7 @@ $userPermissionsInsideACourse = function (Request $request) use ($app) {
 
             //Check if user is subscribed in a course
             $course_user_table = Database::get_main_table(TABLE_MAIN_COURSE_USER);
-            $sql               = "SELECT * FROM $course_user_table WHERE   user_id  = '".$userId."' AND
+            $sql               = "SELECT * FROM $course_user_table WHERE user_id  = '".$userId."' AND
                                   relation_type <> ".COURSE_RELATION_TYPE_RRHH." AND c_id = ".api_get_course_int_id();
 
             $result = Database::query($sql);
@@ -190,7 +258,7 @@ $userPermissionsInsideACourse = function (Request $request) use ($app) {
             }
 
             //We are in a session course? Check session permissions
-            if (!empty($session_id)) {
+            if (!empty($sessionId)) {
                 //I'm not the teacher of the course
                 if ($is_courseAdmin == false) {
                     // this user has no status related to this course
@@ -289,13 +357,13 @@ $userPermissionsInsideACourse = function (Request $request) use ($app) {
         // Checking the course access
         $is_allowed_in_course = false;
 
-        if (isset($_course)) {
-            switch ($_course['visibility']) {
+        if (isset($courseInfo)) {
+            switch ($courseInfo['visibility']) {
                 case COURSE_VISIBILITY_OPEN_WORLD: //3
                     $is_allowed_in_course = true;
                     break;
                 case COURSE_VISIBILITY_OPEN_PLATFORM: //2
-                    if (isset($user_id) && !api_is_anonymous($user_id)) {
+                    if (isset($userId) && !api_is_anonymous($userId)) {
                         $is_allowed_in_course = true;
                     }
                     break;
@@ -348,40 +416,12 @@ $userPermissionsInsideACourse = function (Request $request) use ($app) {
         Session::write('is_courseCoach', $is_courseCoach);
         Session::write('is_allowed_in_course', $is_allowed_in_course);
         Session::write('is_sessionAdmin', $is_sessionAdmin);
-
-    } else {
-        // continue with the previous values
-        /*
-        $_courseUser          = Session::read('_courseUser');
-        $is_courseAdmin       = Session::read('is_courseAdmin');
-        $is_courseTutor       = Session::read('is_courseTutor');
-        $is_courseCoach       = Session::read('is_courseCoach');
-        $is_courseMember      = Session::read('is_courseMember');
-        $is_allowed_in_course = Session::read('is_allowed_in_course');*/
     }
 };
-
-/**
- * Removes course-session data
- * @param Request $request
- */
-$cleanCourseSession = function (Request $request) use ($app) {
-    Session::erase('_cid');
-    Session::erase('_real_cid');
-    Session::erase('_course');
-};
-
-$adminAndQuestionManagerCondition = function (Request $request) use ($app) {
-    if (!(api_is_platform_admin() || api_is_question_manager())) {
-        $app->abort(401);
-    }
-    return null;
-};
-
 
 /**
  * Deletes the exam_password user extra field *only* to students
- * @todo improve the login hook system
+ * @todo move to the login hook system
  * @param Request $request
  */
 $afterLogin = function (Request $request) use ($app) {
@@ -398,48 +438,92 @@ $afterLogin = function (Request $request) use ($app) {
     }
 };
 
-/** Legacy controller */
-$app->get('/', 'legacy.controller:classicAction')
-    ->before($userAccessConditions)
-    ->before($settingCourseConditions)
-    ->before($userPermissionsInsideACourse);
+/** Removes the cid reset and other session values */
+$removeCidReset = function (Request $request) use ($app) {
+    // Deleting course info.
+    Session::erase('_cid');
+    Session::erase('_real_cid');
+    Session::erase('_course');
 
-$app->post('/', 'legacy.controller:classicAction')
-    ->before($userAccessConditions)
-    ->before($settingCourseConditions)
-    ->before($userPermissionsInsideACourse);
+    if (!empty($_SESSION)) {
+        foreach ($_SESSION as $key => $item) {
+            if (strpos($key, 'lp_autolunch_') === false) {
+                continue;
+            } else {
+                if (isset($_SESSION[$key])) {
+                    Session::erase($key);
+                }
+            }
+        }
+    }
 
-/** web/index */
-$app->match('/index', 'index.controller:indexAction', 'GET|POST')
+    // Deleting session info.
+    Session::erase('id_session');
+    Session::erase('session_name');
+
+    // Deleting group info.
+    Session::erase('_gid');
+};
+
+$removeCidResetDependingOfSection = function (Request $request) use ($app, $removeCidReset) {
+    $file = $request->get('file');
+    if (!empty($file)) {
+        $info = pathinfo($file);
+        $section = $info['dirname'];
+
+        if ($section == 'admin') {
+            $removeCidReset($request);
+        }
+    }
+};
+
+/** "/" and "/index" paths */
+$app->match('/', 'index.controller:indexAction', 'GET')
+    ->assert('type', '.+') //allowing slash "/"
+    ->before($removeCidReset)
+    ->after($afterLogin);
+
+$app->match('/index', 'index.controller:indexAction', 'GET')
+    ->before($removeCidReset)
     ->after($afterLogin)
     ->bind('index');
 
-// web/login
-/*$app->match('/login', 'index.controller:loginAction', 'GET|POST')
-->bind('login');*/
+/** User portal */
+$app->get('/userportal', 'userPortal.controller:indexAction')
+    ->before($userIsLoggedIn)
+    ->before($removeCidReset);
 
+$app->get('/toggleStudentView', 'userPortal.controller:toggleStudentViewAction')->bind('toggle_student_view');
 
-/** Userportal */
-$app->get('/userportal', 'userPortal.controller:indexAction');
 $app->get('/userportal/{type}/{filter}/{page}', 'userPortal.controller:indexAction')
+    ->before($userIsLoggedIn)
+    ->before($removeCidReset)
     ->value('type', 'courses') //default values
     ->value('filter', 'current')
     ->value('page', '1')
-    ->bind('userportal')
-    ->after($cleanCourseSession);
+    ->bind('userportal');
 
-//->assert('type', '.+'); //allowing slash "/"
+/** get javascript file */
+$app->match('/main/inc/lib/javascript/{file}', 'legacy.controller:getJavascript', 'GET')
+    ->assert('file', '.+')
+    ->bind('legacy.controller:getJavascript');
 
-/** Logout */
-$app->get('/logout', 'index.controller:logoutAction')
-    ->bind('logout')
-    ->after($cleanCourseSession);
+/** Legacy wrapper */
+$app->match('/main/{file}', 'legacy.controller:classicAction', 'GET|POST')
+    ->before($removeCidResetDependingOfSection)
+    ->before($settingCourseConditions)
+    ->before($checkLogin)
+    ->before(function () use ($app) {
+        // Do not load breadcrumbs
+        $app['template']->loadBreadcrumb = false;
+    })
+    ->assert('file', '.+')
+    ->assert('type', '.+')
+    ->bind('legacy.controller:classicAction');
 
-/** Login */
-$app->get('/login', 'index.controller:loginAction')
-    ->bind('login')
-    ->after($cleanCourseSession);
-
+/** Login form */
+$app->match('/login', 'index.controller:loginAction', 'GET|POST')
+    ->bind('login');
 
 /** Course home instead of courses/MATHS the new URL is web/courses/MATHS  */
 $app->match('/courses/{cidReq}/{id_session}/', 'course_home.controller:indexAction', 'GET|POST')
@@ -447,31 +531,48 @@ $app->match('/courses/{cidReq}/{id_session}/', 'course_home.controller:indexActi
     ->assert('type', '.+')
     ->before($settingCourseConditions)
     ->before($userPermissionsInsideACourse)
+    ->before($checkLogin)
     ->bind('course');
 
+$app->match('/courses/{cidReq}', 'course_home.controller:indexAction', 'GET|POST')
+    ->assert('type', '.+')
+    ->before($settingCourseConditions)
+    ->before($userPermissionsInsideACourse)
+    ->before($checkLogin);
+
+// @todo this is the same as above but with out slash (otherwise we will have an httpexception)
 $app->match('/courses/{cidReq}/', 'course_home.controller:indexAction', 'GET|POST')
     ->assert('type', '.+')
     ->before($settingCourseConditions)
-    ->before($userPermissionsInsideACourse); //allowing slash "/"
+    ->before($userPermissionsInsideACourse);
 
-/**  Course documents */
+/** Course documents */
 $app->get('/data/courses/{courseCode}/document/{file}', 'index.controller:getDocumentAction')
     ->assert('file', '.+')
-    ->assert('type', '.+');
+    ->assert('type', '.+')
+    ->bind('get_document');
+
+/** Scorm documents */
+$app->get('/data/courses/{courseCode}/scorm/{file}', 'index.controller:getScormDocumentAction')
+    ->assert('file', '.+')
+    ->assert('type', '.+')
+    ->bind('get_scorm_document');
+
+/** Course documents */
+$app->get('/data/courses/{courseCode}/upload/{file}', 'index.controller:getCourseUploadFileAction')
+    ->assert('file', '.+')
+    ->assert('type', '.+')
+    ->bind('getCourseUploadFileAction');
 
 /** Certificates */
 $app->match('/certificates/{id}', 'certificate.controller:indexAction', 'GET');
 
-/** Username */
-$app->match('/user/{username}', 'user.controller:indexAction', 'GET');
-
-/** Who is online */
-/*$app->match('/users/online', 'user.controller:onlineAction', 'GET');
-$app->match('/users/online-in-course', 'user.controller:onlineInCourseAction', 'GET');
-$app->match('/users/online-in-session', 'user.controller:onlineInSessionAction', 'GET');*/
-
 /** Portal news */
 $app->match('/news/{id}', 'news.controller:indexAction', 'GET')
+    ->bind('portal_news_per_id');
+
+/** Portal news */
+$app->match('/news', 'news.controller:newsAction', 'GET')
     ->bind('portal_news');
 
 /** LP controller (subscribe users to a LP) */
@@ -480,10 +581,17 @@ $app->match('/learnpath/subscribe_users/{lpId}', 'learnpath.controller:indexActi
 
 /** Data document_templates files */
 $app->get('/data/document_templates/{file}', 'index.controller:getDocumentTemplateAction')
-    ->bind('data');
+    ->bind('get_document_template_action');
 
 /** Data default_platform_document files */
 $app->get('/data/default_platform_document/{file}', 'index.controller:getDefaultPlatformDocumentAction')
+    ->bind('get_default_platform_document_action')
+    ->assert('file', '.+')
+    ->assert('type', '.+');
+
+/** Data default_platform_document files */
+$app->get('/data/default_course_document/{file}', 'index.controller:getDefaultCourseDocumentAction')
+    ->bind('get_default_course_document_action')
     ->assert('file', '.+')
     ->assert('type', '.+');
 
@@ -496,63 +604,48 @@ $app->get('/data/upload/groups/{groupId}/{file}', 'index.controller:getGroupFile
     ->assert('file', '.+')
     ->assert('type', '.+');
 
-/** Question manager - admin */
-
-$app->get('/admin/questionmanager/', 'question_manager.controller:questionManagerIndexAction')
+/** Admin */
+$app->get('/admin/dashboard', 'index.controller:dashboardAction')
     ->assert('type', '.+')
-    ->before($adminAndQuestionManagerCondition)
+    ->bind('admin_dashboard');
+
+/** Question manager - admin */
+$app->get('/admin/questionmanager', 'question_manager.controller:questionManagerIndexAction')
+    ->assert('type', '.+')
     ->bind('admin_questionmanager');
 
 $app->match('/admin/questionmanager/questions', 'question_manager.controller:questionsAction', 'GET|POST')
     ->assert('type', '.+')
-    ->before($adminAndQuestionManagerCondition)
     ->bind('admin_questions');
 
 $app->match('/admin/questionmanager/questions/{id}/edit', 'question_manager.controller:editQuestionAction', 'GET|POST')
     ->assert('type', '.+')
-    ->before($adminAndQuestionManagerCondition)
     ->bind('admin_questions_edit');
 
 $app->match('/admin/questionmanager/questions/{id}', 'exercise_manager.controller:getQuestionAction', 'GET|POST')
     ->assert('type', '.+')
-    ->before($adminAndQuestionManagerCondition)
     ->bind('admin_questions_show');
 
 $app->get('/admin/questionmanager/questions/get-categories/{id}', 'question_manager.controller:getCategoriesAction')
-    ->before($adminAndQuestionManagerCondition)
     ->bind('admin_questions_get_categories');
 
 $app->get('/admin/questionmanager/questions/get-questions-by-category/{categoryId}', 'question_manager.controller:getQuestionsByCategoryAction')
-    ->before($adminAndQuestionManagerCondition)
     ->bind('admin_get_questions_by_category');
 
 $app->match('/admin/questionmanager/categories/{id}/edit', 'question_manager.controller:editCategoryAction', 'GET|POST')
     ->assert('type', '.+')
-    ->before($adminAndQuestionManagerCondition)
     ->bind('admin_category_edit');
 
 $app->match('/admin/questionmanager/categories/{id}', 'question_manager.controller:showCategoryAction', 'GET')
     ->assert('id', '\d+')
     ->assert('type', '.+')
-    ->before($adminAndQuestionManagerCondition)
     ->bind('admin_category_show');
 
 $app->match('/admin/questionmanager/categories/new', 'question_manager.controller:newCategoryAction', 'GET|POST')
-    ->before($adminAndQuestionManagerCondition)
     ->bind('admin_category_new');
 
 $app->match('/admin/questionmanager/categories/{id}/delete', 'question_manager.controller:deleteCategoryAction', 'POST')
-    ->before($adminAndQuestionManagerCondition)
     ->bind('admin_category_delete');
-
-/** Editor */
-$app->match('/editor/filemanager', 'editor.controller:filemanagerAction', 'GET|POST')
-    ->assert('type', '.+')
-    ->bind('filemanager');
-
-$app->match('/editor/connector', 'editor.controller:connectorAction', 'GET|POST')
-    ->assert('type', '.+')
-    ->bind('editor_connector');
 
 /** Exercises */
 $app->match('courses/{cidReq}/{id_session}/exercise/question-pool', 'exercise_manager.controller:questionPoolAction', 'POST')
@@ -619,8 +712,36 @@ $app->match('/courses/{cidReq}/{id_session}/exercise/question/{id}/edit', 'exerc
     ->before($userCourseAdmin)
     ->bind('exercise_question_edit');
 
+$app->match('/admin/administrator/', 'admin.controller:indexAction', 'GET')
+    ->assert('type', '.+')
+    ->bind('admin_administrator');
+
 $app->match('/ajax', 'model_ajax.controller:indexAction', 'GET')
     ->assert('type', '.+')
     ->bind('model_ajax');
 
+if ($alreadyInstalled) {
+    // Mount controllers.
+    $controllers = array(
+        '/admin/' => 'admin.controller',
+        '/admin/administrator/upgrade' => 'upgrade.controller',
+        '/admin/administrator/roles' => 'role.controller',
+        '/admin/administrator/question_scores' => 'question_score.controller',
+        '/admin/administrator/question_score_names' => 'question_score_name.controller',
+        '/editor/' => 'editor.controller',
+        '/user/' => 'profile.controller',
+        '/app/session_path' => 'session_path.controller',
+        '/app/session_path/tree' => 'session_tree.controller',
+        '/courses/{course}/curriculum/category' => 'curriculum_category.controller',
+        '/courses/{course}/curriculum/item' => 'curriculum_item.controller',
+        '/courses/{course}/curriculum/user' => 'curriculum_user.controller',
+        '/courses/{course}/curriculum' => 'curriculum.controller',
+        '/courses/{course}/course_home' => 'course_home.controller',
+        '/courses/{course}/introduction' => 'introduction.controller',
+    );
+
+    foreach ($controllers as $route => $controller) {
+        $app->mount($route, new ReflectionControllerProvider($controller));
+    }
+}
 

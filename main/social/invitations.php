@@ -7,15 +7,20 @@
 /**
  * Initialization
  */
-$language_file = array('messages','userInfo');
-$cidReset=true;
-require_once '../inc/global.inc.php';
-
+$cidReset = true;
 api_block_anonymous_users();
 
-if (api_get_setting('allow_social_tool') !='true') {
+if (api_get_setting('allow_social_tool') != 'true') {
     api_not_allowed();
+    return;
 }
+
+if (api_get_setting('allow_message_tool') != 'true') {
+    api_not_allowed(true);
+    return;
+}
+
+
 $usergroup = new UserGroup();
 $this_section = SECTION_SOCIAL;
 
@@ -31,9 +36,6 @@ function denied_friend (element_input) {
     friend_user_id=user_id[1];
     $.ajax({
         contentType: "application/x-www-form-urlencoded",
-        beforeSend: function(objeto) {
-            $("#id_response").html("<img src=\'../inc/lib/javascript/indicator.gif\' />");
-        },
         type: "POST",
         url: "'.api_get_path(WEB_AJAX_PATH).'social.ajax.php?a=deny_friend",
         data: "denied_friend_id="+friend_user_id,
@@ -51,15 +53,13 @@ function register_friend(element_input) {
 		user_friend_id=user_id[1];
         $.ajax({
            contentType: "application/x-www-form-urlencoded",
-           beforeSend: function(objeto) {
-               $("div#dpending_"+user_friend_id).html("<img src=\'../inc/lib/javascript/indicator.gif\' />"); },
-               type: "POST",
-               url: "'.api_get_path(WEB_AJAX_PATH).'social.ajax.php?a=add_friend",
-               data: "friend_id="+user_friend_id+"&is_my_friend="+"friend",
-               success: function(data) {
-                   $("div#"+name_div_id).hide("slow");
-                   $("#id_response").html(data);
-               }
+           type: "POST",
+           url: "'.api_get_path(WEB_AJAX_PATH).'social.ajax.php?a=add_friend",
+           data: "friend_id="+user_friend_id+"&is_my_friend="+"friend",
+           success: function(data) {
+               $("div#"+name_div_id).hide("slow");
+               $("#id_response").html(data);
+           }
 		});
     }
 }
@@ -111,21 +111,21 @@ if ($number_loop != 0) {
 
     foreach ($list_get_invitation as $invitation) {
         $sender_user_id = $invitation['user_sender_id'];
+        $userInfo = api_get_user_info($sender_user_id);
         $social_right_content .= '<div id="id_'.$sender_user_id.'" class="invitation_confirm span8">';
 
-        $picture = UserManager::get_user_picture_path_by_id($sender_user_id,'web',false,true);
+        $picture = UserManager::get_user_picture_path_by_id($sender_user_id, 'web', false, true);
         $friends_profile = SocialManager::get_picture_user($sender_user_id, $picture['file'], 92);
-        $user_info	= api_get_user_info($sender_user_id);
         $title 		= Security::remove_XSS($invitation['title'], STUDENT, true);
         $content 	= Security::remove_XSS($invitation['content'], STUDENT, true);
         $date		= api_convert_and_format_date($invitation['send_date'], DATE_TIME_FORMAT_LONG);
 
         $social_right_content .= '<div class="span2">
-                        <a class="thumbnail" href="profile.php?u='.$sender_user_id.'">
+                        <a class="thumbnail" href="'.$userInfo['profile_url'].'">
                         <img src="'.$friends_profile['file'].'" /></a>
                 </div>
                 <div class="span3">
-                    <a href="profile.php?u='.$sender_user_id.'">'.api_get_person_name($user_info['firstName'], $user_info['lastName']).'</a> :
+                    <a href="'.$userInfo['profile_url'].'">'.$userInfo['complete_name'].'</a> :
                     '.$content.'
                     <div>
                     '.get_lang('DateSend').' : '.$date.'
@@ -141,27 +141,25 @@ if ($number_loop != 0) {
     }
 }
 
-if (count($list_get_invitation_sent) > 0 ) {
+if (count($list_get_invitation_sent) > 0) {
     $social_right_content .= '<div class="span8">'.Display::page_subheader(get_lang('InvitationSent')).'</div>';
     foreach ($list_get_invitation_sent as $invitation) {
         $sender_user_id = $invitation['user_receiver_id'];
-
         $social_right_content .= '<div id="id_'.$sender_user_id.'" class="invitation_confirm span8">';
-
-        $picture = UserManager::get_user_picture_path_by_id($sender_user_id,'web',false,true);
+        $picture = UserManager::get_user_picture_path_by_id($sender_user_id, 'web', false, true);
         $friends_profile = SocialManager::get_picture_user($sender_user_id, $picture['file'], 92);
-        $user_info	= api_get_user_info($sender_user_id);
+        $userInfo	= api_get_user_info($sender_user_id);
 
         $title		= Security::remove_XSS($invitation['title'], STUDENT, true);
         $content	= Security::remove_XSS($invitation['content'], STUDENT, true);
         $date		= api_convert_and_format_date($invitation['send_date'], DATE_TIME_FORMAT_LONG);
         $social_right_content .= '
         <div class="span2">
-            <a class="thumbnail" href="profile.php?u='.$sender_user_id.'">
+            <a class="thumbnail" href="'.$userInfo['profile_url'].'">
             <img src="'.$friends_profile['file'].'"  /></a>
         </div>
         <div class="span3">
-            <a class="profile_link" href="profile.php?u='.$sender_user_id.'">'.$user_info['complete_name'].'</a>
+            <a class="profile_link" href="'.$userInfo['profile_url'].'">'.$userInfo['complete_name'].'</a>
             <div>'. $title.' : '.$content.'</div>
             <div>'. get_lang('DateSend').' : '.$date.'</div>
             </div>
@@ -190,10 +188,5 @@ $social_right_content = Display::div($social_right_content, array('class' => 'sp
 
 $tpl = $app['template'];
 
-$tpl->assign('social_left_content', $social_left_content);
-$tpl->assign('social_right_content', $social_right_content);
-
+$tpl->assign('content', $social_right_content);
 $tpl->assign('message', $show_message);
-$tpl->assign('content', $content);
-$social_layout = $tpl->get_template('layout/social_layout.tpl');
-$tpl->display($social_layout);

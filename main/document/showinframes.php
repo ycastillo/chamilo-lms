@@ -35,6 +35,7 @@ $document_id = intval($_GET['id']);
 
 $course_info = api_get_course_info();
 $course_code = api_get_course_id();
+$session_id = api_get_session_id();
 
 if (empty($course_info)) {
     api_not_allowed(true);
@@ -46,7 +47,10 @@ $show_web_odf = false;
 if (!$document_id) {
     $document_id = DocumentManager::get_document_id($course_info, $header_file);
 }
-$document_data = DocumentManager::get_document_data_by_id($document_id, $course_code, true);
+$document_data = DocumentManager::get_document_data_by_id($document_id, $course_code, true, $session_id);
+if ($session_id != 0 and !$document_data) {
+    $document_data = DocumentManager::get_document_data_by_id($document_id, $course_code, true, 0);
+}
 
 if (empty($document_data)) {
     api_not_allowed(true);
@@ -73,8 +77,7 @@ if (is_dir($file_url_sys)) {
     api_not_allowed(true);
 }
 
-//Check user visibility
-//$is_visible = DocumentManager::is_visible_by_id($document_id, $course_info, api_get_session_id(), api_get_user_id());
+// Check user visibility.
 $is_visible = DocumentManager::check_visibility_tree($document_id, api_get_course_id(), api_get_session_id(), api_get_user_id());
 
 if (!api_is_allowed_to_edit() && !$is_visible) {
@@ -107,18 +110,18 @@ if (isset($group_id) && $group_id != '') {
 $interbreadcrumb[] = array('url' => './document.php?curdirpath='.dirname($header_file).$req_gid, 'name' => get_lang('Documents'));
 
 if (empty($document_data['parents'])) {
-	if (isset($_GET['createdir'])) {
-		$interbreadcrumb[] = array('url' => $document_data['document_url'], 'name' => $document_data['title']);
-	} else {
-		$interbreadcrumb[] = array('url' => '#', 'name' => $document_data['title']);
-	}
+    if (isset($_GET['createdir'])) {
+        $interbreadcrumb[] = array('url' => $document_data['document_url'], 'name' => $document_data['title']);
+    } else {
+        $interbreadcrumb[] = array('url' => '#', 'name' => $document_data['title']);
+    }
 } else {
-	foreach($document_data['parents'] as $document_sub_data) {
-		if (!isset($_GET['createdir']) && $document_sub_data['id'] ==  $document_data['id']) {
-			$document_sub_data['document_url'] = '#';
-		}
-		$interbreadcrumb[] = array('url' => $document_sub_data['document_url'], 'name' => $document_sub_data['title']);
-	}
+    foreach($document_data['parents'] as $document_sub_data) {
+        if (!isset($_GET['createdir']) && $document_sub_data['id'] ==  $document_data['id']) {
+            $document_sub_data['document_url'] = '#';
+        }
+        $interbreadcrumb[] = array('url' => $document_sub_data['document_url'], 'name' => $document_sub_data['title']);
+    }
 }
 
 $this_section = SECTION_COURSES;
@@ -139,64 +142,75 @@ $frameheight = 135;
 if (api_is_course_admin()) {
     $frameheight = 165;
 }
+$mathJaxUrl = api_get_path(WEB_LIBRARY_JS_PATH).'math_jax/MathJax.js?config=default';
 
 $js_glossary_in_documents = '';
 if (api_get_setting('show_glossary_in_documents') == 'ismanual') {
-    $js_glossary_in_documents = '	//	    $(document).ready(function() {
-                                    $.frameReady(function() {
-                                       //  $("<div>I am a div courses</div>").prependTo("body");
-                                      }, "top.mainFrame",
-                                      { load: [
-                                                {type:"script", id:"_fr1", src:"'.api_get_path(WEB_LIBRARY_PATH).'javascript/jquery.min.js"},
-                                                {type:"script", id:"_fr2", src:"'.api_get_path(WEB_LIBRARY_PATH).'javascript/jquery.highlight.js"},
-                                                {type:"script", id:"_fr3", src:"'.api_get_path(WEB_LIBRARY_PATH).'fckeditor/editor/plugins/glossary/fck_glossary_manual.js"}
-                                           ]
-                                      }
-                                      );
-                                    //});';
+    $js_glossary_in_documents = '
+        $.frameReady(function() {
+            //  $("<div>I am a div courses</div>").prependTo("body");
+        }, "top.mainFrame",
+        { load: [
+                {type:"script", id:"_fr1", src:"'.api_get_path(WEB_LIBRARY_JS_PATH).'jquery.js"},
+                {type:"script", id:"_fr2", src:"'.api_get_path(WEB_LIBRARY_JS_PATH).'jquery.highlight.js"},
+                {type:"script", id:"_fr3", src:"'.api_get_path(WEB_LIBRARY_PATH).'fckeditor/editor/plugins/glossary/fck_glossary_manual.js"},
+                {type:"script", id:"_fr4", src:"'.$mathJaxUrl.'"}
+           ]
+        }
+    );';
 } elseif (api_get_setting('show_glossary_in_documents') == 'isautomatic') {
-    $js_glossary_in_documents =	'//    $(document).ready(function() {
-                                      $.frameReady(function(){
-                                       //  $("<div>I am a div courses</div>").prependTo("body");
-
-                                      }, "top.mainFrame",
-                                      { load: [
-                                                {type:"script", id:"_fr1", src:"'.api_get_path(WEB_LIBRARY_PATH).'javascript/jquery.min.js"},
-                                                {type:"script", id:"_fr4", src:"'.api_get_path(WEB_LIBRARY_PATH).'javascript/jquery-ui/smoothness/jquery-ui-1.8.21.custom.min.js"},
-                                                {type:"stylesheet", id:"_fr5", src:"'.api_get_path(WEB_LIBRARY_PATH).'javascript/jquery-ui/smoothness/jquery-ui-1.8.21.custom.css"},
-                                                {type:"script", id:"_fr2", src:"'.api_get_path(WEB_LIBRARY_PATH).'javascript/jquery.highlight.js"},
-                                                {type:"script", id:"_fr3", src:"'.api_get_path(WEB_LIBRARY_PATH).'fckeditor/editor/plugins/glossary/fck_glossary_automatic.js"}
-                                           ]
-                                      }
-                                      );
-                                //   });';
+    $js_glossary_in_documents =	'
+        $.frameReady(function(){
+            //  $("<div>I am a div courses</div>").prependTo("body");
+        }, "top.mainFrame",
+        { load: [
+                {type:"script", id:"_fr1", src:"'.api_get_path(WEB_LIBRARY_JS_PATH).'jquery.js"},
+                {type:"script", id:"_fr4", src:"'.api_get_path(WEB_LIBRARY_JS_PATH).'jquery-ui/smoothness/jquery-ui-1.8.21.custom.min.js"},
+                {type:"stylesheet", id:"_fr5", src:"'.api_get_path(WEB_LIBRARY_JS_PATH).'jquery-ui/smoothness/jquery-ui-1.8.21.custom.css"},
+                {type:"script", id:"_fr2", src:"'.api_get_path(WEB_LIBRARY_JS_PATH).'jquery.highlight.js"},
+                {type:"script", id:"_fr3", src:"'.api_get_path(WEB_LIBRARY_PATH).'fckeditor/editor/plugins/glossary/fck_glossary_automatic.js"},
+                {type:"script", id:"_fr6", src:"'.$mathJaxUrl.'"}
+           ]
+        }
+        );';
+}
+if (empty($js_glossary_in_documents)) {
+$js_glossary_in_documents = '
+    $.frameReady(function() {
+    }, "top.mainFrame",
+    {
+        load: [
+            {type:"script", id:"_fr1", src:"'.api_get_path(WEB_LIBRARY_JS_PATH).'jquery.js"},
+            {type:"script", id:"_fr2", src:"'.$mathJaxUrl.'"}
+        ]
+    }
+    );';
 }
 
 $web_odf_supported_files = DocumentManager::get_web_odf_extension_list();
+
+$htmlHeadXtra[] = api_get_js('math_jax/MathJax.js?config=TeX-AMS-MML_HTMLorMML');
+
 if (in_array(strtolower($pathinfo['extension']), $web_odf_supported_files)) {
     $show_web_odf  = true;
     $htmlHeadXtra[] = api_get_js('webodf/webodf.js');
-    $htmlHeadXtra[] = api_get_css(api_get_path(WEB_LIBRARY_PATH).'javascript/webodf/webodf.css');
+    $htmlHeadXtra[] = api_get_css(api_get_path(WEB_LIBRARY_JS_PATH).'webodf/webodf.css');
     $htmlHeadXtra[] = '
     <script charset="utf-8">
         function init() {
-                var odfelement = document.getElementById("odf"),
-                odfcanvas = new odf.OdfCanvas(odfelement);
-                odfcanvas.load("'.$file_url_web.'");
+            var odfelement = document.getElementById("odf"),
+            odfcanvas = new odf.OdfCanvas(odfelement);
+            odfcanvas.load("'.$file_url_web.'");
         }
         $(document).ready(function() {
             window.setTimeout(init, 0);
         });
   </script>';
 }
-
 $execute_iframe = true;
-
 if ($jplayer_supported) {
-
     $extension = api_strtolower($pathinfo['extension']);
-
-    $js_path 		= api_get_path(WEB_LIBRARY_PATH).'javascript/';
+    $js_path 		= api_get_path(WEB_LIBRARY_JS_PATH);
     $htmlHeadXtra[] = '<link rel="stylesheet" href="'.$js_path.'jquery-jplayer/skins/blue/jplayer.blue.monday.css" type="text/css">';
     $htmlHeadXtra[] = '<script type="text/javascript" src="'.$js_path.'jquery-jplayer/jquery.jplayer.min.js"></script>';
 
@@ -243,10 +257,10 @@ if (!$jplayer_supported && $execute_iframe) {
 
     $htmlHeadXtra[] = '<script type="text/javascript">
     <!--
-        var jQueryFrameReadyConfigPath = \''.api_get_path(WEB_LIBRARY_PATH).'javascript/jquery.min.js\';
+        var jQueryFrameReadyConfigPath = \''.api_get_path(WEB_LIBRARY_JS_PATH).'jquery.js\';
     -->
     </script>';
-    $htmlHeadXtra[] = '<script type="text/javascript" src="'.api_get_path(WEB_LIBRARY_PATH).'javascript/jquery.frameready.js"></script>';
+    $htmlHeadXtra[] = '<script type="text/javascript" src="'.api_get_path(WEB_LIBRARY_JS_PATH).'jquery.frameready.js"></script>';
     $htmlHeadXtra[] = '<script>
     <!--
         var updateContentHeight = function() {
@@ -392,19 +406,14 @@ if ($is_nanogong_available) {
         }
 
 		//get file from tmp directory
-		$to_url=api_get_path(WEB_ARCHIVE_PATH).'temp/audio/'.$file_crip;
+		$to_url = api_get_path(WEB_ARCHIVE_PATH).'temp/audio/'.$file_crip;
 
         echo '<div align="center">';
         echo '<a class="btn" href="'.$file_url_web.'" target="_blank">'.get_lang('Download').'</a>';
         echo '<br/>';
         echo '<br/>';
 
-		echo '<applet id="applet" archive="../inc/lib/nanogong/nanogong.jar" code="gong.NanoGong" width="160" height="40">';
-            echo '<param name="SoundFileURL" value="'.$to_url.'" />';
-            echo '<param name="ShowSaveButton" value="false" />';
-            echo '<param name="ShowTime" value="true" />';
-            echo '<param name="ShowRecordButton" value="false" />';
-        echo '</applet>';
+        echo DocumentManager::readNanogongFile($to_url);
 
 		//erase temp file in tmp directory when return to documents
 		$_SESSION['temp_audio_nanogong']=$to_sys;

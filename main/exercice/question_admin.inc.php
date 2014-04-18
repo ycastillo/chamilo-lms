@@ -12,15 +12,18 @@
  */
 
 $course_id = api_get_course_int_id();
+
+$urlMainExercise = api_get_path(WEB_CODE_PATH).'exercice/';
+
 // INIT QUESTION
 if (isset($_GET['editQuestion'])) {
     $objQuestion = Question::read($_GET['editQuestion'], null, $objExercise);
     $action      = api_get_self()."?".api_get_cidreq(
-    )."&myid=1&modifyQuestion=".$modifyQuestion."&editQuestion=".$objQuestion->id."&exerciseId=$exerciseId";
+    )."&myid=1&modifyQuestion=".$modifyQuestion."&editQuestion=".$objQuestion->id."&exerciseId=$objExercise->id";
 } else {
     $objQuestion = Question::getInstance($_REQUEST['answerType'], $objExercise);
     $action      = api_get_self()."?".api_get_cidreq(
-    )."&modifyQuestion=".$modifyQuestion."&newQuestion=".$newQuestion."&exerciseId=$exerciseId";
+    )."&modifyQuestion=".$modifyQuestion."&newQuestion=".$newQuestion."&exerciseId=$objExercise->id";
 }
 
 /** @var Question $objQuestion */
@@ -37,7 +40,14 @@ if (is_object($objQuestion)) {
         $objQuestion->submitText  = get_lang('AddQuestionToExercise');
     }
 
-    if (!isset($_GET['fromExercise'])) {
+    /*if (!isset($_GET['fromExercise'])) {
+        $objQuestion->setDefaultQuestionValues = true;
+    }*/
+
+    // This condition depends of the exercice/question_create.php page that sets the "isContent" value
+    if (isset($_REQUEST['newQuestion']) && $_REQUEST['newQuestion'] == 'yes' &&
+        (isset($_REQUEST['isContent']) && $_REQUEST['isContent'] == '1')
+    ) {
         $objQuestion->setDefaultQuestionValues = true;
     }
 
@@ -84,7 +94,6 @@ if (is_object($objQuestion)) {
                 if (count($categories) > 1) {
                     $message = Display::display_warning_message(get_lang('WhenUsingAMediaQuestionYouCantAddMoreThanOneCategory'));
                     $message .= ' '.$tryAgain;
-
                     $process = false;
                 }
 
@@ -123,13 +132,13 @@ if (is_object($objQuestion)) {
             // redirect
             if ($objQuestion->type != HOT_SPOT && $objQuestion->type != HOT_SPOT_DELINEATION) {
                 if (isset($_GET['editQuestion'])) {
-                    echo '<script type="text/javascript">window.location.href="admin.php?exerciseId='.$exerciseId.'&'.api_get_cidreq().'&message=ItemUpdated"</script>';
+                    echo '<script type="text/javascript">window.location.href="'.$urlMainExercise.'admin.php?exerciseId='.$exerciseId.'&'.api_get_cidreq().'&message=ItemUpdated"</script>';
                 } else {
                     //New question
-                    echo '<script type="text/javascript">window.location.href="admin.php?exerciseId='.$exerciseId.'&'.api_get_cidreq().'&message=ItemAdded"</script>';
+                    echo '<script type="text/javascript">window.location.href="'.$urlMainExercise.'admin.php?exerciseId='.$exerciseId.'&'.api_get_cidreq().'&message=ItemAdded"</script>';
                 }
             } else {
-                echo '<script type="text/javascript">window.location.href="admin.php?exerciseId='.$exerciseId.'&hotspotadmin='.$objQuestion->id.'&'.api_get_cidreq().'"</script>';
+                echo '<script type="text/javascript">window.location.href="'.$urlMainExercise.'admin.php?exerciseId='.$exerciseId.'&hotspotadmin='.$objQuestion->id.'&'.api_get_cidreq().'"</script>';
             }
         } else {
             echo $message;

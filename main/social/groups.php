@@ -62,7 +62,7 @@ function add_image_form() {
 	filepaths.appendChild(elem1);
 	id_elem1 = "filepath_"+counter_image;
 	id_elem1 = "\'"+id_elem1+"\'";
-	document.getElementById("filepath_"+counter_image).innerHTML = "<input type=\"file\" name=\"attach_"+counter_image+"\"  size=\"20\" />&nbsp;<a href=\"javascript:remove_image_form("+id_elem1+")\"><img src=\"'.api_get_path(WEB_CODE_PATH).'img/delete.gif\"></a>";
+	document.getElementById("filepath_"+counter_image).innerHTML = "<input type=\"file\" name=\"attach_"+counter_image+"\"  size=\"20\" />&nbsp;<a href=\"javascript:remove_image_form("+id_elem1+")\"><img src=\"'.api_get_path(WEB_IMG_PATH).'delete.gif\"></a>";
 
 	if (filepaths.childNodes.length == 3) {
 		var link_attach = document.getElementById("link-more-attach");
@@ -117,7 +117,6 @@ jQuery(document).ready(function() {
 </script>';
 
 $allowed_views = array('mygroups','newest','pop');
-$interbreadcrumb[]= array ('url' =>'home.php','name' => get_lang('SocialNetwork'));
 $content = null;
 
 if (isset($_GET['view']) && in_array($_GET['view'],$allowed_views)) {
@@ -149,11 +148,13 @@ $my_group_role = 0;
 
 $usergroup = new UserGroup();
 
-if ($group_id != 0 ) {
+if ($group_id != 0) {
 	$user_leave_message = false;
 	$user_added_group_message = false;
 	$user_invitation_sent = false;
 	$group_info = $usergroup->get($group_id);
+
+    $interbreadcrumb[]= array ('url' =>'#','name' => $group_info['name']);
 
 	if (isset($_GET['action']) && $_GET['action']=='leave') {
 		$user_leaved = intval($_GET['u']);
@@ -181,7 +182,7 @@ if ($group_id != 0 ) {
 $create_thread_link = '';
 
 if ($group_id != 0 ) {
-    $social_left_content = SocialManager::show_social_menu('groups',$group_id);
+    $social_left_content = SocialManager::show_social_menu('groups', $group_id);
 } else {
     $show_menu = 'browse_groups';
     if (isset($_GET['view']) && $_GET['view'] == 'mygroups') {
@@ -192,9 +193,11 @@ if ($group_id != 0 ) {
 
 $social_right_content = null;
 
-if ($group_id != 0 ) {
+if ($group_id != 0) {
 
 	$group_info = $usergroup->get($group_id);
+
+    $social_right_content .= $social_left_content;
 
 	//Loading group information
 	if (isset($_GET['status']) && $_GET['status']=='sent') {
@@ -204,7 +207,6 @@ if ($group_id != 0 ) {
 	if ($user_leave_message) {
 		$social_right_content .= Display::return_message(get_lang('UserIsNotSubscribedToThisGroup'), 'confirmation', false);
 	}
-
 	if ($user_added_group_message) {
 		$social_right_content .= Display::return_message(get_lang('UserIsSubscribedToThisGroup'), 'confirmation', false);
 	}
@@ -216,13 +218,13 @@ if ($group_id != 0 ) {
     $is_group_member = $usergroup->is_group_member($group_id);
 
 	// details about the current group
-	$social_right_content = '<div class="span9">';
+	$social_right_content .= '<div class="span9">';
 	$social_right_content .=  '<div id="social-group-details">';
 
     //Group's title
     $social_right_content .=  Display::tag('h4', Security::remove_XSS($group_info['name'], STUDENT, true));
 
-    //Privacy
+    // Privacy
     if (!$is_group_member) {
         $social_right_content .=  '<div class="social-group-details-info">';
             $social_right_content .=  '<span>'.get_lang('Privacy').' : </span>';
@@ -241,20 +243,7 @@ if ($group_id != 0 ) {
         }
     }
 
-    if (!empty($relation_group_title)) {
-        /*
-        echo '<div class="social-group-details-info">';
-        echo '<span>'.get_lang('StatusInThisGroup').' : </span>';
-        echo $relation_group_title;
-        echo '</div>';*/
-    }
-
-    //Group's tags
-    /*
-    if (!empty($tags)) {
-        $social_right_content .=  '<div id="social-group-details-info"><span>'.get_lang('Tags').' : </span>'.$tags.'</div>';
-    }*/
-		$social_right_content .=  '</div>';
+    $social_right_content .=  '</div>';
 	$social_right_content .=  '</div>';
 
 	//-- Show message groups
@@ -277,7 +266,7 @@ if ($group_id != 0 ) {
                 $create_thread_link = '<a href="'.api_get_path(WEB_CODE_PATH).'social/message_for_group_form.inc.php?view_panel=1&height=400&width=610&&user_friend='.api_get_user_id().'&group_id='.$group_id.'&action=add_message_group" class="ajax btn" title="'.get_lang('ComposeMessage').'">'.get_lang('NewTopic').'</a>';
             }
         }
-        $members = $usergroup->get_users_by_group($group_id);
+        $members = $usergroup->get_users_by_group($group_id, true);
         $member_content = '';
 
         //Members
@@ -285,7 +274,7 @@ if ($group_id != 0 ) {
             if ($my_group_role == GROUP_USER_PERMISSION_ADMIN) {
                 $member_content .= Display::url(Display::return_icon('edit.gif', get_lang('EditMembersList')).' '.get_lang('EditMembersList'), 'group_members.php?id='.$group_id);
             }
-            foreach($members as $member) {
+            foreach ($members as $member) {
                 // if is a member
                 if (in_array($member['relation_type'] , array(GROUP_USER_PERMISSION_ADMIN, GROUP_USER_PERMISSION_READER,GROUP_USER_PERMISSION_MODERATOR))) {
                     //add icons
@@ -300,13 +289,13 @@ if ($group_id != 0 ) {
                     $picture = UserManager::get_picture_user($member['user_id'], $image_path['file'], 60, USER_IMAGE_SIZE_MEDIUM);
 
                     $member_content .= '<div class="">';
-                    $member_name = Display::url(api_get_person_name(Text::cut($member['firstname'],15),Text::cut($member['lastname'],15)).'&nbsp;'.$icon, 'profile.php?u='.$member['user_id']);
+                    $member_name = Display::url(api_get_person_name(Text::cut($member['firstname'],15),Text::cut($member['lastname'],15)).'&nbsp;'.$icon, $member['user_info']['profile_url']);
                     $member_content .= Display::div('<img height="44" border="2" align="middle" vspace="10" class="social-groups-image" src="'.$picture['file'].'"/>&nbsp'.$member_name);
                     $member_content .= '</div>';
-
                 }
             }
         }
+
         if (!empty($create_thread_link)) {
             $create_thread_link =  Display::div($create_thread_link, array('style'=>'padding-top:2px;height:40px'));
         }
@@ -536,10 +525,5 @@ if (isset($_REQUEST['action']) && $_REQUEST['action'] == 'show_message' && isset
 $tpl = $app['template'];
 
 $tpl->setHelp('Groups');
-$tpl->assign('social_left_content', $social_left_content);
-$tpl->assign('social_right_content', $social_right_content);
-
 $tpl->assign('message', $show_message);
-$tpl->assign('content', $content);
-$social_layout = $tpl->get_template('layout/social_layout.tpl');
-$tpl->display($social_layout);
+$tpl->assign('content', $social_right_content);

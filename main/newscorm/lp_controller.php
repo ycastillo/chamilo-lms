@@ -37,11 +37,11 @@ $current_course_tool  = TOOL_LEARNPATH;
 if (api_get_setting('show_glossary_in_documents') == 'ismanual' || api_get_setting('show_glossary_in_documents') == 'isautomatic' ) {
     $htmlHeadXtra[] = '<script>
 <!--
-    var jQueryFrameReadyConfigPath = \''.api_get_path(WEB_LIBRARY_PATH).'javascript/jquery.min.js\';
+    var jQueryFrameReadyConfigPath = \''.api_get_path(WEB_LIBRARY_JS_PATH).'jquery.js\';
 -->
 </script>';
-    $htmlHeadXtra[] = '<script src="'.api_get_path(WEB_LIBRARY_PATH).'javascript/jquery.frameready.js" type="text/javascript" language="javascript"></script>';
-    $htmlHeadXtra[] = '<script src="'.api_get_path(WEB_LIBRARY_PATH).'javascript/jquery.highlight.js" type="text/javascript" language="javascript"></script>';
+    $htmlHeadXtra[] = '<script src="'.api_get_path(WEB_LIBRARY_JS_PATH).'jquery.frameready.js" type="text/javascript" language="javascript"></script>';
+    $htmlHeadXtra[] = '<script src="'.api_get_path(WEB_LIBRARY_JS_PATH).'jquery.highlight.js" type="text/javascript" language="javascript"></script>';
 }
 
 $htmlHeadXtra[] = '<script>
@@ -96,7 +96,6 @@ $session_id = api_get_session_id();
 
 api_protect_course_script(true);
 
-require_once api_get_path(LIBRARY_PATH).'fckeditor/fckeditor.php';
 $lpfound = false;
 
 $myrefresh = 0;
@@ -213,12 +212,13 @@ if (isset($_GET['isStudentView']) && $_GET['isStudentView'] == 'true') {
             $_REQUEST['action'] = 'list';
         }
     }
+    $_SESSION['studentview'] = "studentview";
 } else {
     if ($is_allowed_to_edit) {
         if (isset($_REQUEST['action']) && $_REQUEST['action'] == 'view' && !isset($_REQUEST['exeId'])) {
             $_REQUEST['action'] = 'build';
         }
-        $_SESSION['studentview'] = null;
+        $_SESSION['studentview'] = "teacherview";
     }
 }
 
@@ -506,6 +506,7 @@ switch ($action) {
                 $is_success = true;
                 $url = api_get_self().'?action=add_item&type=step&lp_id='.intval($_SESSION['oLP']->lp_id);
                 header('Location: '.$url);
+                exit;
             }
             if (isset($_GET['view']) && $_GET['view'] == 'build') {
                 require 'lp_move_item.php';
@@ -730,6 +731,12 @@ switch ($action) {
             if (isset($_REQUEST['remove_picture']) && $_REQUEST['remove_picture']) {
                 $_SESSION['oLP']->delete_lp_image();
             }
+
+            $extraFieldValue = new ExtraFieldValue('lp');
+            $params = array(
+                'lp_id' => $_SESSION['oLP']->id
+            );
+            $extraFieldValue->save_field_values($_REQUEST);
 
             if ($_FILES['lp_preview_image']['size'] > 0)
                 $_SESSION['oLP']->upload_image($_FILES['lp_preview_image']);
@@ -1021,11 +1028,13 @@ switch ($action) {
         $_SESSION['oLP']->set_previous_step_as_prerequisite_for_all_items();
         $url = api_get_self().'?action=add_item&type=step&lp_id='.intval($_SESSION['oLP']->lp_id)."&message=ItemUpdated";
         header('Location: '.$url);
+        exit;
         break;
     case 'clear_prerequisites':
         $_SESSION['oLP']->clear_prerequisites();
         $url = api_get_self().'?action=add_item&type=step&lp_id='.intval($_SESSION['oLP']->lp_id)."&message=ItemUpdated";
         header('Location: '.$url);
+        exit;
         break;
     default:
         if ($debug > 0) error_log('New LP - default action triggered', 0);

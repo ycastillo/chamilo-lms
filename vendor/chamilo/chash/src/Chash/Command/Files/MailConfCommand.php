@@ -2,7 +2,7 @@
 
 namespace Chash\Command\Files;
 
-use Chash\Command\Database\CommonChamiloDatabaseCommand;
+use Chash\Command\Database\CommonDatabaseCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -10,10 +10,15 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
 /**
- * Returns the current mail configuration 
+ * Class MailConfCommand
+ * Returns the current mail configuration
+ * @package Chash\Command\Files
  */
-class MailConfCommand extends CommonChamiloDatabaseCommand
+class MailConfCommand extends CommonDatabaseCommand
 {
+    /**
+     *
+     */
     protected function configure()
     {
         parent::configure();
@@ -22,15 +27,19 @@ class MailConfCommand extends CommonChamiloDatabaseCommand
             ->setDescription('Returns the current mail config');
     }
 
+    /**
+     * @param InputInterface $input
+     * @param OutputInterface $output
+     * @return int|null|void
+     */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         parent::execute($input, $output);
-
-        $output->writeln('<comment>Current mail configuration:</comment>');
+        $this->writeCommandHeader($output, 'Current mail configuration.');
 
         $path = $this->getHelper('configuration')->getConfigurationPath();
         $path .= 'mail.conf.php';
-        define('IS_WINDOWS_OS',strtolower(substr(php_uname(), 0, 3 )) == 'win'?true:false);
+        define('IS_WINDOWS_OS', strtolower(substr(php_uname(), 0, 3 )) == 'win'?true:false);
         if (isset($path) && is_file($path)) {
             $output->writeln('File: '.$path);
             $lines = file($path);
@@ -43,6 +52,7 @@ class MailConfCommand extends CommonChamiloDatabaseCommand
                     }
                 }
             }
+            // @todo $platform_email is not set
             $output->writeln('Host:     '.$platform_email['SMTP_HOST']);
             $output->writeln('Port:     '.$platform_email['SMTP_PORT']);
             $output->writeln('Mailer:   '.$platform_email['SMTP_MAILER']);

@@ -15,13 +15,13 @@ require_once 'question.class.php';
 
 $this_section = SECTION_COURSES;
 
-if (!api_is_allowed_to_edit()) {
+if (!(api_is_allowed_to_edit() || api_is_question_manager())) {
     api_not_allowed(true);
 }
 
 $type = isset($_GET['type']) ? Security::remove_XSS($_GET['type']) : 'simple';
 
-if ($type == 'global' && !api_is_platform_admin()) {
+if ($type == 'global' && !(api_is_platform_admin() || api_is_question_manager())) {
     api_not_allowed(true);
 }
 
@@ -83,9 +83,6 @@ $htmlHeadXtra[] = '
     });
 </script>';
 
-$htmlHeadXtra[] = '<script src="'.api_get_path(WEB_LIBRARY_PATH).'javascript/tag/jquery.fcbkcomplete.js" type="text/javascript" language="javascript"></script>';
-$htmlHeadXtra[] = '<link href="'.api_get_path(WEB_LIBRARY_PATH).'javascript/tag/style.css" rel="stylesheet" type="text/css" />';
-
 // Breadcrumbs
 $interbreadcrumb[] = array("url" => "exercice.php", "name" => get_lang('Exercices'));
 Display::display_header(get_lang('Category'));
@@ -116,7 +113,7 @@ function edit_category_form($in_action, $type = 'simple') {
         $objcat = new Testcategory($category_id);
 
         // initiate the object
-        $form = new FormValidator('note', 'post', api_get_self().'?action='.$in_action.'&category_id='.$category_id."&type=".$type);
+        $form = new FormValidator('note', 'post', api_get_self().'?'.api_get_cidreq().'&action='.$in_action.'&category_id='.$category_id."&type=".$type);
 
         $objcat->getForm($form, 'edit');
 
@@ -125,11 +122,12 @@ function edit_category_form($in_action, $type = 'simple') {
             $check = Security::check_token('post');
             if ($check) {
                 $values = $form->getSubmitValues();
-                $v_id = Security::remove_XSS($values['category_id']);
-                $v_name = Security::remove_XSS($values['category_name'], COURSEMANAGER);
-                $v_description = Security::remove_XSS($values['category_description'], COURSEMANAGER);
+                $v_id = $values['category_id'];
+                $v_name = $values['category_name'];
+                $v_description = $values['category_description'];
                 $parent_id = isset($values['parent_id']) ? $values['parent_id'] : null;
-                $objcat = new Testcategory($v_id, $v_name, $v_description, $parent_id, $type);
+                $visibility = isset($values['visibility']) ? $values['visibility'] : 1;
+                $objcat = new Testcategory($v_id, $v_name, $v_description, $parent_id, $type, null, $visibility);
                 if ($objcat->modifyCategory()) {
                     Display::display_confirmation_message(get_lang('MofidfyCategoryDone'));
                 } else {
@@ -153,7 +151,8 @@ function edit_category_form($in_action, $type = 'simple') {
 }
 
 // process to delete a category
-function delete_category_form($in_action, $type = 'simple') {
+function delete_category_form($in_action, $type = 'simple')
+{
     $in_action = Security::remove_XSS($in_action);
     if (isset($_GET['category_id']) && is_numeric($_GET['category_id'])) {
         $category_id = Security::remove_XSS($_GET['category_id']);
@@ -179,7 +178,7 @@ function add_category_form($in_action, $type = 'simple')
 {
     $in_action = Security::remove_XSS($in_action);
     // Initiate the object
-    $form = new FormValidator('note', 'post', api_get_self().'?action='.$in_action."&type=".$type);
+    $form = new FormValidator('note', 'post', api_get_self().'?'.api_get_cidreq().'&action='.$in_action."&type=".$type);
     // Setting the form elements
     $form->addElement('header', get_lang('AddACategory'));
     $form->addElement('text', 'category_name', get_lang('CategoryName'), array('class' => 'span6'));
@@ -223,7 +222,7 @@ function display_add_category($type) {
     if ($type == 'global') {
         $icon = "folder_global_category_new.png";
     }
-    echo '<a href="'.api_get_self().'?action=addcategory&type='.$type.'">'.Display::return_icon($icon, get_lang('AddACategory'), array(), ICON_SIZE_MEDIUM).'</a>';
+    echo '<a href="'.api_get_self().'?'.api_get_cidreq().'&action=addcategory&type='.$type.'">'.Display::return_icon($icon, get_lang('AddACategory'), array(), ICON_SIZE_MEDIUM).'</a>';
     echo '</div>';
     echo "<br/>";
     if ($type == 'simple') {
@@ -279,14 +278,14 @@ function display_categories($type = 'simple') {
     );
 
     // @todo put this in a function
-    $repo = $app['orm.em']->getRepository('Entity\CQuizCategory');
+    $repo = $app['orm.em']->getRepository('ChamiloLMS\Entity\CQuizCategory');
 
     $query = null;
     if ($type == 'global') {
         $query = $app['orm.em']
             ->createQueryBuilder()
             ->select('node')
-            ->from('Entity\CQuizCategory', 'node')
+            ->from('ChamiloLMS\Entity\CQuizCategory', 'node')
             ->where('node.cId = 0')
             ->orderBy('node.root, node.lft', 'ASC')
             ->getQuery();
@@ -294,7 +293,7 @@ function display_categories($type = 'simple') {
         $query = $app['orm.em']
             ->createQueryBuilder()
             ->select('node')
-            ->from('Entity\CQuizCategory', 'node')
+            ->from('ChamiloLMS\Entity\CQuizCategory', 'node')
             ->where('node.cId = :courseId')
             //->add('orderBy', 'node.title ASC')
             ->orderBy('node.root, node.lft', 'ASC')

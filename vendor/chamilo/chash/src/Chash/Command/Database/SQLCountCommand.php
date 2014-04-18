@@ -12,8 +12,11 @@ use Symfony\Component\Console\Output\OutputInterface;
  * Count the number of rows in a specific table
  * @return mixed Integer number of rows, or null on error
  */
-class SQLCountCommand extends CommonChamiloDatabaseCommand
+class SQLCountCommand extends CommonDatabaseCommand
 {
+    /**
+     *
+     */
     protected function configure()
     {
         parent::configure();
@@ -27,20 +30,26 @@ class SQLCountCommand extends CommonChamiloDatabaseCommand
             );
     }
 
+    /**
+     * @todo use doctrine
+     * @param InputInterface $input
+     * @param OutputInterface $output
+     * @return int|null|void
+     */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         parent::execute($input, $output);
         $table = $input->getArgument('table');
-        $_configuration = $this->getHelper('configuration')->getConfiguration();
-        $connection = $this->getHelper('configuration')->getConnection();
-
-        $t = mysql_real_escape_string($table);
-        $q = mysql_query('SELECT COUNT(*) FROM '.$t);
-        if ($q !== false) {
-            $r = mysql_fetch_row($q);
-            $n = $r[0];
+        $_configuration = $this->getConfigurationArray();
+        $connection = $this->getConnection();
+        $tableExists = $connection->getSchemaManager()->tablesExist($table);
+        if ($tableExists) {
+            $sql = "SELECT COUNT(*) count FROM $table";
+            $stmt = $connection->query($sql);
+            $result = $stmt->fetch();
+            $count = $result['count'];
             $output->writeln(
-                '<comment>Database/table/number of rows: </comment><info>'.$_configuration['main_database'].'/'.$t.'/'.$n.'</info>'
+                '<comment>Database/table/number of rows: </comment><info>'.$_configuration['main_database'].'/'.$table.'/'.$count.'</info>'
             );
         } else {
             $output->writeln(

@@ -6,8 +6,6 @@ use Symfony\Component\DependencyInjection\Exception\InactiveScopeException;
 use Symfony\Component\DependencyInjection\Exception\InvalidArgumentException;
 use Symfony\Component\DependencyInjection\Exception\LogicException;
 use Symfony\Component\DependencyInjection\Exception\RuntimeException;
-use Symfony\Component\DependencyInjection\Reference;
-use Symfony\Component\DependencyInjection\Parameter;
 use Symfony\Component\DependencyInjection\ParameterBag\FrozenParameterBag;
 
 /**
@@ -44,7 +42,10 @@ class ProjectServiceContainer extends Container
             'foo_with_inline' => 'getFooWithInlineService',
             'method_call1' => 'getMethodCall1Service',
             'request' => 'getRequestService',
-            'alias_for_foo' => 'getFooService',
+        );
+        $this->aliases = array(
+            'alias_for_alias' => 'foo',
+            'alias_for_foo' => 'foo',
         );
     }
 
@@ -130,6 +131,7 @@ class ProjectServiceContainer extends Container
         $instance->initialize();
         $instance->foo = 'bar';
         $instance->moo = $a;
+        $instance->qux = array('bar' => 'foo is bar', 'foobar' => 'bar');
         sc_configure($instance);
 
         return $instance;
@@ -200,6 +202,7 @@ class ProjectServiceContainer extends Container
 
         $instance->setBar($this->get('foo'));
         $instance->setBar(NULL);
+        $instance->setBar(($this->get("foo")->foo() . $this->getParameter("foo")));
 
         return $instance;
     }
@@ -215,16 +218,6 @@ class ProjectServiceContainer extends Container
     protected function getRequestService()
     {
         throw new RuntimeException('You have requested a synthetic service ("request"). The DIC does not know how to construct this service.');
-    }
-
-    /**
-     * Gets the alias_for_foo service alias.
-     *
-     * @return FooClass An instance of the foo service
-     */
-    protected function getAliasForFooService()
-    {
-        return $this->get('foo');
     }
 
     /**

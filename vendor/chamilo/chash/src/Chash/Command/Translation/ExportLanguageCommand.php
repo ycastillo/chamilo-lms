@@ -2,15 +2,22 @@
 
 namespace Chash\Command\Translation;
 
-use Chash\Command\Database\CommonChamiloDatabaseCommand;
+use Chash\Command\Database\CommonDatabaseCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
-class ExportLanguageCommand extends CommonChamiloDatabaseCommand
+/**
+ * Class ExportLanguageCommand
+ * @package Chash\Command\Translation
+ */
+class ExportLanguageCommand extends CommonDatabaseCommand
 {
+    /**
+     *
+     */
     protected function configure()
     {
         parent::configure();
@@ -30,6 +37,11 @@ class ExportLanguageCommand extends CommonChamiloDatabaseCommand
             );
     }
 
+    /**
+     * @param InputInterface $input
+     * @param OutputInterface $output
+     * @return int|null|void
+     */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         parent::execute($input, $output);
@@ -39,7 +51,7 @@ class ExportLanguageCommand extends CommonChamiloDatabaseCommand
 
         $_configuration = $this->getHelper('configuration')->getConfiguration();
 
-        $connection = $this->getHelper('configuration')->getConnection();
+        $connection = $this->getConnection();
 
         if ($connection) {
             $lang = isset($language) ? $language : null;

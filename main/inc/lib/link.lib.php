@@ -22,16 +22,18 @@
 
 class Link extends Model
 {
-    var $table;
-    var $is_course_model = true;
-    var $columns = array('id', 'c_id','url','title','description','category_id', 'display_order', 'on_homepage', 'target', 'session_id');
-    var $required = array('url', 'title');
+    public $table;
+    public $is_course_model = true;
+    public $columns = array('id', 'c_id','url','title','description','category_id', 'display_order', 'on_homepage', 'target', 'session_id');
+    public $required = array('url', 'title');
 
-    public function __construct() {
+    public function __construct()
+    {
         $this->table =  Database::get_course_table(TABLE_LINK);
 	}
 
-    public function save($params, $show_query = null) {
+    public function save($params, $show_query = null)
+    {
         $course_info = api_get_course_info();
         $params['session_id'] = api_get_session_id();
         $params['category_id'] = isset($params['category_id']) ? $params['category_id'] : 0;
@@ -51,13 +53,15 @@ class Link extends Model
  * @todo replace strings by constants
  * @author Patrick Cool <patrick.cool@UGent.be>, Ghent University
  */
-function addlinkcategory($type) {
+function addlinkcategory($type)
+{
 	global $catlinkstatus;
 	global $msgErr;
 
 	$ok = true;
 
     $course_id = api_get_course_int_id();
+    $courseInfo = api_get_course_info();
 
 	if ($type == 'link') {
 		$tbl_link = Database :: get_course_table(TABLE_LINK);
@@ -118,7 +122,7 @@ function addlinkcategory($type) {
 			$link_id = Database :: insert_id();
 
             if ($link_id) {
-                api_set_default_visibility($link_id, TOOL_LINK);
+                api_set_default_visibility($courseInfo, $link_id, TOOL_LINK);
             }
 
 			if ((api_get_setting('search_enabled') == 'true') && $link_id && extension_loaded('xapian')) {
@@ -237,42 +241,37 @@ function addlinkcategory($type) {
  * Used to delete a link or a category
  * @author Patrick Cool <patrick.cool@UGent.be>, Ghent University
  */
-function deletelinkcategory($type) {
+function deletelinkcategory($id, $type)
+{
 	global $catlinkstatus;
     $_course = api_get_course_info();
+    $course_id = api_get_course_int_id();
 	$tbl_link              = Database :: get_course_table(TABLE_LINK);
 	$tbl_categories        = Database :: get_course_table(TABLE_LINK_CATEGORY);
-	$TABLE_ITEM_PROPERTY   = Database :: get_course_table(TABLE_ITEM_PROPERTY);
 
-    $course_id = api_get_course_int_id();
 
+    $id = intval($id);
 	if ($type == 'link') {
-		global $id;
 		// -> Items are no longer fysically deleted, but the visibility is set to 2 (in item_property).
 		// This will make a restore function possible for the platform administrator.
-		if (isset ($_GET['id']) && $_GET['id'] == strval(intval($_GET['id']))) {
-			$sql = "UPDATE $tbl_link SET on_homepage='0' WHERE c_id = $course_id AND id='" . intval($_GET['id']) . "'";
-			Database :: query($sql);
-		}
+
+        $sql = "UPDATE $tbl_link SET on_homepage='0' WHERE c_id = $course_id AND id='" . $id . "'";
+        Database :: query($sql);
+
 		api_item_property_update($_course, TOOL_LINK, $id, 'delete', api_get_user_id());
 		delete_link_from_search_engine(api_get_course_id(), $id);
 		$catlinkstatus = get_lang('LinkDeleted');
-		unset ($id);
 		Display :: display_confirmation_message(get_lang('LinkDeleted'));
 	}
 
 	if ($type == 'category') {
-		global $id;
-		if (isset ($_GET['id']) && !empty ($_GET['id'])) {
-			// First we delete the category itself and afterwards all the links of this category.
-			$sql = "DELETE FROM " . $tbl_categories . " WHERE c_id = $course_id AND id='" . intval($_GET['id']) . "'";
-			Database :: query($sql);
-			$sql = "DELETE FROM " . $tbl_link . " WHERE c_id = $course_id AND category_id='" . intval($_GET['id']) . "'";
-			$catlinkstatus = get_lang('CategoryDeleted');
-			unset ($id);
-			Database :: query($sql);
-			Display :: display_confirmation_message(get_lang('CategoryDeleted'));
-		}
+        // First we delete the category itself and afterwards all the links of this category.
+        $sql = "DELETE FROM " . $tbl_categories . " WHERE c_id = $course_id AND id='" .$id. "'";
+        Database :: query($sql);
+        $sql = "DELETE FROM " . $tbl_link . " WHERE c_id = $course_id AND category_id='" .$id. "'";
+        $catlinkstatus = get_lang('CategoryDeleted');
+        Database :: query($sql);
+        Display :: display_confirmation_message(get_lang('CategoryDeleted'));
 	}
 }
 
@@ -282,7 +281,8 @@ function deletelinkcategory($type) {
  * @param string $course_id Course code
  * @param int $document_id Document id to delete
  */
-function delete_link_from_search_engine($course_id, $link_id) {
+function delete_link_from_search_engine($course_id, $link_id)
+{
 	// Remove from search engine if enabled.
 	if (api_get_setting('search_enabled') == 'true') {
 		$tbl_se_ref = Database :: get_main_table(TABLE_MAIN_SEARCH_ENGINE_REF);
@@ -314,7 +314,8 @@ function delete_link_from_search_engine($course_id, $link_id) {
  *
  * */
 
-function get_link_info($id) {
+function get_link_info($id)
+{
      $tbl_link      = Database :: get_course_table(TABLE_LINK);
      $course_id     = api_get_course_int_id();
      $sql           = "SELECT * FROM " . $tbl_link . " WHERE c_id = $course_id AND id='" . intval($id) . "' ";
@@ -335,8 +336,8 @@ function get_link_info($id) {
  * @author Patrick Cool <patrick.cool@UGent.be>, Ghent University
  * @todo replace the globals with the appropriate $_POST or $_GET values
  */
-function editlinkcategory($type) {
-
+function editlinkcategory($type)
+{
 	global $catlinkstatus;
 	global $id;
 	global $submit_link;
@@ -630,12 +631,14 @@ function showlinksofcategory($catid) {
 			    $link_validator  = ''.Display::url(Display::return_icon('preview_view.png', get_lang('CheckURL'), array(), 16), '#', array('onclick'=>"check_url('".$myrow['id']."', '".addslashes($myrow['url'])."');"));
 			    $link_validator .= Display::span('', array('id'=>'url_id_'.$myrow['id']));
 			}
+            $icon = Display::return_icon('link.gif', get_lang('Link'));
 
     		if ($myrow['visibility'] == '1') {
     			echo '<tr class="'.$css_class.'">';
     			echo '<td align="center" valign="middle" width="15">';
     			echo '<a href="link_goto.php?'.api_get_cidreq().'&amp;link_id='.$myrow['id'].'&amp;link_url='.urlencode($myrow['url']).'" target="_blank">
-    			         <img src="../../main/img/link.gif" border="0" alt="'.get_lang('Link').'"/></a></td>
+    			        '.$icon.'
+    			         </a></td>
     			         <td width="80%" valign="top"><a href="link_goto.php?'.api_get_cidreq().'&amp;link_id='.$myrow['id'].'&amp;link_url='.urlencode($myrow['url']).'" target="'.$myrow['target'].'">';
     			echo Security :: remove_XSS($myrow['title']);
     			echo '</a>';
@@ -926,7 +929,8 @@ function import_link($linkdata) {
  * CSV file import functions
  * @author René Haentjens , Ghent University
  */
-function import_csvfile() {
+function import_csvfile()
+{
 
 	global $catlinkstatus; // Feedback message to user.
 
@@ -980,17 +984,46 @@ function import_csvfile() {
 }
 
 /**
+ * This function checks if the url is a vimeo link
+ * @author Julio Montoya
+ * @version 1.0
+ */
+function isVimeoLink($url)
+{
+	$isLink = strrpos($url, "vimeo.com");
+    return $isLink;
+}
+
+function getVimeoLinkId($url)
+{
+    $possibleUrls = array(
+        'http://www.vimeo.com/',
+        'http://vimeo.com/',
+        'https://www.vimeo.com/',
+        'https://vimeo.com/'
+    );
+    $url = str_replace($possibleUrls, '', $url);
+
+    if (is_numeric($url)) {
+        return $url;
+    }
+    return false;
+}
+
+/**
  * This function checks if the url is a youtube link
  * @author Jorge Frisancho
  * @author Julio Montoya - Fixing code
  * @version 1.0
  */
-function is_youtube_link($url) {
+function is_youtube_link($url)
+{
 	$is_youtube_link = strrpos($url, "youtube") || strrpos($url, "youtu.be");
     return $is_youtube_link;
 }
 
-function get_youtube_video_id($url) {
+function get_youtube_video_id($url)
+{
     // This is the length of YouTube's video IDs
 	$len = 11;
 

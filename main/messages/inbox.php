@@ -11,9 +11,8 @@
 $language_file = array('registration', 'messages', 'userInfo');
 $cidReset = true;
 
-require_once '../inc/global.inc.php';
-
 api_block_anonymous_users();
+
 if (isset($_GET['messages_page_nr'])) {
     $social_link = '';
     if ($_REQUEST['f'] == 'social') {
@@ -24,11 +23,11 @@ if (isset($_GET['messages_page_nr'])) {
     }
 }
 if (api_get_setting('allow_message_tool') != 'true') {
-    api_not_allowed();
+    api_not_allowed(true);
+    return;
 }
 
 $htmlHeadXtra[] = '<script>
-
 function show_icon_edit(element_html) {
 	ident="#edit_image";
 	$(ident).show();
@@ -104,15 +103,7 @@ if (isset($_GET['form_reply']) || isset($_GET['form_delete'])) {
     }
 }
 
-if (isset($_GET['f']) && $_GET['f'] == 'social') {
-    $this_section = SECTION_SOCIAL;
-    $interbreadcrumb[] = array('url' => api_get_path(WEB_PATH).'main/social/home.php', 'name' => get_lang('SocialNetwork'));
-    $interbreadcrumb[] = array('url' => '#', 'name' => get_lang('Inbox'));
-} else {
-    $this_section = SECTION_MYPROFILE;
-    $interbreadcrumb[] = array('url' => api_get_path(WEB_PATH).'main/auth/profile.php', 'name' => get_lang('Profile'));
-}
-
+$interbreadcrumb[] = array('url' => api_get_path(WEB_PATH).'main/messages/inbox.php', 'name' => get_lang('Messages'));
 $social_parameter = '';
 
 if (isset($_GET['f']) && $_GET['f'] == 'social' || api_get_setting('allow_social_tool') == 'true') {
@@ -168,15 +159,10 @@ if (api_get_setting('allow_social_tool') == 'true') {
 }
 
 $tpl = $app['template'];
-if (api_get_setting('allow_social_tool') == 'true') {
-    $tpl->assign('social_left_content', $social_left_content);
-    $tpl->assign('social_right_content', $social_right_content);
-    $social_layout = $tpl->get_template('layout/social_layout.tpl');
-    $tpl->display($social_layout);
-} else {
-    $content = $social_right_content;
-    $tpl->assign('actions', $actions);
-    $tpl->assign('message', $show_message);
-    $tpl->assign('content', $content);
-    $tpl->display_one_col_template();
-}
+
+$content = $social_right_content;
+$tpl->assign('actions', $actions);
+$tpl->assign('message', $show_message);
+$tpl->assign('content', $content);
+$tpl->display_one_col_template();
+

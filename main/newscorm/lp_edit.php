@@ -49,11 +49,6 @@ function activate_end_date() {
 
 </script>';
 
-
-Display::display_header(get_lang('CourseSettings'), 'Path');
-
-echo $_SESSION['oLP']->build_action_menu();
-
 $gradebook = isset($_GET['gradebook']) ? Security::remove_XSS($_GET['gradebook']) : null;
 
 $defaults=array();
@@ -177,6 +172,18 @@ if (api_is_platform_admin()) {
 
 $form->addElement('checkbox', 'subscribe_users', null, get_lang('SubscribeUsersToLP'));
 
+$extraField = new ExtraField('lp');
+$extra = $extraField->addElements($form, $_SESSION['oLP']->get_id());
+
+$htmlHeadXtra[] = '<script src="'.api_get_path(WEB_LIBRARY_PATH).'javascript/tag/jquery.fcbkcomplete.js" type="text/javascript" language="javascript"></script>';
+$htmlHeadXtra[] = '<link  href="'.api_get_path(WEB_LIBRARY_PATH).'javascript/tag/style.css" rel="stylesheet" type="text/css" />';
+$htmlHeadXtra[] ='<script>
+$(function() {
+    '.$extra['jquery_ready_content'].'
+});
+</script>';
+
+
 //Submit button
 $form->addElement('style_submit_button', 'Submit', get_lang('SaveLPSettings'),'class="save"');
 
@@ -190,6 +197,11 @@ $defaults['max_attempts'] = $_SESSION['oLP']->get_max_attempts();
 $defaults['subscribe_users'] = $_SESSION['oLP']->get_subscribe_users();
 $form->setDefaults($defaults);
 
+Display::display_header(get_lang('CourseSettings'), 'Path');
+
+echo $_SESSION['oLP']->build_action_menu();
+
+
 echo '<div class="row">';
 
 if ($_SESSION['oLP']->get_hide_toc_frame() == 1) {
@@ -201,7 +213,7 @@ if ($_SESSION['oLP']->get_hide_toc_frame() == 1) {
     $form -> display();
     echo '</div>';
     echo '<div class="span6" align="center">';
-    echo '<img src="../img/course_setting_layout.png" />';
+    echo Display::return_icon('course_setting_layout.png');
     echo '</div>';
 }
 echo '</div>';

@@ -53,7 +53,7 @@ $form->applyFilter('title', 'html_filter');
 $form->applyFilter('title', 'trim');
 
 // Code
-$form->add_textfield('visual_code', array(get_lang('CourseCode'), get_lang('OnlyLettersAndNumbers')) , false, array('class' => 'span3', 'maxlength' => CourseManager::MAX_COURSE_LENGTH_CODE));
+$form->add_textfield('visual_code', array(get_lang('CourseCode'), get_lang('OnlyLettersAndNumbers')), false, array('class' => 'span3', 'maxlength' => CourseManager::MAX_COURSE_LENGTH_CODE));
 
 $form->applyFilter('visual_code', 'api_strtoupper');
 $form->applyFilter('visual_code', 'html_filter');
@@ -90,6 +90,7 @@ $group[]= $form->createElement('radio', 'visibility', get_lang('CourseAccess'), 
 $group[]= $form->createElement('radio', 'visibility', null, get_lang('OpenToThePlatform'), COURSE_VISIBILITY_OPEN_PLATFORM);
 $group[]= $form->createElement('radio', 'visibility', null, get_lang('Private'), COURSE_VISIBILITY_REGISTERED);
 $group[]= $form->createElement('radio', 'visibility', null, get_lang('CourseVisibilityClosed'), COURSE_VISIBILITY_CLOSED);
+$group[]= $form->createElement('radio', 'visibility', null, get_lang('CourseVisibilityHidden'), COURSE_VISIBILITY_HIDDEN);
 
 $form->addGroup($group,'', get_lang('CourseAccess'), '<br />');
 
@@ -134,21 +135,14 @@ $form->setDefaults($values);
 if ($form->validate()) {
     $course          = $form->exportValues();
     //$tutor_name      = $teachers[$course['tutor_id']];
-    $teacher_id      = $course['tutor_id'];
-    $course_teachers = $course['course_teachers'];
-
+    $course['user_id']      = isset($course['tutor_id']) ? $course['tutor_id'] : null;
+    $course['teachers']  = isset($course['course_teachers']) ? $course['course_teachers'] : null;
     $course['disk_quota'] = $course['disk_quota']*1024*1024;
-
     $course['exemplary_content']    = empty($course['exemplary_content']) ? false : true;
-    $course['teachers']             = $course_teachers;
     //$course['tutor_name']           = $tutor_name;
-    $course['user_id']              = $teacher_id;
     $course['wanted_code']          = $course['visual_code'];
-
     $course['gradebook_model_id']   = isset($course['gradebook_model_id']) ? $course['gradebook_model_id'] : null;
-
     $course_info = CourseManager::create_course($course);
-
     header('Location: course_list.php'.($course_info===false?'?action=show_msg&warn='.api_get_last_failure():''));
     exit;
 }

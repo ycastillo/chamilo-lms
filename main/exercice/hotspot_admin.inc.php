@@ -66,7 +66,7 @@ if ($modifyIn) {
     unset($buttonBack);
 }
 
-$hotspot_admin_url = api_get_path(WEB_CODE_PATH) . 'exercice/admin.php?' . api_get_cidreq() . '&exerciseId=' . $exerciseId;
+$hotspot_admin_url = api_get_path(WEB_CODE_PATH).'exercice/admin.php?'.api_get_cidreq().'&exerciseId='.$exerciseId;
 
 // the answer form has been submitted
 if ($submitAnswers || $buttonBack) {
@@ -496,7 +496,7 @@ if ($modifyAnswers) {
             "#F7BDE2");
     }
 
-    Display::tag('h3', get_lang('Question') . ": " . $questionName . ' <img src="../img/info3.gif" title="' . strip_tags(get_lang('HotspotChoose')) . '" alt="' . strip_tags(get_lang('HotspotChoose')) . '" />');
+    Display::tag('h3', get_lang('Question') . ": " . $questionName.' '.Display::return_icon('info3.gif', get_lang('HotspotChoose')));
     if (!empty($msgErr)) {
         Display::display_normal_message($msgErr); //main API
     }
@@ -827,19 +827,7 @@ if ($modifyAnswers) {
                                     <td valign="top" align="left">
                                         <input type="text" name="reponse[<?php echo $i; ?>]" value="<?php echo Security::remove_XSS($reponse[$i]); ?>" size="45" />
                                     </td>
-
-                                    <?php
-
-                                    $oFCKeditor = new FCKeditor("comment[$i]");
-                                    $content = $comment[$i];
-                                    $oFCKeditor->ToolbarSet = 'TestProposedAnswer';
-                                    $oFCKeditor->Config['ToolbarStartExpanded'] = 'false';
-                                    $oFCKeditor->Width = '100%';
-                                    $oFCKeditor->Height = '100';
-                                    $oFCKeditor->Value = $content;
-                                    $return = $oFCKeditor->CreateHtml();
-                                    /* <td align="left"><textarea wrap="virtual" rows="1" cols="25" name="comment[<?php echo $i; ?>]" style="width: 100%"><?php echo api_htmlentities($comment[$i], ENT_QUOTES, api_get_system_encoding()); ?></textarea></td> */
-                                    ?>
+                                    <textarea name="<?php echo "comment[$i]"; ?>"><?php echo $content; ?></textarea>
                                     <td>&nbsp;</td>
                                     <td align="left" ><?php echo $return; ?></td>
                                         <?php
@@ -853,15 +841,15 @@ if ($modifyAnswers) {
                                             ?>
                                             <input type="hidden" name="weighting[<?php echo $i; ?>]" class="span3" value="0" />
                                 <?php } else { ?>
-                                            <input type="text" name="weighting[<?php echo $i; ?>]" class="span3" value="<?php echo (isset($weighting[$i]) ? $weighting[$i] : 10); ?>" />
+                                        <input type="text" name="weighting[<?php echo $i; ?>]" class="span3" value="<?php echo (isset($weighting[$i]) ? $weighting[$i] : 10); ?>" />
                                 <?php
                                 }
                             }
                             if ($answerType == HOT_SPOT) {
                                 ?>
-                                        <input type="text" name="weighting[<?php echo $i; ?>]" class="span3" value="<?php echo (isset($weighting[$i]) ? $weighting[$i] : 10); ?>" />
-                                        <input type="hidden" name="hotspot_coordinates[<?php echo $i; ?>]" value="<?php echo (empty($hotspot_coordinates[$i]) ? '0;0|0|0' : $hotspot_coordinates[$i]); ?>" />
-                                        <input type="hidden" name="hotspot_type[<?php echo $i; ?>]" value="<?php echo (empty($hotspot_type[$i]) ? 'square' : $hotspot_type[$i]); ?>" />
+                                <input type="text" name="weighting[<?php echo $i; ?>]" class="span3" value="<?php echo (isset($weighting[$i]) ? $weighting[$i] : 10); ?>" />
+                                <input type="hidden" name="hotspot_coordinates[<?php echo $i; ?>]" value="<?php echo (empty($hotspot_coordinates[$i]) ? '0;0|0|0' : $hotspot_coordinates[$i]); ?>" />
+                                <input type="hidden" name="hotspot_type[<?php echo $i; ?>]" value="<?php echo (empty($hotspot_type[$i]) ? 'square' : $hotspot_type[$i]); ?>" />
                                 <?php
                             }
                             ?>

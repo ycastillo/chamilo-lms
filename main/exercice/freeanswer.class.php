@@ -1,13 +1,12 @@
 <?php
-
 /* For licensing terms, see /license.txt */
 /**
- * 	File containing the FreeAnswer class.
- * 	This class allows to instantiate an object of type FREE_ANSWER,
- * 	extending the class question
- * 	@package chamilo.exercise
- * 	@author Eric Marguin
- * 	@version $Id: admin.php 10680 2007-01-11 21:26:23Z pcool $
+ * File containing the FreeAnswer class.
+ * This class allows to instantiate an object of type FREE_ANSWER,
+ * extending the class question
+ * @package chamilo.exercise
+ * @author Eric Marguin
+ * @version $Id: admin.php 10680 2007-01-11 21:26:23Z pcool $
  */
 /**
  * Code
@@ -16,7 +15,8 @@
 /**
  * @package chamilo.exercise
  */
-class FreeAnswer extends Question {
+class FreeAnswer extends Question
+{
 
     static $typePicture = 'open_answer.gif';
     static $explanationLangVar = 'FreeAnswer';
@@ -24,49 +24,63 @@ class FreeAnswer extends Question {
     /**
      * Constructor
      */
-    function FreeAnswer() {
+    public function __construct()
+    {
         parent::question();
-        $this->type = FREE_ANSWER;
+        $this->type      = FREE_ANSWER;
         $this->isContent = $this->getIsContent();
     }
 
     /**
-     * function which redifines Question::createAnswersForm
-     * @param the formvalidator instance
+     * function which redefines Question::createAnswersForm
+     * @param FormValidator instance
      */
-    function createAnswersForm($form) {
-        $form->addElement('text', 'weighting', get_lang('Weighting'), array('class' => 'span1'));
-        // setting the save button here and not in the question class.php
-        $form->addElement('style_submit_button', 'submitQuestion', $this->submitText, 'class="' . $this->submitClass . '"');
-        if (!empty($this->id)) {
-            $form->setDefaults(array('weighting' => Text::float_format($this->weighting, 1)));
-        } else {
-            if ($this->isContent == 1) {
-                $form->setDefaults(array('weighting' => '10'));
+    public function createAnswersForm($form)
+    {
+
+        if ($this->exercise->getModelType() == EXERCISE_MODEL_TYPE_NORMAL) {
+            $form->addElement('text', 'weighting', get_lang('Weighting'), array('class' => 'span1'));
+            if (!empty($this->id)) {
+                $form->setDefaults(array('weighting' => Text::float_format($this->weighting, 1)));
+            } else {
+                if ($this->isContent == 1) {
+                    $form->setDefaults(array('weighting' => '10'));
+                }
             }
+        }
+
+        if ($form->isFrozen() == false) {
+            // Setting the save button here and not in the question class.php.
+            $form->addElement('style_submit_button', 'submitQuestion', $this->submitText, 'class="'.$this->submitClass.'"');
         }
     }
 
     /**
      * abstract function which creates the form to create / edit the answers of the question
-     * @param the formvalidator instance
+     * @param FormValidator instance
      */
-    function processAnswersCreation($form) {
+    public function processAnswersCreation($form)
+    {
         $this->weighting = $form->getSubmitValue('weighting');
         $this->save();
     }
 
-    function return_header($feedback_type = null, $counter = null, $score = null, $show_media = false) {
+    /**
+     * {@inheritdoc}
+     */
+    function return_header($feedback_type = null, $counter = null, $score = null, $show_media = false, $hideTitle = 0)
+    {
         if (!empty($score['comments']) || $score['score'] > 0) {
             $score['revised'] = true;
         } else {
             $score['revised'] = false;
         }
-        $header = parent::return_header($feedback_type, $counter, $score, $show_media);
-        $header .= '<table class="' . $this->question_table_class . '" >
+        $header = parent::return_header($feedback_type, $counter, $score, $show_media, $hideTitle);
+        $header .= '<table class="'.$this->question_table_class.'" >
         <tr>
-		<th>' . get_lang("Answer") . '</th>
+		<th>'.get_lang("Answer").'</th>
 		</tr>';
+
         return $header;
     }
 }

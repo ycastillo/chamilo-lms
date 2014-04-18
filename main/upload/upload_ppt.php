@@ -18,7 +18,6 @@ $language_file[] = "scormdocument";
 // global settings initialisation
 require_once '../inc/global.inc.php';
 
-$htmlHeadXtra[] = '<script language="javascript" src="../inc/lib/javascript/upload.js" type="text/javascript"></script>';
 $htmlHeadXtra[] = '<script>
 	var myUpload = new upload(0);
 </script>';
@@ -28,7 +27,7 @@ if (isset($_POST['convert'])) {
     if (isset($_FILES['user_file'])) {
         $allowed_extensions = array('odp', 'sxi', 'ppt', 'pps', 'sxd', 'pptx');
         if (in_array(strtolower(pathinfo($_FILES['user_file']['name'], PATHINFO_EXTENSION)), $allowed_extensions)) {
-            require('../newscorm/lp_upload.php');
+            require_once api_get_path(SYS_CODE_PATH).'newscorm/lp_upload.php';
             if (isset($o_ppt) && $first_item_id != 0) {
                 if (api_get_setting('search_enabled') == 'true') {
                     require_once(api_get_path(LIBRARY_PATH).'specific_fields_manager.lib.php');
@@ -95,7 +94,7 @@ $form->addElement('html', Display::return_message($message, 'info', false));
 
 // build the form
 $div_upload_limit = get_lang('UploadMaxSize').' : '.ini_get('post_max_size');
-$form->addElement('file', 'user_file', array('<img src="../img/powerpoint_big.gif" />', $div_upload_limit));
+$form->addElement('file', 'user_file', array(Display::return_icon('powerpoint_big.gif'), $div_upload_limit));
 $form->addElement('checkbox', 'take_slide_name', '', get_lang('TakeSlideName'));
 if (api_get_setting('search_enabled') == 'true') {
     require_once(api_get_path(LIBRARY_PATH).'specific_fields_manager.lib.php');

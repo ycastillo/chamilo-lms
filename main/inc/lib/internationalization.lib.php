@@ -124,173 +124,16 @@ $_api_is_translated_call = false;
  */
 function get_lang($variable, $reserved = null, $language = null)
 {
-    /**
-     *  In order to use $app['translator']
     global $app;
-    if ($app['debug']) {
-        //return $variable;
-    }
     $translated = $app['translator']->trans($variable);
     if ($translated == $variable) {
+        // Check the langVariable for BC
         $translated = $app['translator']->trans("lang$variable");
         if ($translated == "lang$variable") {
             return $variable;
         }
     }
-    return $translated;*/
-    global $app;
-
-    $language_interface = isset($app['language_interface']) ? $app['language_interface'] : api_get_language_interface();
-
-    global
-    // For serving some old hacks:
-    // By manipulating this global variable the translation may be done in different languages too (not the elegant way).
-    //$language_interface,
-        // Because of possibility for manipulations of the global variable $language_interface, we need its initial value.
-    $language_interface_initial_value,
-        // For serving the function is_translated()
-    $_api_is_translated, $_api_is_translated_call, $used_lang_vars, $_configuration;
-
-    // add language_measure_frequency to your main/inc/conf/configuration.php in order to generate language
-    // variables frequency measurements (you can then see them trhough main/cron/lang/langstats.php)
-    // The $langstats object is instanciated at the end of main/inc/global.inc.php
-    if (isset($_configuration['language_measure_frequency']) && $_configuration['language_measure_frequency'] == 1) {
-        require_once api_get_path(SYS_CODE_PATH).'/cron/lang/langstats.class.php';
-        global $langstats;
-        $langstats->add_use($variable, '');
-    }
-    if (!isset ($used_lang_vars)) {
-        $used_lang_vars = array();
-    }
-
-    // Caching results from some API functions, for speed.
-    static $initialized, $encoding, $is_utf8_encoding, $langpath, $test_server_mode, $show_special_markup;
-    if (!isset($initialized)) {
-        $encoding = api_get_system_encoding();
-        $is_utf8_encoding = api_is_utf8($encoding);
-        $langpath = api_get_path(SYS_LANG_PATH);
-        $test_server_mode = api_get_setting('server_type') == 'test';
-        //$test_server_mode = false;
-        $show_special_markup = api_get_setting('hide_dltt_markup') != 'true' || $test_server_mode;
-        $initialized = true;
-    }
-
-    // Combining both ways for requesting specific language.
-    if (empty($language)) {
-        $language = $language_interface;
-    }
-
-    $lang_postfix = isset($is_interface_language) && $is_interface_language ? '' : '('.$language.')';
-
-    $is_interface_language = $language == $language_interface_initial_value;
-
-    // This is a cache for already translated language variables. By using it, we avoid repetitive translations, gaining speed.
-    static $cache;
-
-    // Looking up into the cache for existing translation.
-    if (isset($cache[$language][$variable]) && !$_api_is_translated_call) {
-        // There is a previously saved translation, returning it.
-        //return $cache[$language][$variable];
-        $ret = $cache[$language][$variable];
-        $used_lang_vars[$variable.$lang_postfix] = $ret;
-        return $ret;
-    }
-
-
-    $_api_is_translated = false;
-
-    // There is no cached translation, we have to retrieve it:
-    // - from a global variable (the faster way) - on production server mode;
-    // - from a local variable after reloading the language files - on test server mode or when requested language is different than the genuine interface language.
-    $read_global_variables = $is_interface_language && !$test_server_mode && !$_api_is_translated_call;
-
-    // Reloading the language files when it is necessary.
-
-    if (!$read_global_variables) {
-        global $language_files;
-        if (isset($language_files)) {
-            $parent_language = null;
-            if (api_get_setting('allow_use_sub_language') == 'true') {
-                require_once api_get_path(SYS_CODE_PATH).'admin/sub_language.class.php';
-                $parent_language = SubLanguageManager::get_parent_language_path($language);
-            }
-            if (!is_array($language_files)) {
-                if (isset($parent_language)) {
-                    @include "$langpath$parent_language/$language_files.inc.php";
-                }
-                @include "$langpath$language/$language_files.inc.php";
-            } else {
-                foreach ($language_files as &$language_file) {
-                    if (isset($parent_language)) {
-                        @include "$langpath$parent_language/$language_file.inc.php";
-                    }
-                    @include "$langpath$language/$language_file.inc.php";
-                }
-            }
-        }
-    }
-
-    // Translation mode for production servers.
-
-    if (!$test_server_mode) {
-        if ($read_global_variables) {
-            if (isset($GLOBALS[$variable])) {
-                $langvar = $GLOBALS[$variable];
-                $_api_is_translated = true;
-            } elseif (isset($GLOBALS["lang$variable"])) {
-                $langvar = $GLOBALS["lang$variable"];
-                $_api_is_translated = true;
-            } else {
-                $langvar = $show_special_markup ? SPECIAL_OPENING_TAG.$variable.SPECIAL_CLOSING_TAG : $variable;
-            }
-        } else {
-            if (isset($$variable)) {
-                $langvar = $$variable;
-                $_api_is_translated = true;
-            } elseif (isset(${"lang$variable"})) {
-                $langvar = ${"lang$variable"};
-                $_api_is_translated = true;
-            } else {
-                $langvar = $show_special_markup ? SPECIAL_OPENING_TAG.$variable.SPECIAL_CLOSING_TAG : $variable;
-            }
-        }
-        if (empty($langvar) || !is_string($langvar)) {
-            $_api_is_translated = false;
-            $langvar = $show_special_markup ? SPECIAL_OPENING_TAG.$variable.SPECIAL_CLOSING_TAG : $variable;
-        }
-        //return $cache[$language][$variable] = $is_utf8_encoding ? $langvar : api_utf8_decode($langvar, $encoding);
-        $ret = $cache[$language][$variable] = $is_utf8_encoding ? $langvar : api_utf8_decode($langvar, $encoding);
-        $used_lang_vars[$variable.$lang_postfix] = $ret;
-        return $ret;
-    }
-
-
-    // Translation mode for test/development servers.
-    if (!is_string($variable)) {
-        //return $cache[$language][$variable] = SPECIAL_OPENING_TAG.'get_lang(?)'.SPECIAL_CLOSING_TAG;
-        $ret = $cache[$language][$variable] = SPECIAL_OPENING_TAG.'get_lang(?)'.SPECIAL_CLOSING_TAG;
-        $used_lang_vars[$variable.$lang_postfix] = $ret;
-        return $ret;
-    }
-
-
-    if (isset($$variable)) {
-        $langvar = $$variable;
-        $_api_is_translated = true;
-    } elseif (isset(${"lang$variable"})) {
-        $langvar = ${"lang$variable"};
-        $_api_is_translated = true;
-    } else {
-        $langvar = $show_special_markup ? SPECIAL_OPENING_TAG.$variable.SPECIAL_CLOSING_TAG : $variable;
-    }
-    if (empty($langvar) || !is_string($langvar)) {
-        $_api_is_translated = false;
-        $langvar = $show_special_markup ? SPECIAL_OPENING_TAG.$variable.SPECIAL_CLOSING_TAG : $variable;
-    }
-    //return $cache[$language][$variable] = $is_utf8_encoding ? $langvar : api_utf8_decode($langvar, $encoding);
-    $ret = $cache[$language][$variable] = $is_utf8_encoding ? $langvar : api_utf8_decode($langvar, $encoding);
-    $used_lang_vars[$variable.$lang_postfix] = $ret;
-    return $ret;
+    return $translated;
 }
 
 /**
@@ -418,13 +261,15 @@ function api_get_language_isocode($language = null, $default_code = 'en')
     if (empty($language)) {
         $language = api_get_interface_language(false, true);
     }
+
+    // Try session
+    /*if (empty($iso_code)) {
+        $iso_code = Session::read('_setting.api_get_language_isocode');
+    }*/
+
     if (!isset($iso_code[$language])) {
-        if (!class_exists('Database')) {
-            return $default_code; // This might happen, in case of calling this function early during the global initialization.
-        }
-        $sql_result = Database::query(
-            "SELECT isocode FROM ".Database::get_main_table(TABLE_MAIN_LANGUAGE)." WHERE dokeos_folder = '$language'"
-        );
+        $sql = "SELECT isocode FROM ".Database::get_main_table(TABLE_MAIN_LANGUAGE)." WHERE dokeos_folder = '$language'";
+        $sql_result = Database::query($sql);
         if (Database::num_rows($sql_result)) {
             $result = Database::fetch_array($sql_result);
             $iso_code[$language] = trim($result['isocode']);
@@ -435,7 +280,9 @@ function api_get_language_isocode($language = null, $default_code = 'en')
         if (empty($iso_code[$language])) {
             $iso_code[$language] = $default_code;
         }
+        //Session::write('_setting.api_get_language_isocode', $iso_code);
     }
+
     return $iso_code[$language];
 }
 
@@ -597,12 +444,13 @@ function _api_get_timezone()
     // If allowed by the administrator
     $use_users_timezone = api_get_setting('use_users_timezone', 'timezones');
 
-    if ($use_users_timezone == 'true' && !empty($userId)) {
+    if ($use_users_timezone == 'true' && !empty($userId) && !api_is_anonymous()) {
+        $userInfo = api_get_user_info();
+        $extraFields = $userInfo['extra_fields'];
         // Get the timezone based on user preference, if it exists
-        $timezone_user = UserManager::get_extra_user_data_by_field($userId, 'timezone');
-
-        if (isset($timezone_user['timezone']) && $timezone_user['timezone'] != null) {
-            $to_timezone = $timezone_user['timezone'];
+        // $timezone_user = UserManager::get_extra_user_data_by_field($userId, 'timezone');
+        if (isset($extraFields['extra_timezone']) && $extraFields['extra_timezone'] != null) {
+            $to_timezone = $extraFields['extra_timezone'];
         }
     }
 
@@ -1030,6 +878,7 @@ function api_convert_and_format_date($time = null, $format = null, $from_timezon
  */
 function api_get_week_days_short($language = null)
 {
+
     $days = & _api_get_day_month_names($language);
     return $days['days_short'];
 }
@@ -1113,16 +962,9 @@ function api_get_person_name($first_name, $last_name, $title = null, $format = n
             switch ($format) {
                 case PERSON_NAME_COMMON_CONVENTION:
                     $valid[$format][$language] = _api_get_person_name_convention($language, 'format');
-
-                    $username_order_from_database = api_get_setting('user_name_order');
-                    if (isset($username_order_from_database) && !empty($username_order_from_database)) {
-                        if (strpos($username_order_from_database, '%t') == false || strpos(
-                            $username_order_from_database,
-                            '%l'
-                        ) == false || strpos($username_order_from_database, '%f') == false
-                        ) {
-                            $valid[$format][$language] = $username_order_from_database;
-                        }
+                    $usernameOrderFromDatabase = api_get_setting('user_name_order');
+                    if (isset($usernameOrderFromDatabase) && !empty($usernameOrderFromDatabase)) {
+                        $valid[$format][$language] = $usernameOrderFromDatabase;
                     }
                     break;
                 case PERSON_NAME_WESTERN_ORDER:
@@ -1199,6 +1041,11 @@ function api_is_western_name_order($format = null, $language = null)
  */
 function api_sort_by_first_name($language = null)
 {
+    $userNameSortBy = api_get_setting('user_name_sort_by');
+    if (!empty($userNameSortBy) && in_array($userNameSortBy, array('firstname', 'lastname'))) {
+        return $userNameSortBy == 'firstname' ? true : false;
+    }
+
     static $sort_by_first_name = array();
 
     $language_is_supported = api_is_language_supported($language);
@@ -1423,6 +1270,35 @@ function api_htmlentities($string, $quote_style = ENT_COMPAT, $encoding = null)
     }
 
     return $string;
+}
+
+
+/**
+ * Checks whether the specified encoding is supported by the html-entitiy related functions.
+ * @param string $encoding	The specified encoding.
+ * @return bool				Returns TRUE when the specified encoding is supported, FALSE othewise.
+ */
+function _api_html_entity_supports($encoding) {
+    static $supports = array();
+    if (!isset($supports[$encoding])) {
+        // See http://php.net/manual/en/function.htmlentities.php
+        $html_entity_encodings = array(
+            'ISO-8859-1',
+            'ISO-8859-15',
+            'UTF-8',
+            'CP866',
+            'CP1251',
+            'CP1252',
+            'KOI8-R',
+            'BIG5', '950',
+            'GB2312', '936',
+            'BIG5-HKSCS',
+            'Shift_JIS', 'SJIS', '932',
+            'EUC-JP', 'EUCJP'
+        );
+        $supports[$encoding] = api_equal_encodings($encoding, $html_entity_encodings);
+    }
+    return $supports[$encoding];
 }
 
 /**
@@ -3771,13 +3647,13 @@ function api_is_latin1($encoding, $strict = false)
 
 /**
  * This function returns the encoding, currently used by the system.
- * @return string    The system's encoding.
- * Note: The value of api_get_setting('platform_charset') is tried to be returned first,
- * on the second place the global variable $charset is tried to be returned. If for some
- * reason both attempts fail, then the libraly's internal value will be returned.
+ * @return string    The system's encoding, set in the configuration file
  */
 function api_get_system_encoding()
 {
+    global $configuration;
+    return isset($configuration['platform_charset']) ? $configuration['platform_charset'] : 'utf-8';
+    /*
     static $system_encoding;
     if (!isset($system_encoding)) {
         $encoding_setting = api_get_setting('platform_charset');
@@ -3790,7 +3666,7 @@ function api_get_system_encoding()
         }
         $system_encoding = $encoding_setting;
     }
-    return $system_encoding;
+    return $system_encoding;*/
 }
 
 /**

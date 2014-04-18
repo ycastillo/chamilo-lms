@@ -12,7 +12,6 @@
 $language_file = array('admin');
 // including the global file
 $cidReset = true;
-require_once  '../inc/global.inc.php';
 // setting the section (for the tabs)
 $this_section = SECTION_PLATFORM_ADMIN;
 // setting breadcrumbs
@@ -22,12 +21,12 @@ api_protect_admin_script(true);
 $nameTools = get_lang('SpecialExports');
 
 // include additional libraries
-require_once '../document/document.inc.php';
+require_once api_get_path(SYS_CODE_PATH).'document/document.inc.php';
 // include additional libraries
-require_once '../coursecopy/classes/CourseBuilder.class.php';
-require_once '../coursecopy/classes/CourseArchiver.class.php';
-require_once '../coursecopy/classes/CourseRestorer.class.php';
-require_once '../coursecopy/classes/CourseSelectForm.class.php';
+require_once api_get_path(SYS_CODE_PATH).'coursecopy/classes/CourseBuilder.class.php';
+require_once api_get_path(SYS_CODE_PATH).'coursecopy/classes/CourseArchiver.class.php';
+require_once api_get_path(SYS_CODE_PATH).'coursecopy/classes/CourseRestorer.class.php';
+require_once api_get_path(SYS_CODE_PATH).'coursecopy/classes/CourseSelectForm.class.php';
 
 if (function_exists('ini_set')) {
 	api_set_memory_limit('256M');
@@ -68,7 +67,7 @@ if ((isset ($_POST['action']) && $_POST['action'] == 'course_select_form') || (i
 			$Resource = $_POST['resource'];
 
 			foreach ($Resource as $Code_course => $Sessions) {
-				$_course 		= Database::get_course_info($Code_course);
+				$_course 		= api_get_course_info($Code_course);
 				$tbl_document 	= Database::get_course_table(TABLE_DOCUMENT);
 				$tbl_property 	= Database::get_course_table(TABLE_ITEM_PROPERTY);
 				$course_id 		= $_course['real_id'];
@@ -103,10 +102,11 @@ if ((isset ($_POST['action']) && $_POST['action'] == 'course_select_form') || (i
 							AND props.to_group_id= $to_group_id AND docs.c_id = $course_id AND props.c_id = $course_id";
 					$query_session_doc = Database::query($sql_session_doc);
 					while ($rows_course_session_file = Database::fetch_assoc($query_session_doc)) {
-						$zip_folder->add($FileZip['PATH_COURSE'].$_course['directory'].'/document'.$rows_course_session_file['path'],
-										 PCLZIP_OPT_ADD_PATH, $_course['directory']."/".$ListSession[$session_id],
-										 PCLZIP_OPT_REMOVE_PATH, $FileZip['PATH_COURSE'].$_course['directory'].'/document'.$FileZip['PATH_REMOVE']
-										);
+						$zip_folder->add(
+                            $FileZip['PATH_COURSE'].$_course['directory'].'/document'.$rows_course_session_file['path'],
+                            PCLZIP_OPT_ADD_PATH, $_course['directory']."/".$ListSession[$session_id],
+                            PCLZIP_OPT_REMOVE_PATH, $FileZip['PATH_COURSE'].$_course['directory'].'/document'.$FileZip['PATH_REMOVE']
+                        );
 					}
 				}
 			}
@@ -209,7 +209,7 @@ function fullexportspecial(){
     $code_course = '';
     $list_course = array();
     $zip_folder = new PclZip($FileZip['TEMP_FILE_ZIP']);
-    $list_course = Database::get_course_list();
+    $list_course = CourseManager::get_course_list();
 
     $tbl_document = Database::get_course_table(TABLE_DOCUMENT);
     $tbl_property = Database::get_course_table(TABLE_ITEM_PROPERTY);
@@ -259,9 +259,9 @@ function fullexportspecial(){
                 $query_session_doc = Database::query($sql_session_doc);
                 while ($rows_course_session_file = Database::fetch_assoc($query_session_doc)) {
                     $zip_folder->add($FileZip['PATH_COURSE'].$_course['directory'].'/document'.$rows_course_session_file['path'],
-                                     PCLZIP_OPT_ADD_PATH, $_course['directory']."/".$rows_session['name'],
-                                     PCLZIP_OPT_REMOVE_PATH, $FileZip['PATH_COURSE'].$_course['directory'].'/document'.$FileZip['PATH_REMOVE']
-                                    );
+                        PCLZIP_OPT_ADD_PATH, $_course['directory']."/".$rows_session['name'],
+                        PCLZIP_OPT_REMOVE_PATH, $FileZip['PATH_COURSE'].$_course['directory'].'/document'.$FileZip['PATH_REMOVE']
+                    );
                 }
             }
         }

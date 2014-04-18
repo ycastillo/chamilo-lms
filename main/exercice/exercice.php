@@ -22,13 +22,13 @@ $language_file = array('exercice', 'tracking');
 require_once '../inc/global.inc.php';
 $current_course_tool = TOOL_QUIZ;
 
-require_once '../gradebook/lib/be.inc.php';
+require_once api_get_path(SYS_CODE_PATH).'gradebook/lib/be.inc.php';
 
 // Setting the tabs
 $this_section = SECTION_COURSES;
 
 $htmlHeadXtra[] = api_get_js('qtip2/jquery.qtip.min.js');
-$htmlHeadXtra[] = api_get_css(api_get_path(WEB_LIBRARY_PATH).'javascript/qtip2/jquery.qtip.min.css');
+$htmlHeadXtra[] = api_get_css(api_get_path(WEB_LIBRARY_JS_PATH).'qtip2/jquery.qtip.min.css');
 
 // Access control
 api_protect_course_script(true);
@@ -48,7 +48,7 @@ $TBL_DOCUMENT = Database :: get_course_table(TABLE_DOCUMENT);
 $TBL_ITEM_PROPERTY = Database :: get_course_table(TABLE_ITEM_PROPERTY);
 $TBL_EXERCICE_QUESTION = Database :: get_course_table(TABLE_QUIZ_TEST_QUESTION);
 $TBL_EXERCICES = Database :: get_course_table(TABLE_QUIZ_TEST);
-$TBL_TRACK_EXERCICES = Database :: get_statistic_table(TABLE_STATISTIC_TRACK_E_EXERCICES);
+$TBL_TRACK_EXERCICES = Database :: get_main_table(TABLE_STATISTIC_TRACK_E_EXERCICES);
 
 // document path
 $documentPath = api_get_path(SYS_COURSE_PATH).$_course['path']."/document";
@@ -204,7 +204,7 @@ if ($is_allowedToEdit) {
         if ($objExerciseTmp->read($exerciseId)) {
             if ($check) {
                 switch ($choice) {
-                    case 'delete' : // deletes an exercise
+                    case 'delete': // deletes an exercise
                         if ($exercise_action_locked == false) {
                             $objExerciseTmp->delete();
                             require_once api_get_path(SYS_CODE_PATH).'gradebook/lib/gradebook_functions.inc.php';
@@ -220,7 +220,7 @@ if ($is_allowedToEdit) {
                             Display :: display_confirmation_message(get_lang('ExerciseDeleted'));
                         }
                         break;
-                    case 'enable' : // enables an exercise
+                    case 'enable': // enables an exercise
                         $objExerciseTmp->enable();
                         $objExerciseTmp->save();
                         api_item_property_update(
@@ -233,7 +233,7 @@ if ($is_allowedToEdit) {
                         // "WHAT'S NEW" notification: update table item_property (previously last_tooledit)
                         Display :: display_confirmation_message(get_lang('VisibilityChanged'));
                         break;
-                    case 'disable' : // disables an exercise
+                    case 'disable': // disables an exercise
                         $objExerciseTmp->disable();
                         $objExerciseTmp->save();
                         api_item_property_update(
@@ -245,17 +245,17 @@ if ($is_allowedToEdit) {
                         );
                         Display :: display_confirmation_message(get_lang('VisibilityChanged'));
                         break;
-                    case 'disable_results' : //disable the results for the learners
+                    case 'disable_results': //disable the results for the learners
                         $objExerciseTmp->disable_results();
                         $objExerciseTmp->save();
                         Display :: display_confirmation_message(get_lang('ResultsDisabled'));
                         break;
-                    case 'enable_results' : //disable the results for the learners
+                    case 'enable_results': //disable the results for the learners
                         $objExerciseTmp->enable_results();
                         $objExerciseTmp->save();
                         Display :: display_confirmation_message(get_lang('ResultsEnabled'));
                         break;
-                    case 'clean_results' : //clean student results
+                    case 'clean_results': //clean student results
                         if ($exercise_action_locked == false) {
                             $quantity_results_deleted = $objExerciseTmp->clean_results();
                             Display :: display_confirmation_message(
@@ -263,7 +263,7 @@ if ($is_allowedToEdit) {
                             );
                         }
                         break;
-                    case 'copy_exercise' :
+                    case 'copy_exercise':
                         $objExerciseTmp->copy_exercise();
                         Display :: display_confirmation_message(get_lang('ExerciseCopied'));
                         break;
@@ -281,7 +281,7 @@ if ($is_allowedToEdit) {
 
     if (!empty($hpchoice)) {
         switch ($hpchoice) {
-            case 'delete' : // deletes an exercise
+            case 'delete': // deletes an exercise
                 $imgparams = array();
                 $imgcount = 0;
                 GetImgParams($file, $documentPath, $imgparams, $imgcount);
@@ -294,7 +294,7 @@ if ($is_allowedToEdit) {
                 if (FileManager::my_delete($documentPath.$file)) {
                     FileManager::update_db_info("delete", $file);
                 }
-                // hotpotatoes folder may contains several tests so don't delete folder if not empty : http://support.chamilo.org/issues/2165
+                // hotpotatoes folder may contains several tests so don't delete folder if not empty : #2165
                 if (!(strstr($uploadPath, DIR_HOTPOTATOES) && !FileManager::folder_is_empty(
                     $documentPath.$uploadPath."/".$fld."/"
                 ))
@@ -302,27 +302,21 @@ if ($is_allowedToEdit) {
                     FileManager::my_delete($documentPath.$uploadPath."/".$fld."/");
                 }
                 break;
-            case 'enable' : // enables an exercise
+            case 'enable': // enables an exercise
                 $newVisibilityStatus = "1"; //"visible"
-                $query = "SELECT id FROM $TBL_DOCUMENT WHERE c_id = $course_id AND path='".Database :: escape_string(
-                    $file
-                )."'";
+                $query = "SELECT id FROM $TBL_DOCUMENT WHERE c_id = $course_id AND path='".Database :: escape_string($file)."'";
                 $res = Database::query($query);
                 $row = Database :: fetch_array($res, 'ASSOC');
                 api_item_property_update($_course, TOOL_DOCUMENT, $row['id'], 'visible', $_user['user_id']);
-                //$dialogBox = get_lang('ViMod');
-
                 break;
-            case 'disable' : // disables an exercise
+            case 'disable': // disables an exercise
                 $newVisibilityStatus = "0"; //"invisible"
-                $query = "SELECT id FROM $TBL_DOCUMENT WHERE c_id = $course_id AND path='".Database :: escape_string(
-                    $file
-                )."'";
+                $query = "SELECT id FROM $TBL_DOCUMENT WHERE c_id = $course_id AND path='".Database :: escape_string($file)."'";
                 $res = Database::query($query);
                 $row = Database :: fetch_array($res, 'ASSOC');
                 api_item_property_update($_course, TOOL_DOCUMENT, $row['id'], 'invisible', $_user['user_id']);
                 break;
-            default :
+            default:
                 break;
         }
     }
@@ -346,7 +340,6 @@ $course_code = api_get_course_id();
 $courseId = api_get_course_int_id();
 $session_id = api_get_session_id();
 $condition_session = api_get_session_condition($session_id, true, true);
-
 
 // Only for administrators
 if ($is_allowedToEdit) {
@@ -372,11 +365,9 @@ if (Database :: num_rows($result_total)) {
     $total_exercises = $result_total['count'];
 }
 
-//get HotPotatoes files (active and inactive)
+// Get HotPotatoes files (active and inactive)
 if ($is_allowedToEdit) {
-    $sql = "SELECT * FROM $TBL_DOCUMENT WHERE c_id = $course_id AND path LIKE '".Database :: escape_string(
-        $uploadPath
-    )."/%/%'";
+    $sql = "SELECT * FROM $TBL_DOCUMENT WHERE c_id = $course_id AND path LIKE '".Database :: escape_string($uploadPath)."/%/%'";
     $res = Database::query($sql);
     $hp_count = Database :: num_rows($res);
 } else {
@@ -419,7 +410,9 @@ if ($is_allowedToEdit && $origin != 'learnpath') {
     echo Display::return_icon('database.png', get_lang('QuestionPool'), array('style' => 'width:32px'));
     echo '</a>';
 
-    echo Display::url(Display::return_icon('looknfeel.png', get_lang('Media')), 'media.php?'.api_get_cidreq());
+    echo '<a href="media.php?'.api_get_cidreq().'">';
+    echo Display::return_icon('media.png', get_lang('Media'), array(), ICON_SIZE_MEDIUM);
+    echo '</a>';
     // end question category
     echo '<a href="hotpotatoes.php?'.api_get_cidreq().'">'.Display :: return_icon(
         'import_hotpotatoes.png',
@@ -535,13 +528,13 @@ if (!empty($exercise_list)) {
                 $my_exercise_id = $row['iid'];
 
                 $exercise_obj = new Exercise();
-                $exercise_obj->read($my_exercise_id);
+                $exercise_obj->read($my_exercise_id, false);
 
                 $locked = $exercise_obj->is_gradebook_locked;
 
                 //echo '<div  id="tabs-'.$i.'">';
                 $i++;
-                //validacion when belongs to a session
+                // Validation when belongs to a session
                 $session_img = api_get_session_image($row['session_id'], $_user['status']);
 
                 $time_limits = false;
@@ -634,7 +627,8 @@ if (!empty($exercise_list)) {
                         $class_tip = 'link_tooltip';
                     }
                     //$class_tip = 'exercise_link';
-                    $url = $move.'<a '.$alt_title.' class="'.$class_tip.'" id="tooltip_'.$my_exercise_id.'" href="overview.php?'.api_get_cidreq().$myorigin.$mylpid.$mylpitemid.'&exerciseId='.$my_exercise_id.'"><img src="../img/quiz.gif" /> '.$title.' </a>';
+                    $urlOverview =  'overview.php?'.api_get_cidreq().$myorigin.$mylpid.$mylpitemid.'&exerciseId='.$my_exercise_id;
+                    $url = $move.'<a '.$alt_title.' class="'.$class_tip.'" id="tooltip_'.$my_exercise_id.'" href="'.$urlOverview.'">'.Display::return_icon('quiz.gif').' '.$title.' </a>';
 
                     $item = Display::tag('td', $url.' '.$session_img.$lp_blocked);
 
@@ -651,7 +645,7 @@ if (!empty($exercise_list)) {
                         $actions .='<a href="exercise_report.php?'.api_get_cidreq().'&exerciseId='.$my_exercise_id.'">'.Display :: return_icon('test_results.png', get_lang('Results'), '', ICON_SIZE_SMALL).'</a>';
 
                         //Export
-                        $actions .= Display::url(Display::return_icon('cd.gif', get_lang('CopyExercise')), '', array('onclick' => "javascript:if(!confirm('".addslashes(api_htmlentities(get_lang('AreYouSureToCopy'), ENT_QUOTES, $charset))." ".addslashes($row['title'])."?"."')) return false;", 'href' => 'exercice.php?'.api_get_cidreq().'&choice=copy_exercise&sec_token='.$token.'&exerciseId='.$my_exercise_id));
+                        $actions .= Display::url(Display::return_icon('cd.gif', get_lang('CopyExercise')), '', array('onclick' => "javascript:if(!confirm('".addslashes(get_lang('AreYouSureToCopy'))." ".addslashes($row['title'])."?"."')) return false;", 'href' => 'exercice.php?'.api_get_cidreq().'&choice=copy_exercise&sec_token='.$token.'&exerciseId='.$my_exercise_id));
 
                         if ($autolaunch_setting_on) {
                             $icon = Display::return_icon('launch.png', get_lang('AutoLaunch'));
@@ -686,13 +680,13 @@ if (!empty($exercise_list)) {
                         // not session
                         $actions = Display::return_icon('edit_na.png', get_lang('ExerciseEditionNotAvailableInSession'));
                         $actions .='<a href="exercise_report.php?'.api_get_cidreq().'&exerciseId='.$my_exercise_id.'">'.Display :: return_icon('test_results.png', get_lang('Results'), '', ICON_SIZE_SMALL).'</a>';
-                        $actions .= Display::url(Display::return_icon('cd.gif', get_lang('CopyExercise')), '', array('onclick' => "javascript:if(!confirm('".addslashes(api_htmlentities(get_lang('AreYouSureToCopy'), ENT_QUOTES, $charset))." ".addslashes($row['title'])."?"."')) return false;", 'href' => 'exercice.php?'.api_get_cidreq().'&choice=copy_exercise&sec_token='.$token.'&exerciseId='.$my_exercise_id));
+                        $actions .= Display::url(Display::return_icon('cd.gif', get_lang('CopyExercise')), '', array('onclick' => "javascript:if(!confirm('".addslashes(get_lang('AreYouSureToCopy'))." ".addslashes($row['title'])."?"."')) return false;", 'href' => 'exercice.php?'.api_get_cidreq().'&choice=copy_exercise&sec_token='.$token.'&exerciseId='.$my_exercise_id));
                     }
 
                     //Delete
                     if ($session_id == $row['session_id']) {
                         if ($locked == false) {
-                            $actions .= Display::url(Display::return_icon('delete.png', get_lang('Delete'), '', ICON_SIZE_SMALL), '', array('onclick' => "javascript:if(!confirm('".addslashes(api_htmlentities(get_lang('AreYouSureToDelete'), ENT_QUOTES, $charset))." ".addslashes($row['title'])."?"."')) return false;", 'href' => 'exercice.php?'.api_get_cidreq().'&choice=delete&sec_token='.$token.'&exerciseId='.$my_exercise_id));
+                            $actions .= Display::url(Display::return_icon('delete.png', get_lang('Delete'), '', ICON_SIZE_SMALL), '', array('onclick' => "javascript:if(!confirm('".addslashes(get_lang('AreYouSureToDelete'))." ".addslashes($row['title'])."?"."')) return false;", 'href' => 'exercice.php?'.api_get_cidreq().'&choice=delete&sec_token='.$token.'&exerciseId='.$my_exercise_id));
                         } else {
                             $actions .= Display::return_icon('delete_na.png', get_lang('ResourceLockedByGradebook'), '', ICON_SIZE_SMALL);
                         }
@@ -705,6 +699,7 @@ if (!empty($exercise_list)) {
                     }
 
                     // Number of questions
+                    /*
                     $random_label = null;
                     if ($row['random'] > 0 || $row['random'] == -1) {
                         // if random == -1 means use random questions with all questions
@@ -715,21 +710,12 @@ if (!empty($exercise_list)) {
 
                         if ($row['random_by_category'] > 0) {
                             $nbQuestionsTotal = $exercise_obj->getNumberQuestionExerciseCategory();
-                            $real_question_count = count($exercise_obj->selectQuestionList());
+                            //$real_question_count = count($exercise_obj->selectQuestionList());
                             $warning = null;
                             if ($nbQuestionsTotal != $real_question_count) {
                                 $warning = Display::return_icon('warning.png', get_lang('CheckThatYouHaveEnoughQuestionsInYourCategories'));
                             }
-
-                            //$nbQuestionsTotal = Testcategory::getNumberOfQuestionRandomByCategory($my_exercise_id, $random_number_of_question);
-
                             $number_of_questions = $nbQuestionsTotal." ".$warning;
-                            //$number_of_questions .= ($nbQuestionsTotal > 1) ? get_lang("QuestionsLowerCase") : get_lang("QuestionLowerCase");
-                            /*
-                            $number_of_questions .= " - ";
-                            $number_of_questions .= min(Testcategory::getNumberMaxQuestionByCat($my_exercise_id), $random_number_of_question).' '.get_lang('QuestionByCategory');
-                             *
-                             */
                         } else {
                             $random_label = ' ('.get_lang('Random').') ';
                             $number_of_questions = $random_number_of_question.' '.$random_label;
@@ -740,6 +726,11 @@ if (!empty($exercise_list)) {
                         }
                     } else {
                         $number_of_questions = $rowi;
+                    }*/
+
+                    $number_of_questions = $exercise_obj->getQuestionCount();
+                    if ($row['random'] > 0 && $row['random'] != -1) {
+                        $number_of_questions = $number_of_questions.' ('.$row['random'].' '.get_lang('Random').') ';
                     }
 
                     //Attempts
@@ -949,7 +940,8 @@ if (isset($attribute['path']) && is_array($attribute['path'])) {
         if ($is_allowedToEdit) {
             $item = Display::tag(
                 'td',
-                '<img src="../img/hotpotatoes_s.png" alt="HotPotatoes" /> <a href="showinframes.php?file='.$path.'&cid='.api_get_course_id(
+                Display::return_icon('hotpotatoes_s.png').'
+                <a href="showinframes.php?file='.$path.'&cid='.api_get_course_id(
                 ).'&uid='.api_get_user_id().'"'.(!$active ? 'class="invisible"' : '').'>'.$title.'</a> '
             );
             $item .= Display::tag('td', '-');
@@ -990,7 +982,6 @@ if (isset($attribute['path']) && is_array($attribute['path'])) {
                 api_htmlentities(get_lang('AreYouSureToDelete'), ENT_QUOTES, $charset).' '.$title."?"
             ).'\')) return false;">'.Display::return_icon('delete.png', get_lang('Delete'), '', ICON_SIZE_SMALL).'</a>';
 
-            //$actions .='<img src="../img/lp_quiz_na.gif" border="0" title="'.get_lang('NotMarkActivity').'" alt="" />';
             $item .= Display::tag('td', $actions);
             echo Display::tag('tr', $item, array('class' => $class));
         } else {
@@ -1033,3 +1024,7 @@ if (empty($exercise_list) && $hotpotatoes_exist == false) {
 if ($origin != 'learnpath') { //so we are not in learnpath tool
     Display :: display_footer();
 }
+
+Session::erase('objExercise');
+Session::erase('objQuestion');
+Session::erase('objAnswer');

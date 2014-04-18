@@ -354,7 +354,10 @@ class GroupPortalManager
 		$sql = "SELECT DISTINCT count(user_id) as count, g.picture_uri, g.name, g.description, g.id
 				FROM $tbl_group g
 				INNER JOIN $table_group_rel_user gu
-				ON gu.group_id = g.id $where_relation_condition GROUP BY g.id ORDER BY count DESC LIMIT $num";
+				ON gu.group_id = g.id $where_relation_condition
+				GROUP BY g.id
+				ORDER BY count DESC
+				LIMIT $num";
 
 		$result=Database::query($sql);
 		$array = array();
@@ -391,7 +394,9 @@ class GroupPortalManager
 		$sql = "SELECT DISTINCT count(user_id) as count, g.picture_uri, g.name, g.description, g.id
 					 FROM $tbl_group g INNER JOIN $table_group_rel_user gu ON gu.group_id = g.id
 					 $where_relation_condition
-					 ORDER BY created_on desc LIMIT $num ";
+					 GROUP BY g.id
+					 ORDER BY created_on DESC
+					 LIMIT $num ";
 
 		$result=Database::query($sql);
 		$array = array();
@@ -773,7 +778,7 @@ class GroupPortalManager
 			$filename = in_array($old_extension, $allowed_types) ? substr($old_file, 0, -strlen($old_extension)) : $old_file;
 			$filename = (substr($filename, -1) == '.') ? $filename.$extension : $filename.'.'.$extension;
 		} else {
-			$filename = replace_dangerous_char($filename);
+			$filename = api_replace_dangerous_char($filename);
 			if (PREFIX_IMAGE_FILENAME_WITH_UID) {
 				$filename = uniqid('').'_'.$filename;
 			}
@@ -809,8 +814,8 @@ class GroupPortalManager
 	 * @param	bool	If we want that the function returns the /main/img/unknown.jpg image set it at true
 	 * @return	array 	Array of 2 elements: 'dir' and 'file' which contain the dir and file as the name implies if image does not exist it will return the unknow image if anonymous parameter is true if not it returns an empty er's
 	 */
-	public static function get_group_picture_path_by_id($id, $type = 'none', $preview = false, $anonymous = false) {
-
+	public static function get_group_picture_path_by_id($id, $type = 'none', $preview = false, $anonymous = false)
+    {
 		switch ($type) {
 			case 'system': // Base: absolute system path.
 				$base = api_get_path(SYS_CODE_PATH);
@@ -854,6 +859,7 @@ class GroupPortalManager
 		} else {
 			$dir = $base.'upload/users/groups/'.$id.'/';
 		}
+
 		if (empty($picture_filename) && $anonymous) {
 			return array('dir' => $base.'img/', 'file' => 'unknown.jpg');
 		}
@@ -892,12 +898,12 @@ class GroupPortalManager
      * @param string style css
      * @return array with the file and the style of an image i.e $array['file'] $array['style']
      */
-   public static function get_picture_group($id, $picture_file, $height, $size_picture = GROUP_IMAGE_SIZE_MEDIUM , $style = '') {
-    	$patch_profile = 'upload/users/groups/';
+   public static function get_picture_group($id, $picture_file, $height, $size_picture = GROUP_IMAGE_SIZE_MEDIUM , $style = '')
+   {
     	$picture = array();
     	$picture['style'] = $style;
     	if ($picture_file == 'unknown.jpg') {
-    		$picture['file'] = api_get_path(WEB_CODE_PATH).'img/'.$picture_file;
+    		$picture['file'] = api_get_path(WEB_IMG_PATH).$picture_file;
     		return $picture;
     	}
 
@@ -931,7 +937,6 @@ class GroupPortalManager
 				$picture['style'] = ' style="padding-top:'.$margin.'px; width:'.$dimension['width'].'px; height:'.$dimension['height'].';" ';
 			}
 		} else {
-			//$file = api_get_path(SYS_CODE_PATH).$patch_profile.$user_id.'/'.$picture_file;
             $file = $image_array_sys['dir'].$picture_file;
 			if (file_exists($file) && !is_dir($file)) {
 				$picture['file'] = $image_array['dir'].$picture_file;

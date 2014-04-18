@@ -28,9 +28,9 @@ class AsseticServiceProvider implements ServiceProviderInterface
          */
         $app['assetic'] = $app->share(function () use ($app) {
             $app['assetic.options'] = array_replace(array(
-                'debug'              => false,
+                'debug'              => isset($app['debug']) ? $app['debug'] : false,
                 'formulae_cache_dir' => null,
-                'auto_dump_assets'   => true,
+                'auto_dump_assets'   => isset($app['debug']) ? !$app['debug'] : true,
             ), $app['assetic.options']);
 
             // initializing lazy asset manager
@@ -50,7 +50,8 @@ class AsseticServiceProvider implements ServiceProviderInterface
          * @return Assetic\Factory\AssetFactory
          */
         $app['assetic.factory'] = $app->share(function () use ($app) {
-            $factory = new AssetFactory($app['assetic.path_to_web'], $app['assetic.options']['debug']);
+            $root = isset($app['assetic.path_to_source']) ? $app['assetic.path_to_source'] : $app['assetic.path_to_web'];
+            $factory = new AssetFactory($root, $app['assetic.options']['debug']);
             $factory->setAssetManager($app['assetic.asset_manager']);
             $factory->setFilterManager($app['assetic.filter_manager']);
 
@@ -155,6 +156,12 @@ class AsseticServiceProvider implements ServiceProviderInterface
      */
     public function boot(Application $app)
     {
+
+        // Register our filters to use
+        if (isset($app['assetic.filters']) && is_callable($app['assetic.filters'])) {
+            $app['assetic.filters']($app['assetic.filter_manager']);
+        }
+
         /**
          * Writes down all lazy asset manager and asset managers assets
          */
@@ -166,7 +173,6 @@ class AsseticServiceProvider implements ServiceProviderInterface
                 !$app['assetic.options']['auto_dump_assets']) {
                 return;
             }
-
             $helper = $app['assetic.dumper'];
             if (isset($app['twig'])) {
                 $helper->addTwigAssets();

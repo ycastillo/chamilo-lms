@@ -64,7 +64,9 @@ $tbl_course_user       = Database :: get_main_table(TABLE_MAIN_COURSE_USER);
 $tbl_course            = Database :: get_main_table(TABLE_MAIN_COURSE);
 
 // Get all course categories
-$sql = "SELECT code,name FROM ".$table_course_category." WHERE auth_course_child ='TRUE'  OR code = '".Database::escape_string($_course['categoryCode'])."'  ORDER BY tree_pos";
+$sql = "SELECT code,name FROM ".$table_course_category."
+        WHERE auth_course_child ='TRUE'  OR code = '".Database::escape_string($_course['categoryCode'])."'
+        ORDER BY tree_pos";
 $res = Database::query($sql);
 
 $s_select_course_tutor_name = "SELECT tutor_name FROM $tbl_course WHERE code='$course_code'";
@@ -80,7 +82,8 @@ $s_sql_course_titular = "
 $q_result_titulars = Database::query($s_sql_course_titular);
 
 if (Database::num_rows($q_result_titulars) == 0) {
-	$sql = "SELECT username, lastname, firstname FROM $tbl_user as user, $tbl_admin as admin WHERE admin.user_id=user.user_id ORDER BY ".$target_name." ASC";
+	$sql = "SELECT username, lastname, firstname FROM $tbl_user as user, $tbl_admin as admin
+	        WHERE admin.user_id=user.user_id ORDER BY ".$target_name." ASC";
 	$q_result_titulars = Database::query($sql);
 }
 
@@ -109,7 +112,7 @@ while ($cat = Database::fetch_array($res)) {
 $linebreak = '<div class="row"><div class="label"></div><div class="formw" style="border-bottom:1px dashed grey"></div></div>';
 
 // Build the form
-$form = new FormValidator('update_course');
+$form = new FormValidator('update_course', 'post', api_get_self().'?'.api_get_cidreq());
 
 // COURSE SETTINGS
 $form->addElement('html', '<div><h3>'.Display::return_icon('settings.png', Security::remove_XSS(get_lang('CourseSettings')),'',ICON_SIZE_SMALL).' '.Security::remove_XSS(get_lang('CourseSettings')).'</h3><div>');
@@ -134,9 +137,8 @@ if (file_exists($course_path.'/course-pic85x85.png')) {
 }
 $form->addElement('html', $image_html);
 
-
 $form->add_textfield('title', get_lang('Title'), true, array('class' => 'span6'));
-//$form->applyFilter('title', 'html_filter');
+$form->applyFilter('title', 'html_filter');
 $form->applyFilter('title', 'trim');
 
 //$form->add_textfield('tutor_name', get_lang('Professors'), true, array ('size' => '60'));
@@ -156,11 +158,12 @@ $form->addElement('select', 'category_code', get_lang('Fac'), $categories, array
 $form->addElement('select_language', 'course_language', array(get_lang('Ln'), get_lang('TipLang')));
 
 $form->add_textfield('department_name', get_lang('Department'), false, array('class' => 'span5'));
+$form->applyFilter('department_name', 'html_filter');
 $form->applyFilter('department_name', 'trim');
 
 $form->add_textfield('department_url', get_lang('DepartmentUrl'), false, array('class' => 'span5'));
+$form->applyFilter('department_url', 'html_filter');
 //$form->addRule('tutor_name', get_lang('ThisFieldIsRequired'), 'required');
-
 
 // Picture
 $form->addElement('file', 'picture', get_lang('AddPicture'));
@@ -196,6 +199,10 @@ $group[]= $form->createElement('radio', 'visibility', get_lang("CourseAccess"), 
 $group[]= $form->createElement('radio', 'visibility', null, get_lang('OpenToThePlatform'), COURSE_VISIBILITY_OPEN_PLATFORM);
 $group[]= $form->createElement('radio', 'visibility', null, get_lang('Private'), COURSE_VISIBILITY_REGISTERED);
 $group[]= $form->createElement('radio', 'visibility', null, get_lang('CourseVisibilityClosed'), COURSE_VISIBILITY_CLOSED);
+// The "hidden" visibility is only available to portal admins
+if (api_is_platform_admin()) {
+    $group[]= $form->createElement('radio', 'visibility', null, get_lang('CourseVisibilityHidden'), COURSE_VISIBILITY_HIDDEN);
+}
 $form->addGroup($group, '', array(get_lang("CourseAccess"), get_lang("CourseAccessConfigTip")), '');
 
 $url = api_get_path(WEB_CODE_PATH)."auth/inscription.php?c=$course_code&e=1";
@@ -227,29 +234,27 @@ $group = array();
 $group[]=$form->createElement('radio', 'email_alert_to_teacher_on_new_user_in_course', get_lang('NewUserEmailAlert'), get_lang('NewUserEmailAlertEnable'), 1);
 $group[]=$form->createElement('radio', 'email_alert_to_teacher_on_new_user_in_course', null, get_lang('NewUserEmailAlertToTeacharAndTutor'), 2);
 $group[]=$form->createElement('radio', 'email_alert_to_teacher_on_new_user_in_course', null, get_lang('NewUserEmailAlertDisable'), 0);
-$form->addGroup($group, '', array(get_lang("NewUserEmailAlert")), '');
+$form->addGroup($group, '', array(Display::return_icon('user.png', get_lang('NewUserEmailAlert'))));
 
 $group = array();
 $group[]=$form->createElement('radio', 'email_alert_students_on_new_homework', get_lang('NewHomeworkEmailAlert'), get_lang('NewHomeworkEmailAlertEnable'), 1);
 $group[]=$form->createElement('radio', 'email_alert_students_on_new_homework', null, get_lang('NewHomeworkEmailAlertDisable'), 0);
-$form->addGroup($group, '', array(get_lang("NewHomeworkEmailAlert")), '');
+$form->addGroup($group, '', array(Display::return_icon('work.png', get_lang("NewHomeworkEmailAlert"))));
 
 $group = array();
 $group[]=$form->createElement('radio', 'email_alert_manager_on_new_doc', get_lang('WorkEmailAlert'), get_lang('WorkEmailAlertActivate'), 1);
 $group[]=$form->createElement('radio', 'email_alert_manager_on_new_doc', null, get_lang('WorkEmailAlertDeactivate'), 0);
-$form->addGroup($group, '', array(get_lang("WorkEmailAlert")), '');
-
+$form->addGroup($group, '', array(Display::return_icon('work.png', get_lang("WorkEmailAlert"))));
 
 $group = array();
 $group[]=$form->createElement('radio', 'email_alert_on_new_doc_dropbox', get_lang('DropboxEmailAlert'), get_lang('DropboxEmailAlertActivate'), 1);
 $group[]=$form->createElement('radio', 'email_alert_on_new_doc_dropbox', null, get_lang('DropboxEmailAlertDeactivate'), 0);
-$form->addGroup($group, '', array(get_lang("DropboxEmailAlert")), '');
+$form->addGroup($group, '', array(Display::return_icon('dropbox.png', get_lang("DropboxEmailAlert"))));
 
 $group = array();
 $group[]=$form->createElement('radio', 'email_alert_manager_on_new_quiz', get_lang('QuizEmailAlert'), get_lang('QuizEmailAlertActivate'), 1);
 $group[]=$form->createElement('radio', 'email_alert_manager_on_new_quiz', null, get_lang('QuizEmailAlertDeactivate'), 0);
-$form->addGroup($group, '', array(get_lang("QuizEmailAlert")), '');
-
+$form->addGroup($group, '', array(Display::return_icon('quiz.png', get_lang("QuizEmailAlert"))));
 
 $form->addElement('style_submit_button', null, get_lang('SaveSettings'), 'class="save"');
 
@@ -393,7 +398,7 @@ $values['course_registration_password'] = $all_course_information['registration_
 $values['legal']                        = $all_course_information['legal'];
 $values['activate_legal']               = $all_course_information['activate_legal'];
 // Get send_mail_setting (auth)from table
-$values['email_alert_to_teacher_on_new_user_in_course']= api_get_course_setting('email_alert_to_teacher_on_new_user_in_course');
+$values['email_alert_to_teacher_on_new_user_in_course'] = api_get_course_setting('email_alert_to_teacher_on_new_user_in_course');
 // Get send_mail_setting (work)from table
 $values['email_alert_manager_on_new_doc']           = api_get_course_setting('email_alert_manager_on_new_doc');
 // Get send_mail_setting (dropbox) from table
@@ -418,21 +423,19 @@ $values['allow_user_view_user_list']                = api_get_course_setting('al
 $values['display_info_advance_inside_homecourse']   = api_get_course_setting('display_info_advance_inside_homecourse');
 $values['email_alert_students_on_new_homework']     = api_get_course_setting('email_alert_students_on_new_homework');
 $values['enable_lp_auto_launch']                    = api_get_course_setting('enable_lp_auto_launch');
-$values['enable_exercise_auto_launch']              = api_get_course_setting('enable_exercise_auto_launch');
 $values['pdf_export_watermark_text']                = api_get_course_setting('pdf_export_watermark_text');
 $values['allow_public_certificates']                = api_get_course_setting('allow_public_certificates');
 $values['allow_fast_exercise_edition']              = api_get_course_setting('allow_fast_exercise_edition') == 1 ? 1 : 0;
+$values['enable_exercise_auto_launch']              = api_get_course_setting('enable_exercise_auto_launch') == -1 ? 0 : api_get_course_setting('enable_exercise_auto_launch') ;
 
 $app_plugin->set_course_settings_defaults($values);
-
 $form->setDefaults($values);
-
 
 // Validate form
 if ($form->validate() && is_settings_editable()) {
     $update_values = $form->exportValues();
 
-    $pdf_export_watermark_path = $_FILES['pdf_export_watermark_path'];
+    $pdf_export_watermark_path = isset($_FILES['pdf_export_watermark_path']) ? $_FILES['pdf_export_watermark_path'] : null;
 
     if (!empty($pdf_export_watermark_path['name'])) {
         $pdf_export_watermark_path_result = PDF::upload_watermark($pdf_export_watermark_path['name'], $pdf_export_watermark_path['tmp_name'], $course_code);
@@ -440,13 +443,14 @@ if ($form->validate() && is_settings_editable()) {
     }
 
     //Variables that will be saved in the TABLE_MAIN_COURSE table
-    $update_in_course_table = array('title', 'course_language','category_code','department_name', 'department_url','visibility',
-    								'subscribe', 'unsubscribe','tutor_name','course_registration_password', 'legal', 'activate_legal');
+    $update_in_course_table = array(
+        'title', 'course_language','category_code','department_name', 'department_url','visibility',
+        'subscribe', 'unsubscribe','tutor_name','course_registration_password', 'legal', 'activate_legal'
+    );
 
-    foreach ($update_values as $index =>$value) {
+    foreach ($update_values as $index => $value) {
         $update_values[$index] = Database::escape_string($value);
     }
-    unset($value);
     $table_course = Database :: get_main_table(TABLE_MAIN_COURSE);
 
     $sql = "UPDATE $table_course SET
@@ -462,6 +466,7 @@ if ($form->validate() && is_settings_editable()) {
         activate_legal          = '".$update_values['activate_legal']."',
         registration_code 	    = '".$update_values['course_registration_password']."'
         WHERE code = '".$course_code."'";
+
     Database::query($sql);
 
     // Update course_settings table - this assumes those records exist, otherwise triggers an error
@@ -483,7 +488,11 @@ if ($form->validate() && is_settings_editable()) {
                 );
                 Database::insert($table_course_setting, $params);
             } else {
-                Database::update($table_course_setting, array('value' => $update_values[$key]), array('variable = ? AND c_id = ?' => array($key, api_get_course_int_id())));
+                Database::update(
+                    $table_course_setting,
+                    array('value' => $update_values[$key]),
+                    array('variable = ? AND c_id = ?' => array($key, api_get_course_int_id()))
+                );
             }
         }
     }
@@ -500,7 +509,7 @@ Display :: display_header($nameTools, MODULE_HELP_NAME);
 if ($show_delete_watermark_text_message) {
     Display :: display_normal_message(get_lang('FileDeleted'));
 }
-//api_display_tool_title($nameTools);
+
 if (isset($_GET['action']) && $_GET['action'] == 'show_message') {
     Display :: display_normal_message(get_lang('ModifDone'));
 }

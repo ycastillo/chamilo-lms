@@ -281,7 +281,7 @@ function create_document_link($document_data, $show_as_icon = false, $counter = 
             }
 
             if ($filetype == 'file') {
-                $send_to = Portfolio::share('document', $document_data['id'], array('style' => 'float:right;'));
+                //$send_to = Portfolio::share('document', $document_data['id'], array('style' => 'float:right;'));
             }
         }
 
@@ -336,8 +336,7 @@ function create_document_link($document_data, $show_as_icon = false, $counter = 
                 //yox view
                 //$url = 'showinframesmin.php?'.api_get_cidreq().'&id='.$document_data['id'].$req_gid;
                 //Simpler version of showinframesmin.php with no headers
-                $url = 'show_content.php?'.api_get_cidreq(
-                ).'&id='.$document_data['id'].$req_gid.'&width=700&height=500';
+                $url = 'show_content.php?id='.$document_data['id'].$req_gid.'&'.api_get_cidreq().'&width=700&height=500';
                 $class = 'ajax';
                 if ($visibility == false) {
                     $class = "ajax invisible";
@@ -896,7 +895,9 @@ function build_edit_icons($document_data, $id, $is_template, $is_read_only = 0, 
                     $modify_icons .= '&nbsp;<a href="'.api_get_self().'?'.api_get_cidreq(
                     ).'&amp;curdirpath='.$curdirpath.'&amp;selectcat='.Security::remove_XSS(
                         $_GET['selectcat']
-                    ).'&amp;set_certificate='.$id.$req_gid.'&amp;'.$sort_params.'"><img src="../img/'.$visibility_icon_certificate.'.png" border="0" title="'.$certificate.'" alt="" /></a>';
+                    ).'&amp;set_certificate='.$id.$req_gid.'&amp;'.$sort_params.'">
+                        '.Display::return_icon($visibility_icon_certificate.'.png', $certificate).'
+                    </a>';
                     if ($is_preview) {
                         $modify_icons .= '&nbsp;<a target="_blank"  href="'.api_get_self().'?'.api_get_cidreq(
                         ).'&amp;curdirpath='.$curdirpath.'&amp;set_preview='.$id.$req_gid.'&amp;'.$sort_params.'" >'.

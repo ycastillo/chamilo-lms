@@ -53,26 +53,7 @@ function search_image_social()  {
 	});
 }
 
-function show_icon_delete(element_html) {
-	elem_id=$(element_html).attr("id");
-	id_elem=elem_id.split("_");
-	ident="#img_"+id_elem[1];
-	$(ident).attr("src","../img/delete.png");
-	$(ident).attr("alt","'.get_lang('Delete', '').'");
-	$(ident).attr("title","'.get_lang('Delete', '').'");
-}
-
-
-function hide_icon_delete(element_html)  {
-	elem_id=$(element_html).attr("id");
-	id_elem=elem_id.split("_");
-	ident="#img_"+id_elem[1];
-	$(ident).attr("src","../img/blank.gif");
-	$(ident).attr("alt","");
-	$(ident).attr("title","");
-}
-
-function clear_form () {
+function clear_form() {
 	$("input[@type=radio]").attr("checked", false);
 	$("div#div_qualify_image").html("");
 	$("div#div_info_user").html("");
@@ -114,16 +95,16 @@ if (count($friends) == 0) {
     $friend_html .= '<ul class="thumbnails">';
     for ($k = 0; $k < $number_friends; $k++) {
         while ($j < $number_friends) {
-
             if (isset($friends[$j])) {
                 $friend_html .= '<li class="span2">';
+                $userInfo = $friends[$j]['user_info'];
                 $friend = $friends[$j];
                 $user_name = api_xml_http_response_encode($friend['firstName'].' '.$friend['lastName']);
                 $friends_profile = SocialManager::get_picture_user($friend['friend_user_id'], $friend['image'], 92);
-                $friend_html .= '<div class="thumbnail" onMouseover="show_icon_delete(this)" onMouseout="hide_icon_delete(this)" class="image-social-content" id=div_'.$friends[$j]['friend_user_id'].'>';
+                $friend_html .= '<div class="thumbnail" class="image-social-content" id=div_'.$friends[$j]['friend_user_id'].'>';
                 $friend_html .= '<img src="'.$friends_profile['file'].'" id="imgfriend_'.$friend['friend_user_id'].'" title="'.$user_name.'" />                                    ';
                 $friend_html .= '<div class="caption">
-                               <a href="profile.php?u='.$friend['friend_user_id'].'"> <h5>'.$user_name.'</h5></a>';
+                               <a href="'.$userInfo['profile_url'].'"><h5>'.$user_name.'</h5></a>';
                 $friend_html .= '<p><button onclick="delete_friend(this)" id=img_'.$friend['friend_user_id'].'  />'.get_lang(
                     'Delete'
                 ).'</button></p>
@@ -145,5 +126,5 @@ $tpl = $app['template'];
 $tpl->assign('social_left_content', $social_left_content);
 $tpl->assign('social_right_content', $social_right_content);
 
-$social_layout = $tpl->get_template('layout/social_layout.tpl');
+$social_layout = $tpl->getTemplate('layout/social_layout.tpl');
 $tpl->display($social_layout);

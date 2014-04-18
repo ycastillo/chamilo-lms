@@ -7,24 +7,21 @@
 /**
  * Initialization
  */
-$language_file = array('userInfo');
 $cidReset = true;
-
-require_once '../inc/global.inc.php';
 
 $user_id = api_get_user_id();
 $show_full_profile = true;
+
 // Social tab
 $this_section = SECTION_SOCIAL;
 unset($_SESSION['this_section']);//for hmtl editor repository
 
 api_block_anonymous_users();
 
-if (api_get_setting('allow_social_tool') !='true' ) {
+if (api_get_setting('allow_social_tool') != 'true') {
     $url = api_get_path(WEB_CODE_PATH).'auth/profile.php';
     header('Location: '.$url);
     exit;
-    api_not_allowed();
 }
 
 // Fast upload image
@@ -103,11 +100,6 @@ if (api_get_setting('allow_skills_tool') == 'true') {
 
 $social_right_content .= '</div>';
 
-// Search box
-$social_right_content .= '<div class="span4">';
-$social_right_content .= UserManager::get_search_form('');
-$social_right_content .= '</br>';
-
 // Group box by age
 $results = $usergroup->get_groups_by_age(1,false);
 
@@ -183,12 +175,11 @@ if (count($groups_pop) > 0) {
     $social_right_content .= '<div class="social-groups-home-title">'.get_lang('Popular').'</div>';
     $social_right_content .= Display::return_sortable_grid('home_group', array(), $groups_pop, array('hide_navigation'=>true, 'per_page' => 100), array(), false, array(true, true, true,true,true));
 }
+
 $social_right_content .= '</div>';
 
 $app['title'] = get_lang('SocialNetwork');
 $tpl = $app['template'];
 
-$tpl->assign('social_left_content', $social_left_content);
-$tpl->assign('social_right_content', $social_right_content);
-$social_layout = $tpl->get_template('layout/social_layout.tpl');
-$tpl->display($social_layout);
+$tpl->assign('content', $social_right_content);
+$tpl->display_one_col_template();

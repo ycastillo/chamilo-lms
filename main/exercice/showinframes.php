@@ -28,7 +28,7 @@ FileManager::my_delete($full_file_path.$user_id.'.t.html');
 $content = ReadFileCont($full_file_path.$user_id.'.t.html');
 
 if ($content == '') {
-    $url = api_get_path(WEB_PATH)."main/exercice/savescores.php?origin=$origin&learnpath_id=$learnpath_id&learnpath_item_id=$learnpath_item_id&time=".Security::remove_XSS($time)."&test=".$doc_url."&uid=".$user_id."&cid=".$cid."&score='+Score";
+    $url = api_get_path(WEB_CODE_PATH)."exercice/savescores.php?origin=$origin&learnpath_id=$learnpath_id&learnpath_item_id=$learnpath_item_id&time=".Security::remove_XSS($time)."&test=".$doc_url."&uid=".$user_id."&cid=".$cid."&score='+Score";
 
     $content = ReadFileCont($full_file_path);
     $mit = "function Finish(){";
@@ -104,7 +104,7 @@ if ($origin == 'learnpath') {
     Display::display_header($nameTools, "Exercise");
 }
 $url = $document_web_path.$doc_url.$user_id.'.t.html?time='.Security::remove_XSS($time);
-echo '<iframe style="overflow:hidden" id="hotpotatoe" width="100%" frameborder="0" src="'.$url.'"></iframe>';
+echo '<iframe id="hotpotatoe" width="100%" frameborder="0" src="'.$url.'"></iframe>';
 echo '</body></html>';
 Display::display_footer();
 exit;

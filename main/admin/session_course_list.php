@@ -47,8 +47,8 @@ if ($action == 'delete') {
 		}
 		$idChecked = $my_temp;
 		$idChecked="'".implode("','", $idChecked)."'";
-		Database::query("DELETE FROM $tbl_session_rel_course WHERE id_session='$id_session' AND c_id IN($idChecked)");
-		$nbr_affected_rows=Database::affected_rows();
+		$result = Database::query("DELETE FROM $tbl_session_rel_course WHERE id_session='$id_session' AND c_id IN($idChecked)");
+		$nbr_affected_rows = Database::affected_rows($result);
 		Database::query("DELETE FROM $tbl_session_rel_course_rel_user WHERE id_session='$id_session' AND c_id IN($idChecked)");
 		Database::query("UPDATE $tbl_session SET nbr_courses=nbr_courses-$nbr_affected_rows WHERE id='$id_session'");
 	}
@@ -89,7 +89,7 @@ foreach ($Courses as $key=>$enreg) {
 	$course[] = '<a href="session_course_user_list.php?id_session='.$id_session.'&course_code='.$enreg['c_id'].'">'.$enreg['nbr_users'].' '.get_lang('Users').'</a>';
 	$course[] = '<a href="'.api_get_path(WEB_COURSE_PATH).$enreg['c_id'].'/index.php?id_session='.$id_session.'">'.Display::return_icon('course_home.gif', get_lang('Course')).'</a>
                 <a href="session_course_edit.php?id_session='.$id_session.'&page=session_course_list.php&course_code='.$enreg['c_id'].'">'.Display::return_icon('edit.gif', get_lang('Edit')).'</a>
-				<a href="'.api_get_self().'?id_session='.$id_session.'&sort='.$sort.'&action=delete&idChecked[]='.$enreg['c_id'].'" onclick="javascript:if(!confirm(\''.addslashes(api_htmlentities(get_lang("ConfirmYourChoice"),ENT_QUOTES,$charset)).'\')) return false;">'.Display::return_icon('delete.gif', get_lang('Delete')).'</a>';
+				<a href="'.api_get_self().'?id_session='.$id_session.'&sort='.$sort.'&action=delete&idChecked[]='.$enreg['c_id'].'" onclick="javascript:if(!confirm(\''.addslashes(get_lang("ConfirmYourChoice")).'\')) return false;">'.Display::return_icon('delete.gif', get_lang('Delete')).'</a>';
 	$tableCourses[] = $course;
 }
 echo '<form method="post" action="'.api_get_self().'">';

@@ -20,12 +20,18 @@ $use_anonymous = true;
 // Name of the language file that needs to be included.
 $language_file[] = 'learnpath';
 require_once '../inc/global.inc.php';
+
+$app['template.show_footer'] = false;
+$app['template.show_header'] = false;
+$app['default_layout'] = 'default/layout/blank.tpl';
+
 require_once 'learnpath.class.php';
 require_once 'scorm.class.php';
 require_once 'aicc.class.php';
 require_once 'learnpathItem.class.php';
 require_once 'scormItem.class.php';
 require_once 'aiccItem.class.php';
+
 
 /**
  * Get one item's details
@@ -207,3 +213,4 @@ function initialize_item($lp_id, $user_id, $view_id, $next_item) {
     return $return;
 }
 echo initialize_item($_POST['lid'], $_POST['uid'], $_POST['vid'], $_POST['iid']);
+exit;

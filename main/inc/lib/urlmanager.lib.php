@@ -611,10 +611,9 @@ class UrlManager
     public static function delete_url_rel_course($courseId, $url_id)
     {
         $table_url_rel_course = Database :: get_main_table(TABLE_MAIN_ACCESS_URL_REL_COURSE);
-        $sql                  = "DELETE FROM $table_url_rel_course WHERE c_id = '".Database::escape_string(
-                $courseId
-            )."' AND access_url_id=".Database::escape_string($url_id)."  ";
-        $result               = Database::query($sql);
+        $sql                  = "DELETE FROM $table_url_rel_course
+                                 WHERE c_id = '".Database::escape_string($courseId)."' AND access_url_id=".Database::escape_string($url_id)."  ";
+        $result = Database::query($sql);
 
         return $result;
     }
@@ -651,12 +650,12 @@ class UrlManager
         $result             = Database::query($sql);
         $existing_users     = array();
 
-        //Getting all users
+        // Getting all users
         while ($row = Database::fetch_array($result)) {
             $existing_users[] = $row['user_id'];
         }
 
-        //Adding users
+        // Adding users
         $users_added = array();
         foreach ($user_list as $user_id_to_add) {
             if (!in_array($user_id_to_add, $existing_users)) {

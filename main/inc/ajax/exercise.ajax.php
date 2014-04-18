@@ -4,10 +4,9 @@
  * Responses to AJAX calls
  */
 
-require_once '../../exercice/exercise.class.php';
-require_once '../../exercice/question.class.php';
-require_once '../../exercice/answer.class.php';
-require_once '../global.inc.php';
+require_once api_get_path(SYS_CODE_PATH).'exercice/exercise.class.php';
+require_once api_get_path(SYS_CODE_PATH).'exercice/question.class.php';
+require_once api_get_path(SYS_CODE_PATH).'exercice/answer.class.php';
 
 use \ChamiloSession as Session;
 
@@ -24,6 +23,32 @@ $session_id = isset($_REQUEST['session_id']) ? intval($_REQUEST['session_id']) :
 $course_code = isset($_REQUEST['cidReq']) ? $_REQUEST['cidReq'] : api_get_course_id();
 
 switch ($action) {
+    case 'get_question':
+        /** @var Exercise $objExercise */
+        $objExercise = $_SESSION['objExercise'];
+
+        $questionId = $_REQUEST['questionId'];
+        $attemptList = isset($_REQUEST['attemptList']) ? $_REQUEST['attemptList'] : null;
+        $remindList = isset($_REQUEST['remindList']) ? $_REQUEST['remindList'] : null;
+
+        $i = $_REQUEST['i'];
+        $current_question = $_REQUEST['current_question'];
+        $questions_in_media = $_REQUEST['questions_in_media'];
+        $last_question_in_media = $_REQUEST['last_question_in_media'];
+        $realQuestionList = isset($_REQUEST['realQuestionList']) ? $_REQUEST['realQuestionList'] : null;
+
+        $objExercise->renderQuestion(
+            $questionId,
+            $attemptList,
+            $remindList,
+            $i,
+            $current_question,
+            $questions_in_media,
+            $last_question_in_media,
+            $realQuestionList,
+            false
+        );
+        break;
     case 'get_categories_by_media':
         $questionId = $_REQUEST['questionId'];
         $mediaId = $_REQUEST['mediaId'];
@@ -49,7 +74,8 @@ switch ($action) {
         }
         break;
     case 'exercise_category_exists':
-        $category = new Testcategory();
+        $type = isset($_REQUEST['type']) ? $_REQUEST['type'] : 'simple';
+        $category = new Testcategory(null, null, null, null, $type);
         $category->getCategory($_REQUEST['id']);
         if (empty($category->id)) {
             echo 0;
@@ -75,15 +101,39 @@ switch ($action) {
         break;
     case 'search_category_parent':
         $type = isset($_REQUEST['type']) ? $_REQUEST['type'] : 'simple';
+        $filterByGlobal = isset($_REQUEST['filter_by_global']) ? $_REQUEST['filter_by_global'] : null;
 
         $cat = new Testcategory(null, null, null, null, $type);
         $items = $cat->get_categories_by_keyword($_REQUEST['tag']);
+
         $courseId = api_get_course_int_id();
+
+        $em = $this->get('orm.em');
+        $repo = $em->getRepository('ChamiloLMS\Entity\CQuizCategory');
 
         $json_items = array();
         if (!empty($items)) {
             foreach ($items as $item) {
                 if ($item['c_id'] == 0) {
+                    if ($filterByGlobal) {
+                        $cat = $em->find('ChamiloLMS\Entity\CQuizCategory', $item['iid']);
+                        $idList = array();
+                        if ($cat) {
+                            $path = $repo->getPath($cat);
+                            if (!empty($path)) {
+                                /** @var \ChamiloLMS\Entity\CQuizCategory $cat */
+                                foreach ($path as $cat) {
+                                    $idList[] = $cat->getIid();
+                                }
+                            }
+                        }
+
+                        if (isset($idList) && !empty($idList)) {
+                            if (!in_array($filterByGlobal, $idList)) {
+                                continue;
+                            }
+                        }
+                    }
                     $item['title'] .= " [".get_lang('Global')."]";
                 } else {
                     if (isset($courseId)) {
@@ -123,9 +173,9 @@ switch ($action) {
             $sidx = 1;
         }
 
-        $track_exercise        = Database::get_statistic_table(TABLE_STATISTIC_TRACK_E_EXERCICES);
+        $track_exercise        = Database::get_main_table(TABLE_STATISTIC_TRACK_E_EXERCICES);
         $user_table            = Database::get_main_table(TABLE_MAIN_USER);
-        $track_attempt         = Database::get_statistic_table(TABLE_STATISTIC_TRACK_E_ATTEMPT);
+        $track_attempt         = Database::get_main_table(TABLE_STATISTIC_TRACK_E_ATTEMPT);
 
         $minutes        = intval($_REQUEST['minutes']);
         $now            = time() - 60*$minutes; //1 hour
@@ -151,7 +201,7 @@ switch ($action) {
         }
 
         $start = $limit * $page - $limit;
-        if ($start < 0 ) {
+        if ($start < 0) {
             $start = 0;
         }
 
@@ -212,12 +262,13 @@ switch ($action) {
                 $h = floor($remaining/3600);
                 $m = floor(($remaining - ($h*3600))/60);
                 $s = ($remaining - ($h*3600) - ($m*60));
-                $array = array( $row['firstname'],
-                                $row['lastname'],
-                                api_format_date($row['start_date'], DATE_TIME_FORMAT_LONG).' ['.($h>0?$h.':':'').sprintf("%02d",$m).':'.sprintf("%02d",$s).']',
-                                $row['count_questions'],
-                                round($row['score']*100).'%'
-                               );
+                $array = array(
+                    $row['firstname'],
+                    $row['lastname'],
+                    api_format_date($row['start_date'], DATE_TIME_FORMAT_LONG).' ['.($h>0?$h.':':'').sprintf("%02d",$m).':'.sprintf("%02d",$s).']',
+                    $row['count_questions'],
+                    round($row['score']*100).'%'
+                );
                 $response->rows[$i]['cell'] = $array;
                 $i++;
             }
@@ -254,7 +305,10 @@ switch ($action) {
             $TBL_QUESTIONS = Database::get_course_table(TABLE_QUIZ_TEST_QUESTION);
             $counter = 1;
             foreach ($new_question_list as $new_order_id) {
-                Database::update($TBL_QUESTIONS, array('question_order' => $counter), array('question_id = ? AND c_id = ? AND exercice_id = ? '=>array(intval($new_order_id), $course_id, $exercise_id)));
+                Database::update(
+                    $TBL_QUESTIONS,
+                    array('question_order' => $counter),
+                    array('question_id = ? AND c_id = ? AND exercice_id = ? '=> array(intval($new_order_id), $course_id, $exercise_id)));
                 $counter++;
             }
             Display::display_confirmation_message(get_lang('Saved'));
@@ -299,15 +353,16 @@ switch ($action) {
                 error_log("type = $type ");
                 error_log("choice = ".print_r($choice, 1)." ");
                 error_log("hot_spot_coordinates = ".print_r($hot_spot_coordinates, 1));
-                error_log("remind_list = ".print_r($remind_list));
+                error_log("remind_list = ".print_r($remind_list, 1));
             }
 
             // Exercise information.
+            /** @var \Exercise $objExercise */
             $objExercise             = isset($_SESSION['objExercise']) ? $_SESSION['objExercise'] : null;
 
             // Question info.
-            $question_id             = intval($_REQUEST['question_id']);
-            $question_list           = Session::read('question_list_flatten');
+            $question_id             = isset($_REQUEST['question_id']) ? intval($_REQUEST['question_id']) : null;
+            $question_list           = Session::read('question_list_uncompressed');
 
             // If exercise or question is not set then exit.
             if (empty($question_list) || empty($objExercise)) {
@@ -316,7 +371,7 @@ switch ($action) {
             }
 
             // Getting information of the current exercise.
-            $exercise_stat_info = $objExercise->get_stat_track_exercise_info_by_exe_id($exe_id);
+            $exercise_stat_info = $objExercise->getStatTrackExerciseInfoByExeId($exe_id);
 
             $exercise_id = $exercise_stat_info['exe_exo_id'];
 
@@ -325,17 +380,17 @@ switch ($action) {
             // First time here we create an attempt (getting the exe_id).
             if (empty($exercise_stat_info)) {
             } else {
-                //We know the user we get the exe_id
+                // We know the user we get the exe_id.
                 $exe_id        = $exercise_stat_info['exe_id'];
                 $total_score   = $exercise_stat_info['exe_result'];
 
-                //Getting the list of attempts
-                $attempt_list  = get_all_exercise_event_by_exe_id($exe_id);
+                // Getting the list of attempts.
+                $attempt_list  = getAllExerciseEventByExeId($exe_id);
             }
 
-            // Updating Reminder algorythm.
+            // Updating Reminder algorythme.
             if ($objExercise->type == ONE_PER_PAGE) {
-            	$bd_reminder_list = explode(',', $exercise_stat_info['questions_to_check']);
+                $bd_reminder_list = explode(',', $exercise_stat_info['questions_to_check']);
 
                 // Fixing reminder order
                 $fixedRemindList = array();
@@ -369,7 +424,7 @@ switch ($action) {
                 }
             }
 
-            // No exe id? Can't save answer.
+            // No exe id? Can't save answer!
             if (empty($exe_id)) {
                 // Fires an error.
                 echo 'error';
@@ -392,8 +447,10 @@ switch ($action) {
 
             // Looping the question list
 
-            if ($debug) error_log("Looping question list".print_r($question_list, 1));
-            if ($debug) error_log("Trying to save question: $question_id ");
+            if ($debug) {
+                error_log("Looping question list".print_r($question_list, 1));
+                error_log("Trying to save question: $question_id ");
+            }
 
             foreach ($question_list as $my_question_id) {
 
@@ -401,16 +458,27 @@ switch ($action) {
                     continue;
                 }
 
-                if ($debug) error_log("Saving question_id = $my_question_id ");
 
-                $my_choice = $choice[$my_question_id];
+                $my_choice = isset($choice[$my_question_id]) ? $choice[$my_question_id] : null;
 
-                if ($debug) error_log("my_choice = ".print_r($my_choice, 1)."");
+                if ($debug) {
+                    error_log("Saving question_id = $my_question_id ");
+                    error_log("my_choice = ".print_r($my_choice, 1)."");
+                }
 
-               // creates a temporary Question object
+                // Creates a temporary Question object
             	$objQuestionTmp = Question::read($my_question_id, $course_id);
 
-            	//Getting free choice data
+                if ($objExercise->type == ONE_PER_PAGE && $objQuestionTmp->type == UNIQUE_ANSWER) {
+                    if (in_array($my_question_id, $remind_list)) {
+                        if (empty($my_choice)) {
+                            echo 'answer_required';
+                            exit;
+                        }
+                    }
+                }
+
+                // Getting free choice data.
             	if ($objQuestionTmp->type  == FREE_ANSWER && $type == 'all') {
             	    $my_choice = isset($_REQUEST['free_choice'][$my_question_id]) && !empty($_REQUEST['free_choice'][$my_question_id])? $_REQUEST['free_choice'][$my_question_id]: null;
             	}
@@ -419,23 +487,38 @@ switch ($action) {
                     $total_weight += $objQuestionTmp->selectWeighting();
                 }
 
-            	// This variable commes from exercise_submit_modal.php
+                // This variable came from exercise_submit_modal.php
                 $hotspot_delineation_result = null;
                 if (isset($_SESSION['hotspot_delineation_result']) && isset($_SESSION['hotspot_delineation_result'][$objExercise->selectId()])) {
             	    $hotspot_delineation_result = $_SESSION['hotspot_delineation_result'][$objExercise->selectId()][$my_question_id];
                 }
 
                 if ($type == 'simple') {
-                    //Getting old attempt in order to decrees the total score
-                    $old_result = $objExercise->manage_answer($exe_id, $my_question_id, null, 'exercise_show', array(), false, true, false, $objExercise->selectPropagateNeg());
+                    // Getting old attempt in order to decrees the total score.
+                    $old_result = $objExercise->manageAnswers(
+                        $exe_id,
+                        $my_question_id,
+                        null,
+                        'exercise_show',
+                        array(),
+                        false,
+                        true,
+                        false
+                    );
 
-                    //Removing old score
+                    // Removing old score.
                     $total_score = $total_score - $old_result['score'];
+                    if ($debug) {
+                        error_log("old score = ".$old_result['score']);
+                        error_log("total_score = ".$total_score."");
+                    }
                 }
 
                 // Deleting old attempt
                 if (isset($attempt_list) && !empty($attempt_list[$my_question_id])) {
-                    if ($debug) error_log("delete_attempt  exe_id : $exe_id, my_question_id: $my_question_id");
+                    if ($debug) {
+                        error_log("delete_attempt  exe_id : $exe_id, my_question_id: $my_question_id");
+                    }
                     delete_attempt($exe_id, api_get_user_id(), $course_id, $session_id, $my_question_id);
                     if ($objQuestionTmp->type  == HOT_SPOT) {
             	        delete_attempt_hotspot($exe_id, api_get_user_id(), $course_id, $my_question_id);
@@ -447,7 +530,7 @@ switch ($action) {
 
             	// We're inside *one* question. Go through each possible answer for this question
 
-            	$result = $objExercise->manage_answer(
+            	$result = $objExercise->manageAnswers(
                     $exe_id,
                     $my_question_id,
                     $my_choice,
@@ -456,28 +539,36 @@ switch ($action) {
                     true,
                     false,
                     false,
-                    $objExercise->selectPropagateNeg(),
-                    $hotspot_delineation_result,
-                    true
+                    $hotspot_delineation_result
                 );
 
                 //Adding the new score
                 $total_score += $result['score'];
 
-                if ($debug) error_log("total_score: $total_score ");
-                if ($debug) error_log("total_weight: $total_weight ");
+                if ($debug) {
+                    error_log("total_score: $total_score ");
+                    error_log("total_weight: $total_weight ");
+                }
 
                 $duration = 0;
                 $now = time();
 
                 if ($type == 'all') {
-                    $exercise_stat_info = $objExercise->get_stat_track_exercise_info_by_exe_id($exe_id);
+                    $exercise_stat_info = $objExercise->getStatTrackExerciseInfoByExeId($exe_id);
                 }
 
                 $key = ExerciseLib::get_time_control_key($exercise_id, $exercise_stat_info['orig_lp_id'], $exercise_stat_info['orig_lp_item_id']);
 
-                if (isset($_SESSION['duration_time'][$key]) && !empty($_SESSION['duration_time'][$key])) {
-                    $duration = $now - $_SESSION['duration_time'][$key];
+                /*$durationTime = array(
+                    'duration_time' => array(
+                        $key => time()
+                    )
+                );*/
+
+                $durationTime = Session::read('duration_time');
+
+                if (isset($durationTime[$key]) && !empty($durationTime[$key])) {
+                    $duration = $now - $durationTime[$key];
 
                     if (!empty($exercise_stat_info['exe_duration'])) {
                         $duration += $exercise_stat_info['exe_duration'];
@@ -489,7 +580,12 @@ switch ($action) {
                     }
                 }
 
-                $_SESSION['duration_time'][$key] = time();
+                $durationTime = array(
+                    $key => time()
+                );
+
+                Session::write('duration_time', $durationTime);
+                // $_SESSION['duration_time'][$key] = time();
 
                 update_event_exercise(
                     $exe_id,
@@ -517,6 +613,121 @@ switch ($action) {
             exit;
         }
         echo 'ok';
+        break;
+    case 'correct_exercise_result':
+
+        $is_allowedToEdit = api_is_allowed_to_edit(null, true) || api_is_drh();
+        $is_tutor = api_is_allowed_to_edit(true);
+
+        //Send student email @todo move this code in a class, library
+        if (isset($_POST['comments']) && $_POST['comments'] == 'update' && ($is_allowedToEdit || $is_tutor) && $_POST['exeid'] == strval(intval($_POST['exeid']))) {
+            $exeId = intval($_POST['exeid']);
+
+            $TBL_QUESTIONS = Database :: get_course_table(TABLE_QUIZ_QUESTION);
+            $TBL_TRACK_EXERCICES = Database :: get_main_table(TABLE_STATISTIC_TRACK_E_EXERCICES);
+            $TBL_TRACK_ATTEMPT = Database :: get_main_table(TABLE_STATISTIC_TRACK_E_ATTEMPT);
+            $TBL_TRACK_ATTEMPT_RECORDING = Database :: get_main_table(TABLE_STATISTIC_TRACK_E_ATTEMPT_RECORDING);
+            $TBL_LP_ITEM_VIEW = Database :: get_course_table(TABLE_LP_ITEM_VIEW);
+
+            $track_exercise_info = ExerciseLib::get_exercise_track_exercise_info($exeId);
+
+            if (empty($track_exercise_info)) {
+                echo 0;
+            }
+
+            $test = $track_exercise_info['title'];
+            $student_id = $track_exercise_info['exe_user_id'];
+            $session_id = $track_exercise_info['session_id'];
+            $lp_id = $track_exercise_info['orig_lp_id'];
+            //$lp_item_id        = $track_exercise_info['orig_lp_item_id'];
+            $lp_item_view_id = $track_exercise_info['orig_lp_item_view_id'];
+
+            $course_info = api_get_course_info();
+
+            // Teacher data
+            $teacher_info = api_get_user_info(api_get_user_id());
+
+            $from_name = api_get_person_name(
+                $teacher_info['firstname'],
+                $teacher_info['lastname'],
+                null,
+                PERSON_NAME_EMAIL_ADDRESS
+            );
+
+            $url = api_get_path(WEB_CODE_PATH).'exercice/result.php?id='.$track_exercise_info['exe_id'].'&'.api_get_cidreq().'&show_headers=1&id_session='.$session_id;
+
+            $commentIds = array();
+            $marks = array();
+            $comments = array();
+
+            $result = array();
+            $values = explode(',', $_POST['vals']);
+            if (empty($values)) {
+                echo 0;
+                exit;
+            }
+
+            $countComments = count($commentIds);
+
+            foreach ($values as $questionId) {
+                $questionId = intval($questionId);
+                $comment = isset($_POST['comments_'.$questionId]) ? $_POST['comments_'.$questionId] : null;
+                $mark = isset($_POST['marks_'.$questionId]) ? $_POST['marks_'.$questionId] : null;
+
+                $mark = Database::escape_string($mark);
+                $comment = Database::escape_string($comment);
+
+                $query = "UPDATE $TBL_TRACK_ATTEMPT SET marks = '$mark', teacher_comment = '$comment'
+                          WHERE question_id = ".$questionId." AND exe_id=".$exeId;
+                Database::query($query);
+
+                //Saving results in the track recording table
+                $recording_changes = 'INSERT INTO '.$TBL_TRACK_ATTEMPT_RECORDING.' (exe_id, question_id, marks, insert_date, author, teacher_comment)
+                                      VALUES ('."'$exeId','".$questionId."','$mark','".api_get_utc_datetime()."','".api_get_user_id()."'".',"'.$comment.'")';
+                Database::query($recording_changes);
+            }
+
+            $qry = 'SELECT DISTINCT question_id, marks FROM '.$TBL_TRACK_ATTEMPT.' WHERE exe_id = '.$exeId.' GROUP BY question_id';
+            $res = Database::query($qry);
+            $tot = 0;
+            while ($row = Database :: fetch_array($res, 'ASSOC')) {
+                $tot += $row['marks'];
+            }
+
+            $sql = "UPDATE $TBL_TRACK_EXERCICES SET exe_result = '".floatval($tot)."' WHERE exe_id = ".$exeId;
+            Database::query($sql);
+
+            if (isset($_POST['send_notification'])) {
+                //@todo move this somewhere else
+                $subject = get_lang('ExamSheetVCC');
+
+                $message = '<p>'.get_lang('DearStudentEmailIntroduction').'</p><p>'.get_lang('AttemptVCC');
+                $message .= '<h3>'.get_lang('CourseName').'</h3><p>'.Security::remove_XSS($course_info['name']).'';
+                $message .= '<h3>'.get_lang('Exercise').'</h3><p>'.Security::remove_XSS($test);
+
+                //Only for exercises not in a LP
+                if ($lp_id == 0) {
+                    $message .= '<p>'.get_lang('ClickLinkToViewComment').' <a href="#url#">#url#</a><br />';
+                }
+
+                $message .= '<p>'.get_lang('Regards').'</p>';
+                $message .= $from_name;
+                $message = str_replace("#test#", Security::remove_XSS($test), $message);
+                $message = str_replace("#url#", $url, $message);
+                MessageManager::send_message_simple($student_id, $subject, $message, api_get_user_id());
+            }
+
+            $origin = $_POST['origin'];
+
+            // Updating LP score here
+            if (isset($origin) && in_array($origin, array('tracking_course', 'user_course', 'correct_exercise_in_lp'))) {
+                $sql_update_score = "UPDATE $TBL_LP_ITEM_VIEW SET score = '".floatval($tot)."' WHERE c_id = ".$course_id." AND id = ".$lp_item_view_id;
+                Database::query($sql_update_score);
+            }
+            echo 1;
+            exit;
+        }
+        echo 0;
         break;
     default:
         echo '';

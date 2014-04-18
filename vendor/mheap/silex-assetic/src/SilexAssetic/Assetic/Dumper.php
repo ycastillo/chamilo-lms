@@ -66,16 +66,15 @@ class Dumper
             throw new \LogicException('Twig environment not set');
         }
 
-        $finder   = new Finder();
         $twigNamespaces = $this->loader->getNamespaces();
 
         foreach ($twigNamespaces as $ns) {
 
             if ( count($this->loader->getPaths($ns)) > 0 ) {
-                $iterator = $finder->files()->name('/\.twig$/')->in($this->loader->getPaths($ns));
+                $iterator = Finder::create()->files()->in($this->loader->getPaths($ns));
 
                 foreach ($iterator as $file) {
-                    $resource = new TwigResource($this->loader, $file->getRelativePathname());
+                    $resource = new TwigResource($this->loader, '@' . $ns . '/' . $file->getRelativePathname());
                     $this->lam->addResource($resource, 'twig');
                 }
             }

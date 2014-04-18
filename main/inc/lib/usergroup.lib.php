@@ -533,7 +533,7 @@ class UserGroup extends Model
             $filename = in_array($old_extension, $allowed_types) ? substr($old_file, 0, -strlen($old_extension)) : $old_file;
             $filename = (substr($filename, -1) == '.') ? $filename.$extension : $filename.'.'.$extension;
         } else {
-            $filename = replace_dangerous_char($filename);
+            $filename = api_replace_dangerous_char($filename);
             if (PREFIX_IMAGE_FILENAME_WITH_UID) {
                 $filename = uniqid('').'_'.$filename;
             }
@@ -939,7 +939,14 @@ class UserGroup extends Model
      * @param array image configuration, i.e array('height'=>'20px', 'size'=> '20px')
      * @return array list of users in a group
      */
-    public function get_users_by_group($group_id, $with_image = false, $relation_type = array(), $from = null, $limit = null, $image_conf = array('size'=>USER_IMAGE_SIZE_MEDIUM,'height'=>80)) {
+    public function get_users_by_group(
+        $group_id,
+        $with_image = false,
+        $relation_type = array(),
+        $from = null,
+        $limit = null,
+        $image_conf = array('size' => USER_IMAGE_SIZE_MEDIUM, 'height' => 80)
+    ) {
         $table_group_rel_user	= $this->usergroup_rel_user_table;
         $tbl_user				= Database::get_main_table(TABLE_MAIN_USER);
         $group_id 				= intval($group_id);
@@ -963,7 +970,7 @@ class UserGroup extends Model
                 $rel = intval($rel);
                 $new_relation_type[] ="'$rel'";
             }
-            $relation_type 			= implode(',', $new_relation_type);
+            $relation_type = implode(',', $new_relation_type);
             if (!empty($relation_type))
                 $where_relation_condition = "AND gu.relation_type IN ($relation_type) ";
         }
@@ -978,9 +985,11 @@ class UserGroup extends Model
         $array  = array();
         while ($row = Database::fetch_array($result, 'ASSOC')) {
             if ($with_image) {
+                $userInfo = api_get_user_info($row['user_id']);
                 $image_path   = UserManager::get_user_picture_path_by_id($row['user_id'], 'web', false, true);
                 $picture      = UserManager::get_picture_user($row['user_id'], $image_path['file'], $image_conf['height'], $image_conf['size']);
                 $row['image'] = '<img src="'.$picture['file'].'"  '.$picture['style'].'  />';
+                $row['user_info'] = $userInfo;
             }
             $array[$row['user_id']] = $row;
         }
@@ -1250,6 +1259,10 @@ class UserGroup extends Model
     }
 
     public function is_group_member($group_id, $user_id = 0) {
+
+        if (api_is_platform_admin()) {
+           return true;
+        }
         if (empty($user_id)) {
             $user_id = api_get_user_id();
         }
@@ -1260,6 +1273,7 @@ class UserGroup extends Model
             return false;
         }
     }
+
     /**
      * Shows the left column of the group page
      * @param int group id
@@ -1388,7 +1402,7 @@ class UserGroup extends Model
         $picture = array();
         $picture['style'] = $style;
         if ($picture_file == 'unknown.jpg') {
-            $picture['file'] = api_get_path(WEB_CODE_PATH).'img/'.$picture_file;
+            $picture['file'] = api_get_path(WEB_IMG_PATH).$picture_file;
             return $picture;
         }
 
@@ -1426,7 +1440,7 @@ class UserGroup extends Model
             if (file_exists($file) && !is_dir($file)) {
                 $picture['file'] = $image_array['dir'].$picture_file;
             } else {
-                $picture['file'] = api_get_path(WEB_CODE_PATH).'img/unknown_group.png';
+                $picture['file'] = api_get_path(WEB_IMG_PATH).'unknown_group.png';
             }
         }
         return $picture;

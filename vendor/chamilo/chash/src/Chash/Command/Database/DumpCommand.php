@@ -17,8 +17,11 @@ use Symfony\Component\Console\Output\OutputInterface;
  * Returns a dump of the database (caller should use an output redirect of some kind to store
  * to a file)
  */
-class DumpCommand extends CommonChamiloDatabaseCommand
+class DumpCommand extends CommonDatabaseCommand
 {
+    /**
+     *
+     */
     protected function configure()
     {
         parent::configure();
@@ -28,11 +31,16 @@ class DumpCommand extends CommonChamiloDatabaseCommand
             ->setDescription('Outputs a dump of the database');
     }
 
+    /**
+     * @param InputInterface $input
+     * @param OutputInterface $output
+     * @return int|null|void
+     */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         parent::execute($input, $output);
-        $_configuration = $this->getHelper('configuration')->getConfiguration();
-        $dump           = 'mysqldump -h '.$_configuration['db_host'].' -u '.$_configuration['db_user'].' -p'.$_configuration['db_password'].' '.$_configuration['main_database'];
+        $_configuration = $this->getConfigurationArray();
+        $dump = 'mysqldump -h '.$_configuration['db_host'].' -u '.$_configuration['db_user'].' -p'.$_configuration['db_password'].' '.$_configuration['main_database'];
         system($dump);
         return null;
     }

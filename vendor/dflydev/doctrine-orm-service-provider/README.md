@@ -212,6 +212,9 @@ Configuration
      * **resources_namespace**: A namespaceish path to where the mapping
        files are located. Example: `Path\To\Foo\Resources\mappings`
 
+     Each mapping definition can have the following optional options:
+     * **alias** (Default: null): Set the alias for the entity namespace.
+
      Each **annotation** mapping may also specify the following options:
      * **use_simple_annotation_reader** (Default: true):
        If `true`, only simple notations like `@Entity` will work.
@@ -227,6 +230,8 @@ Configuration
      String or array describing metadata cache implementation.
    * **result_cache** (Default: setting specified by orm.default_cache):
      String or array describing result cache implementation.
+   * **types**
+     An array of custom types in the format of 'typeName' => 'Namespace\To\Type\Class'
  * **orm.ems.options**:
    Array of Entity Manager configuration sets indexed by each Entity Manager's
    name. Each value should look like **orm.em.options**.

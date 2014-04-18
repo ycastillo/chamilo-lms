@@ -28,16 +28,11 @@ class Login
      */
     public static function get_user_account_list($user, $reset = false, $by_username = false)
     {
-        global $_configuration;
-        //$portal_url = $_configuration['root_web'];
         $portal_url = api_get_path(WEB_PATH);
 
-        if ($_configuration['multiple_access_urls']) {
-            $access_url_id = api_get_current_access_url_id();
-            if ($access_url_id != -1) {
-                $url = api_get_access_url($access_url_id);
-                $portal_url = $url['url'];
-            }
+        if (api_is_multiple_url_enabled()) {
+            $url = api_get_current_access_url_info();
+            $portal_url = $url['url'];
         }
 
         if ($reset) {
@@ -110,7 +105,7 @@ class Login
         $email_admin = api_get_setting('emailAdministrator');
 
         if (api_mail_html('', $email_to, $email_subject, $email_body, $sender_name, $email_admin) == 1) {
-            return get_lang('your_password_has_been_reset');
+            return get_lang('YourPasswordHasBeenReset');
         } else {
             $admin_email = Display :: encrypted_mailto_link(api_get_setting('emailAdministrator'), api_get_person_name(api_get_setting('administratorName'), api_get_setting('administratorSurname')));
             return sprintf(get_lang('ThisPlatformWasUnableToSendTheEmailPleaseContactXForMoreInformation'), $admin_email);
@@ -172,8 +167,7 @@ class Login
      */
     public static function get_secret_word($add)
     {
-        global $_configuration;
-        return $secret_word = md5($_configuration['security_key'] . $add);
+        return $secret_word = sha1($add);
     }
 
     /**
@@ -194,12 +188,12 @@ class Login
             return get_lang('CouldNotResetPassword');
         }
 
-        if (self::get_secret_word($user['email']) == $secret) { // OK, secret word is good. Now change password and mail it.
+        if (self::get_secret_word($user['email']) == $secret) {
+            // OK, secret word is good. Now change password and mail it.
             $user['password'] = api_generate_password();
-            $crypted = $user['password'];
-            $crypted = api_get_encrypted_password($crypted);
+            $crypted = api_get_encrypted_password($user['password']);
             $sql = "UPDATE " . $tbl_user . " SET password='$crypted' WHERE user_id = $id";
-            $result = Database::query($sql);
+            Database::query($sql);
             return self::send_password_to_user($user, $by_username);
         } else {
             return get_lang('NotAllowed');
@@ -228,7 +222,7 @@ class Login
                 // a uid is given (log in succeeded)
                 $user_table = Database::get_main_table(TABLE_MAIN_USER);
                 $admin_table = Database::get_main_table(TABLE_MAIN_ADMIN);
-                $track_e_login = Database::get_statistic_table(TABLE_STATISTIC_TRACK_E_LOGIN);
+                $track_e_login = Database::get_main_table(TABLE_STATISTIC_TRACK_E_LOGIN);
 
                 $sql = "SELECT user.*, a.user_id is_admin, UNIX_TIMESTAMP(login.login_date) login_date
                         FROM $user_table
@@ -458,7 +452,7 @@ class Login
                     }
 
                     if ($save_course_access) {
-                        $course_tracking_table = Database :: get_statistic_table(TABLE_STATISTIC_TRACK_E_COURSE_ACCESS);
+                        $course_tracking_table = Database :: get_main_table(TABLE_STATISTIC_TRACK_E_COURSE_ACCESS);
 
                         /*
                          * When $_configuration['session_lifetime'] is too big 100 hours (in order to let users take exercises with no problems)
@@ -495,12 +489,10 @@ class Login
                                 //We update the course tracking table
                                 $sql = "UPDATE $course_tracking_table  SET logout_course_date = '$time', counter = counter+1
                                 WHERE course_access_id = " . intval($i_course_access_id) . " AND session_id = " . api_get_session_id();
-                                //error_log($sql);
                                 Database::query($sql);
                             } else {
                                 $sql = "INSERT INTO $course_tracking_table (c_id, user_id, login_course_date, logout_course_date, counter, session_id)" .
                                     "VALUES('" . $_real_cid . "', '" . $_user['user_id'] . "', '$time', '$time', '1','" . api_get_session_id() . "')";
-                                //error_log($sql);
                                 Database::query($sql);
                             }
                         }
@@ -672,6 +664,11 @@ class Login
                         break;
                     case COURSE_VISIBILITY_CLOSED: //0
                         if ($is_platformAdmin || $is_courseAdmin) {
+                            $is_allowed_in_course = true;
+                        }
+                        break;
+                    case COURSE_VISIBILITY_HIDDEN: //4
+                        if ($is_platformAdmin) {
                             $is_allowed_in_course = true;
                         }
                         break;

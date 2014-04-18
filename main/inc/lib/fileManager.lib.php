@@ -1,24 +1,21 @@
 <?php
 /* For licensing terms, see /license.txt */
-
 /**
- *    This is the file manage library for Chamilo.
- *    Include/require it in your code to use its functionality.
+    This class contains functions that you can access statically.
+
+    FileManager::list_all_directories($path)
+    FileManager::list_all_files($dir_array)
+    FileManager::compat_load_file($file_name)
+    FileManager::set_default_settings($upload_path, $filename, $filetype="file", $glued_table, $default_visibility='v')
+
+    @author Roan Embrechts
+    @version 1.1, July 2004
  * @package chamilo.library
  */
 
-/**
-This class contains functions that you can access statically.
+use Symfony\Component\Finder\Finder;
+use Symfony\Component\Filesystem\Filesystem;
 
-FileManager::list_all_directories($path)
-FileManager::list_all_files($dir_array)
-FileManager::compat_load_file($file_name)
-FileManager::set_default_settings($upload_path, $filename, $filetype="file", $glued_table, $default_visibility='v')
-
-@author Roan Embrechts
-@version 1.1, July 2004
- * @package chamilo.library
- */
 class FileManager
 {
     /**
@@ -211,7 +208,7 @@ class FileManager
         $path = dirname($file_path);
         $old_file_name = basename($file_path);
 
-        $new_file_name = replace_dangerous_char($new_file_name);
+        $new_file_name = api_replace_dangerous_char($new_file_name);
 
         // If no extension, take the old one
         if ((strpos($new_file_name, '.') === false) && ($dotpos = strrpos($old_file_name, '.'))) {
@@ -917,7 +914,7 @@ class FileManager
             return false;
         } else {
             // Clean up the name, only ASCII characters should stay. (and strict)
-            $clean_name = replace_dangerous_char($uploaded_file['name'], 'strict');
+            $clean_name = api_replace_dangerous_char($uploaded_file['name'], 'strict');
 
             // No "dangerous" files
             $clean_name = self::disable_dangerous_file($clean_name);
@@ -966,7 +963,7 @@ class FileManager
                     case 'overwrite':
                         // Check if the target file exists, so we can give another message
                         $file_exists = file_exists($store_path);
-                        if (@move_uploaded_file($uploaded_file['tmp_name'], $store_path)) {
+                        if (self::moveUploadedFile($uploaded_file, $store_path)) {
                             chmod($store_path, $files_perm);
                             if ($file_exists) {
                                 // UPDATE DATABASE
@@ -991,7 +988,7 @@ class FileManager
                                     );
 
                                     //Redo visibility
-                                    api_set_default_visibility(TOOL_DOCUMENT, $document_id);
+                                    api_set_default_visibility($_course, TOOL_DOCUMENT, $document_id);
                                 }
                                 // If the file is in a folder, we need to update all parent folders
                                 self::item_property_update_on_folder($_course, $upload_path, $user_id);
@@ -1056,11 +1053,11 @@ class FileManager
 
                     // Rename the file if it exists
                     case 'rename':
-                        $new_name = unique_name($where_to_save, $clean_name);
+                        $new_name = self::unique_name($where_to_save, $clean_name);
                         $store_path = $where_to_save.$new_name;
                         $new_file_path = $upload_path.$new_name;
 
-                        if (@move_uploaded_file($uploaded_file['tmp_name'], $store_path)) {
+                        if (self::moveUploadedFile($uploaded_file, $store_path)) {
 
                             chmod($store_path, $files_perm);
 
@@ -1118,7 +1115,7 @@ class FileManager
                                 Display::display_error_message($clean_name.' '.get_lang('UplAlreadyExists'));
                             }
                         } else {
-                            if (@move_uploaded_file($uploaded_file['tmp_name'], $store_path)) {
+                            if (self::moveUploadedFile($uploaded_file, $store_path)) {
                                 chmod($store_path, $files_perm);
 
                                 // Put the document data in the database
@@ -1204,16 +1201,33 @@ class FileManager
     /**
      * Computes the size already occupied by a directory and is subdirectories
      *
-     * @author - Hugues Peeters <peeters@ipm.ucl.ac.be>
-     * @param  - dir_path (string) - size of the file in byte
-     * @return - int - return the directory size in bytes
+     * @param string dir_path (string) - size of the file in byte
+     * @return int - return the directory size in bytes
      */
     static function dir_total_space($dir_path)
     {
+        $fs = new Filesystem();
+        if (!empty($dir_path) && $fs->exists($dir_path)) {
+            $finder = new Finder();
+            $finder->files()->in($dir_path);
+            $sumSize = 0;
 
+            foreach ($finder as $file) {
+                // Print the absolute path
+                //var_dump($file->getRelativePathname());
+                $sumSize += $file->getSize();
+            }
+            return $sumSize;
+        }
+        return 0;
+        /*
+        // author - Hugues Peeters <peeters@ipm.ucl.ac.be>
         $save_dir = getcwd();
         chdir($dir_path);
         $handle = opendir($dir_path);
+        $sumSize = 0;
+
+        $dirList = array();
 
         while ($element = readdir($handle)) {
             if ($element == '.' || $element == '..') {
@@ -1231,12 +1245,12 @@ class FileManager
 
         if (sizeof($dirList) > 0) {
             foreach ($dirList as $j) {
-                $sizeDir = self::dir_total_space($j); // Recursivity
+                $sizeDir = self::dir_total_space($j, 0); // Recursivity
                 $sumSize += $sizeDir;
             }
         }
         chdir($save_dir); // Return to initial position
-        return $sumSize;
+        return $sumSize;*/
     }
 
 
@@ -1504,7 +1518,7 @@ class FileManager
         foreach ($path_array as $key => & $val) {
             // We don't want to lose the dots in ././folder/file (cfr. zipfile)
             if ($val != '.') {
-                $val = self::disable_dangerous_file(replace_dangerous_char($val));
+                $val = self::disable_dangerous_file(api_replace_dangerous_char($val));
             }
         }
         // Join the "cleaned" path (modified in-place as passed by reference)
@@ -1574,17 +1588,20 @@ class FileManager
 
     /**
      * Adds a new document to the database
-     *
-     * @param array $_course
+     * @param string $course
      * @param string $path
      * @param string $filetype
-     * @param int $filesize
-     * @param string $title
-     *
-     * @return id if inserted document
+     * @param string $filesize
+     * @param $title
+     * @param string $comment
+     * @param int $readonly
+     * @param bool $save_visibility
+     * @param int $group_id
+     * @param int $session_id Session ID, if any
+     * @return bool|int
      */
-    static function add_document(
-        $_course,
+    public static function add_document(
+        $course,
         $path,
         $filetype,
         $filesize,
@@ -1592,16 +1609,28 @@ class FileManager
         $comment = null,
         $readonly = 0,
         $save_visibility = true,
-        $group_id = null
+        $group_id = null,
+        $session_id = 0
     ) {
-        $session_id = api_get_session_id();
+        $session_id = intval($session_id);
+        if (empty($session_id)) {
+            $session_id    = api_get_session_id();
+        }
+
         $readonly = intval($readonly);
         $comment = Database::escape_string($comment);
         $path = Database::escape_string($path);
         $filetype = Database::escape_string($filetype);
         $filesize = intval($filesize);
-        $title = Database::escape_string(htmlspecialchars($title));
-        $c_id = $_course['real_id'];
+        $title = Database::escape_string($title);
+
+        if (is_array($course)) {
+            $c_id = $course['real_id'];
+        } else {
+            if ($course instanceof \ChamiloLMS\Entity\Course) {
+                $c_id = $course->getId();
+            }
+        }
 
         $table_document = Database::get_course_table(TABLE_DOCUMENT);
         $sql = "INSERT INTO $table_document (c_id, path, filetype, size, title, comment, readonly, session_id)
@@ -1611,7 +1640,7 @@ class FileManager
             $document_id = Database::insert_id();
             if ($document_id) {
                 if ($save_visibility) {
-                    api_set_default_visibility($document_id, TOOL_DOCUMENT, $group_id);
+                    api_set_default_visibility($course, $document_id, TOOL_DOCUMENT, $group_id);
                 }
             }
 
@@ -2026,7 +2055,7 @@ class FileManager
      * @param string $base_work_dir
      * @param string $current_path, needed for recursivity
      */
-    static function add_all_documents_in_folder_to_database(
+    public static function add_all_documents_in_folder_to_database(
         $_course,
         $user_id,
         $base_work_dir,
@@ -2048,7 +2077,7 @@ class FileManager
                 // Directory?
                 if (is_dir($completepath)) {
                     $title = self::get_document_title($file);
-                    $safe_file = replace_dangerous_char($file);
+                    $safe_file = api_replace_dangerous_char($file);
                     @rename($path.'/'.$file, $path.'/'.$safe_file);
                     // If we can't find the file, add it
                     if (!DocumentManager::get_document_id($_course, $current_path.'/'.$safe_file)) {
@@ -2077,7 +2106,7 @@ class FileManager
                     );
                 } else {
                     //Rename
-                    $safe_file = self::disable_dangerous_file(replace_dangerous_char($file, 'strict'));
+                    $safe_file = self::disable_dangerous_file(api_replace_dangerous_char($file, 'strict'));
                     @rename($base_work_dir.$current_path.'/'.$file, $base_work_dir.$current_path.'/'.$safe_file);
                     $document_id = DocumentManager::get_document_id($_course, $current_path.'/'.$safe_file);
                     if (!$document_id) {
@@ -2119,6 +2148,21 @@ class FileManager
                     }
                 }
             }
+        }
+    }
+
+    /**
+    * @param array $file
+    * @param string $storePath
+    * @return bool
+    **/
+    public static function moveUploadedFile($file, $storePath)
+    {
+        $handleFromFile = isset($file['from_file']) && $file['from_file'] ? true : false;
+        if ($handleFromFile) {
+            return file_exists($file['tmp_name']);
+        } else {
+            return move_uploaded_file($file['tmp_name'], $storePath);
         }
     }
 }

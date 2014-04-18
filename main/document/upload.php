@@ -49,27 +49,16 @@ $htmlHeadXtra[] = api_get_jquery_libraries_js(array('jquery-ui', 'jquery-upload'
 $htmlHeadXtra[] = '<script>
 
 function check_unzip() {
-	if(document.upload.unzip.checked){
-		document.upload.if_exists[0].disabled=true;
-		document.upload.if_exists[1].checked=true;
-		document.upload.if_exists[2].disabled=true;
-	} else {
-		document.upload.if_exists[0].checked=true;
-		document.upload.if_exists[0].disabled=false;
-		document.upload.if_exists[2].disabled=false;
-		}
-	}
-
-function advanced_parameters() {
-	if(document.getElementById(\'options\').style.display == \'none\') {
-	document.getElementById(\'options\').style.display = \'block\';
-	document.getElementById(\'img_plus_and_minus\').innerHTML=\'&nbsp;<img style="vertical-align:middle;" src="../img/div_hide.gif" alt="" />&nbsp;'.get_lang('AdvancedParameters').'\';
-	} else {
-        document.getElementById(\'options\').style.display = \'none\';
-        document.getElementById(\'img_plus_and_minus\').innerHTML=\'&nbsp;<img style="vertical-align:middle;" src="../img/div_show.gif" alt="" />&nbsp;'.get_lang('AdvancedParameters').'\';
+    if (document.upload.unzip.checked){
+        document.upload.if_exists[0].disabled=true;
+        document.upload.if_exists[1].checked=true;
+        document.upload.if_exists[2].disabled=true;
+    } else {
+        document.upload.if_exists[0].checked=true;
+        document.upload.if_exists[0].disabled=false;
+        document.upload.if_exists[2].disabled=false;
     }
 }
-
 function setFocus(){
 	$("#title_file").focus();
 }
@@ -155,6 +144,7 @@ if ($is_certificate_array[0] == 'certificates') {
 }
 
 // Title of the tool
+$add_group_to_title = null;
 if ($to_group_id != 0) { // Add group name after for group documents
 	$add_group_to_title = ' ('.$group_properties['name'].')';
 }
@@ -182,6 +172,8 @@ if (empty($document_data['parents'])) {
 
 $this_section = SECTION_COURSES;
 
+$interbreadcrumb[] = array('url' => '#', 'name' => $nameTools);
+
 // Display the header
 Display::display_header($nameTools, 'Doc');
 
@@ -196,9 +188,9 @@ if (!empty($_FILES)) {
 echo '<div class="actions">';
 // Link back to the documents overview
 if ($is_certificate_mode) {
-	echo '<a href="document.php?id='.$document_id.'&selectcat=' . $selectcat.'">'.Display::return_icon('back.png',get_lang('BackTo').' '.get_lang('CertificateOverview'),'',ICON_SIZE_MEDIUM).'</a>';
+	//echo '<a href="document.php?id='.$document_id.'&selectcat=' . $selectcat.'">'.Display::return_icon('back.png',get_lang('BackTo').' '.get_lang('CertificateOverview'),'',ICON_SIZE_MEDIUM).'</a>';
 } else {
-	echo '<a href="document.php?id='.$document_id.'">'.Display::return_icon('back.png',get_lang('BackTo').' '.get_lang('DocumentsOverview'),'',ICON_SIZE_MEDIUM).'</a>';
+	//echo '<a href="document.php?id='.$document_id.'">'.Display::return_icon('back.png',get_lang('BackTo').' '.get_lang('DocumentsOverview'),'',ICON_SIZE_MEDIUM).'</a>';
 }
 
 // Link to create a folder
@@ -213,13 +205,7 @@ $folders = DocumentManager::get_all_document_folders($_course, $to_group_id, $is
 if (!$is_certificate_mode) {
 	echo build_directory_selector($folders, $document_id, (isset($group_properties['directory']) ? $group_properties['directory'] : array()));
 }
-
-/*$params = Uri::course_params();
-$params['id'] = Request::get('id');
-$action = Uri::here($params, false);*/
-
 $action = api_get_self().'?'.api_get_cidreq().'&id='.$document_id;
-
 $form = new FormValidator('upload', 'POST', $action.'#tabs-2', '', 'enctype="multipart/form-data"');
 $form->addElement('hidden', 'id', $document_id);
 $form->addElement('hidden', 'curdirpath', $path);
@@ -228,15 +214,14 @@ $course_quota = Text::format_file_size(DocumentManager::get_course_quota() - Doc
 
 $label = get_lang('MaxFileSize').': '.ini_get('upload_max_filesize').'<br/>'.get_lang('DocumentQuota').': '.$course_quota;
 
-$form->addElement('file', 'file', array(get_lang('File'), $label), 'id="user_upload" size="45"');
+$form->addElement('file', 'file', array(get_lang('File'), $label), 'style="width: 250px" id="user_upload"');
 
 $form->addElement('text', 'title', get_lang('Title'), array('size' => '20', 'style' => 'width:300px', 'id' => 'title_file'));
 $form->addElement('textarea', 'comment', get_lang('Comment'), 'wrap="virtual" style="width:300px;"');
 
-$advanced = '<a href="javascript://" onclick=" return advanced_parameters()"><span id="img_plus_and_minus"><div style="vertical-align:top;" ><img style="vertical-align:middle;" src="../img/div_show.gif" alt="" />&nbsp;'.get_lang('AdvancedParameters').'</div></span></a>';
 // Advanced parameters
-$form -> addElement('advanced_settings', $advanced);
-$form -> addElement('html', '<div id="options" style="display:none">');
+$form->addElement('label', null, Display::url(get_lang('AdvancedParameters'), '#', array('id' => 'upload_settings', 'class' => 'advanced_options')));
+$form->addElement('html', '<div id="upload_settings_options" style="display:none">');
 
 // Check box options
 $form->addElement('checkbox', 'unzip', get_lang('Options'), get_lang('Uncompress'), 'onclick="javascript: check_unzip();" value="1"');

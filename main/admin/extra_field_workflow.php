@@ -15,13 +15,7 @@ $this_section = SECTION_PLATFORM_ADMIN;
 
 $type = isset($_REQUEST['type']) ? $_REQUEST['type'] : null;
 
-if ($type == 'question') {
-    if (!(api_is_platform_admin() || api_is_question_manager())) {
-        api_not_allowed(true);
-    }
-} else {
-    api_protect_admin_script();
-}
+api_protect_admin_script();
 
 // setting breadcrumbs
 $interbreadcrumb[] = array('url' => 'index.php','name' => get_lang('PlatformAdmin'));
@@ -126,9 +120,9 @@ $form = new FormValidator('workflow', 'post', api_get_self().'?'.$params);
 $options = api_get_user_roles();
 $options[0] = get_lang('SelectAnOption');
 ksort($options);
-$form->addElement('select', 'status', get_lang('SelectStatus'), $options, array('onclick' => 'changeStatus(this)'));
+$form->addElement('select', 'status', get_lang('SelectRole'), $options, array('onclick' => 'changeStatus(this)'));
 
-$checks = $app['orm.em']->getRepository('Entity\ExtraFieldOptionRelFieldOption')->findBy(array('fieldId' => $field_id, 'roleId' => $roleId));
+$checks = $app['orm.em']->getRepository('ChamiloLMS\Entity\ExtraFieldOptionRelFieldOption')->findBy(array('fieldId' => $field_id, 'roleId' => $roleId));
 $includedFields = array();
 if (!empty($checks)) {
     foreach ($checks as $availableField) {
@@ -182,7 +176,7 @@ if ($form->validate()) {
     if (!empty($result)) {
         foreach ($result as $id => $items) {
             foreach ($items as $subItemId => $value) {
-                $extraFieldOptionRelFieldOption = $app['orm.em']->getRepository('Entity\ExtraFieldOptionRelFieldOption')->findOneBy(
+                $extraFieldOptionRelFieldOption = $app['orm.em']->getRepository('ChamiloLMS\Entity\ExtraFieldOptionRelFieldOption')->findOneBy(
                     array(
                     'fieldId' => $field_id,
                     'fieldOptionId' => $subItemId,
@@ -193,23 +187,23 @@ if ($form->validate()) {
 
                 if ($value == 1) {
                     if (empty($extraFieldOptionRelFieldOption)) {
-                        $extraFieldOptionRelFieldOption = new Entity\ExtraFieldOptionRelFieldOption();
+                        $extraFieldOptionRelFieldOption = new \ChamiloLMS\Entity\ExtraFieldOptionRelFieldOption();
                         $extraFieldOptionRelFieldOption->setFieldId($field_id);
                         $extraFieldOptionRelFieldOption->setFieldOptionId($subItemId);
                         $extraFieldOptionRelFieldOption->setRelatedFieldOptionId($id);
                         $extraFieldOptionRelFieldOption->setRoleId($roleId);
-                        $app['orm.em']->persist($extraFieldOptionRelFieldOption);
+                        $app['orm.ems']['db_write']->persist($extraFieldOptionRelFieldOption);
                     }
                 } else {
 
                     if ($extraFieldOptionRelFieldOption) {
-                        $app['orm.em']->remove($extraFieldOptionRelFieldOption);
+                        $app['orm.ems']['db_write']->remove($extraFieldOptionRelFieldOption);
                     }
                 }
 
             }
         }
-        $app['orm.em']->flush();
+        $app['orm.ems']['db_write']->flush();
         header('Location:'.api_get_self().'?'.$params);
         exit;
     }

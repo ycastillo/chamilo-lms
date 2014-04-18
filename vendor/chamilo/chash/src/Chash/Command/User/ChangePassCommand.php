@@ -14,7 +14,9 @@ use Symfony\Component\Console\Output\OutputInterface;
  * it for.
  */
 /**
- * Changes a user password to the one given 
+ * Class ChangePassCommand
+ * Changes a user password to the one given
+ * @package Chash\Command\User
  */
 class ChangePassCommand extends CommonChamiloUserCommand
 {
@@ -26,22 +28,27 @@ class ChangePassCommand extends CommonChamiloUserCommand
             ->setName('user:change_pass')
             ->setDescription('Updates the user password to the one given')
             ->addArgument(
-                'username', 
+                'username',
                 InputArgument::REQUIRED,
                 'Allows you to specify the username'
             )
             ->addArgument(
-                'password', 
+                'password',
                 InputArgument::REQUIRED,
                 'The new password to give this user'
             );
     }
 
+    /**
+     * @param InputInterface $input
+     * @param OutputInterface $output
+     * @return null|void
+     */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         parent::execute($input, $output);
         $_configuration = $this->getHelper('configuration')->getConfiguration();
-        $dbh = $this->getHelper('configuration')->getConnection();
+        $connection = $this->getConnection();
         $username = $input->getArgument('username');
         $password = $input->getArgument('password');
         $us = "SELECT * FROM user WHERE username = '".mysql_real_escape_string($username)."'";

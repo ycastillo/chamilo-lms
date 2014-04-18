@@ -16,9 +16,10 @@ use Doctrine\ORM\Mapping\ClassMetadata;
  * @license MIT License (http://www.opensource.org/licenses/mit-license.php)
  */
 
-class Validator 
+class Validator
 {
     const UPLOADABLE_FILE_MIME_TYPE = 'UploadableFileMimeType';
+    const UPLOADABLE_FILE_NAME = 'UploadableFileName';
     const UPLOADABLE_FILE_PATH = 'UploadableFilePath';
     const UPLOADABLE_FILE_SIZE = 'UploadableFileSize';
     const FILENAME_GENERATOR_SHA1 = 'SHA1';
@@ -39,6 +40,15 @@ class Validator
      * @var array
      */
     public static $validFileMimeTypeTypes = array(
+        'string'
+    );
+
+    /**
+     * List of types which are valid for UploadableFileName field
+     *
+     * @var array
+     */
+    public static $validFileNameTypes = array(
         'string'
     );
 
@@ -69,6 +79,11 @@ class Validator
     public static $validateWritableDirectory = true;
 
 
+    public static function validateFileNameField(ClassMetadataInfo $meta, $field)
+    {
+        self::validateField($meta, $field, self::UPLOADABLE_FILE_NAME, self::$validFileNameTypes);
+    }
+
     public static function validateFileMimeTypeField(ClassMetadataInfo $meta, $field)
     {
         self::validateField($meta, $field, self::UPLOADABLE_FILE_MIME_TYPE, self::$validFileMimeTypeTypes);
@@ -86,11 +101,10 @@ class Validator
 
     public static function validateField($meta, $field, $uploadableField, $validFieldTypes)
     {
-        
         if ($meta->isMappedSuperclass) {
             return;
         }
-        
+
         $fieldMapping = $meta->getFieldMapping($field);
 
         if (!in_array($fieldMapping['type'], $validFieldTypes)) {
@@ -110,8 +124,18 @@ class Validator
             throw new UploadableInvalidPathException('Path must be a string containing the path to a valid directory.');
         }
 
-        if (self::$validateWritableDirectory && (!is_dir($path) || !is_writable($path))) {
-            throw new UploadableCantWriteException(sprintf('Directory "%s" does not exist or is not writable',
+        if (!self::$validateWritableDirectory) {
+            return;
+        }
+
+        if (!is_dir($path) && !@mkdir($path, 0777, true)) {
+            throw new UploadableInvalidPathException(sprintf('Unable to create "%s" directory.',
+                $path
+            ));
+        }
+
+        if (!is_writable($path)) {
+            throw new UploadableCantWriteException(sprintf('Directory "%s" does is not writable.',
                 $path
             ));
         }
@@ -119,8 +143,8 @@ class Validator
 
     public static function validateConfiguration(ClassMetadata $meta, array &$config)
     {
-        if (!$config['filePathField']) {
-            throw new InvalidMappingException(sprintf('Class "%s" must have an UploadableFilePath field.',
+        if (!$config['filePathField'] && !$config['fileNameField']) {
+            throw new InvalidMappingException(sprintf('Class "%s" must have an UploadableFilePath or UploadableFileName field.',
                 $meta->name
             ));
         }
@@ -162,6 +186,14 @@ class Validator
         $config['disallowedTypes'] = $config['disallowedTypes'] ? (strpos($config['disallowedTypes'], ',') !== false ?
             explode(',', $config['disallowedTypes']) : array($config['disallowedTypes'])) : false;
 
+        if ($config['fileNameField']) {
+            self::validateFileNameField($meta, $config['fileNameField']);
+        }
+
+        if ($config['filePathField']) {
+            self::validateFilePathField($meta, $config['filePathField']);
+        }
+
         if ($config['fileMimeTypeField']) {
             self::validateFileMimeTypeField($meta, $config['fileMimeTypeField']);
         }
@@ -195,7 +227,5 @@ class Validator
                     ));
                 }
         }
-
-        self::validateFilePathField($meta, $config['filePathField']);
     }
 }

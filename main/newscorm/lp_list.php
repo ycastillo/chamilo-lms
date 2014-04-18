@@ -2,7 +2,7 @@
 /* For licensing terms, see /license.txt */
 
 /**
- * This file was origially the copy of document.php, but many modifications happened since then ;
+ * This file was originally the copy of document.php, but many modifications happened since then ;
  * the direct file view is not any more needed, if the user uploads a scorm zip file, a directory
  * will be automatically created for it, and the files will be uncompressed there for example ;
  *
@@ -106,10 +106,9 @@ $token = Security::get_token();
 /* DISPLAY SCORM LIST */
 
 $categories_temp = learnpath::get_categories(api_get_course_int_id());
-
-$category_test = new Entity\CLpCategory();
+$category_test = new ChamiloLMS\Entity\CLpCategory();
 $category_test->setId(0);
-$category_test->setName(get_lang('NoCategory'));
+$category_test->setName(get_lang('WithOutCategory'));
 $category_test->setPosition(0);
 
 $categories = array(
@@ -120,15 +119,20 @@ if (!empty($categories_temp)) {
     $categories = array_merge($categories, $categories_temp);
 }
 
-$test_mode = api_get_setting('server_type');
+$test_mode = $app['debug'];
 
 $lp_showed = false;
 $total = count($categories);
 $counterCategories = 1;
 
 foreach ($categories as $item) {
-    $list = new LearnpathList(api_get_user_id(), null, null, null, false, $item->getId());
+    $categoryId = $item->getId();
+    $list = new LearnpathList(api_get_user_id(), null, null, null, false, $categoryId);
     $flat_list = $list->get_flat_list();
+    // Hiding categories with out LPs.
+    if (empty($flat_list) && $categoryId == 0) {
+        continue;
+    }
 
     $edit_link = null;
     $delete_link = null;
@@ -177,11 +181,10 @@ foreach ($categories as $item) {
         }
         echo '</tr>';
 
-    $test_mode      = api_get_setting('server_type');
         $max = count($flat_list);
         $counter = 0;
         $current = 0;
-    $autolunch_exists = false;
+        $autolunch_exists = false;
         foreach ($flat_list as $id => $details) {
 
             // Validation when belongs to a session
@@ -409,7 +412,7 @@ foreach ($categories as $item) {
                 if ($details['lp_type'] == 1) {
                     $dsp_disk = Display::url(Display::return_icon('cd.gif', get_lang('Export'), array(), ICON_SIZE_SMALL), api_get_self()."?".api_get_cidreq()."&action=export&lp_id=$id");
                 } elseif ($details['lp_type'] == 2) {
-                    $dsp_disk = Display::url(Display::return_icon('cd.gif', get_lang('Export'), array(), ICON_SIZE_SMALL), api_get_self()."?".api_get_cidreq()."&action=export&lp_id=$id&export_name=".replace_dangerous_char($name, 'strict').".zip");
+                    $dsp_disk = Display::url(Display::return_icon('cd.gif', get_lang('Export'), array(), ICON_SIZE_SMALL), api_get_self()."?".api_get_cidreq()."&action=export&lp_id=$id&export_name=".api_replace_dangerous_char($name, 'strict').".zip");
                 } else {
                     $dsp_disk = Display::return_icon('cd_gray.gif', get_lang('Export'), array(), ICON_SIZE_SMALL);
                 }
@@ -429,19 +432,18 @@ foreach ($categories as $item) {
                     if ($details['autolaunch'] == 1 && $autolunch_exists == false) {
                         $autolunch_exists = true;
                         $lp_auto_lunch_icon = '<a href="'.api_get_self().'?'.api_get_cidreq().'&action=auto_launch&status=0&lp_id='.$id.'">
-                            <img src="../img/launch.png" border="0" title="'.get_lang('DisableLPAutoLaunch').'" /></a>';
+                            '.Display::return_icon('launch.png', get_lang('DisableLPAutoLaunch')).'
+                            </a>';
                     } else {
                         $lp_auto_lunch_icon = '<a href="'.api_get_self().'?'.api_get_cidreq().'&action=auto_launch&status=1&lp_id='.$id.'">
-                            <img src="../img/launch_na.png" border="0" title="'.get_lang('EnableLPAutoLaunch').'" /></a>';
+                            '.Display::return_icon('launch_na.png', get_lang('EnableLPAutoLaunch')).'
+                            </a>';
                     }
                 }
-                //if (api_get_setting('pdf_export_watermark_enable') == 'true') {
                 $export_icon = ' <a href="'.api_get_self().'?'.api_get_cidreq().'&action=export_to_pdf&lp_id='.$id.'">
 				  '.Display::return_icon('pdf.png', get_lang('ExportToPDFOnlyHTMLAndImages'), '', ICON_SIZE_SMALL).'</a>';
-                //}
 
                 /* DELETE COMMAND */
-
                 if ($current_session == $details['lp_session']) {
                     $dsp_delete = "<a href=\"lp_controller.php?".api_get_cidreq()."&action=delete&lp_id=$id\" ".
                         "onclick=\"javascript: return confirmation('".addslashes($name)."');\">".
@@ -457,11 +459,12 @@ foreach ($categories as $item) {
                 if ($current_session == 0) {
                     if ($details['lp_display_order'] == 1 && $max != 1) {
                         $dsp_order .= '<a href="lp_controller.php?'.api_get_cidreq().'&action=move_lp_down&lp_id='.$id.'">
-                         '.Display::return_icon('down.png', get_lang('MoveDown'), '', ICON_SIZE_SMALL).'</a>
-						<img src="../img/blanco.png" border="0" alt="" title="" />';
+                         '.Display::return_icon('down.png', get_lang('MoveDown'), '', ICON_SIZE_SMALL).'
+                         </a>
+                         '.Display::return_icon('blanco.png');
                     } elseif ($current == $max - 1 && $max != 1) {
-                        $dsp_order .= '<img src="../img/blanco.png" border="0" alt="" title="" /><a href="lp_controller.php?'.api_get_cidreq().'&action=move_lp_up&lp_id='.$id.'">
-					'.Display::return_icon('up.png', get_lang('MoveUp'), '', ICON_SIZE_SMALL).'</a>';
+                        $dsp_order .= Display::return_icon('blanco.png').'<a href="lp_controller.php?'.api_get_cidreq().'&action=move_lp_up&lp_id='.$id.'">
+					                  '.Display::return_icon('up.png', get_lang('MoveUp'), '', ICON_SIZE_SMALL).'</a>';
                     } elseif ($max == 1) {
                         $dsp_order = '';
                     } else {
@@ -477,9 +480,10 @@ foreach ($categories as $item) {
                 } else {
                     $start_time = $end_time = '';
                 }
-            } else { // end if ($is_allowedToEdit)
-                //Student
-                $export_icon = ' <a href="'.api_get_self().'?'.api_get_cidreq().'&action=export_to_pdf&lp_id='.$id.'">'.Display::return_icon('pdf.png', get_lang('ExportToPDF'), '', ICON_SIZE_SMALL).'</a>';
+            } else {
+                // Student.
+                $export_icon = ' <a href="'.api_get_self().'?'.api_get_cidreq().'&action=export_to_pdf&lp_id='.$id.'">'.
+                    Display::return_icon('pdf.png', get_lang('ExportToPDF'), '', ICON_SIZE_SMALL).'</a>';
             }
 
             echo $dsp_line.$start_time.$end_time.$dsp_progress.$dsp_desc.$dsp_export.$dsp_edit.$dsp_build.$dsp_edit_lp.$dsp_visible.$dsp_publish.$subscribe_users.$dsp_reinit.

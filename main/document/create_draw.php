@@ -18,7 +18,6 @@
 // Name of the language file that needs to be included
 $language_file = array('document');
 
-require_once '../inc/global.inc.php';
 
 $_SESSION['whereami'] = 'document/createdraw';
 $this_section = SECTION_COURSES;
@@ -93,7 +92,7 @@ if (isset ($_SESSION['_gid']) && $_SESSION['_gid'] != 0) {
 
 $interbreadcrumb[] = array ("url" => "./document.php?id=".$parent_id.$req_gid, "name" => get_lang('Documents'));
 
-if (!($is_allowed_to_edit || $_SESSION['group_member_with_upload_rights'] || is_my_shared_folder(api_get_user_id(), Security::remove_XSS($dir), api_get_session_id()))) {
+if (!($is_allowed_to_edit || GroupManager::groupMemberWithUploadRights() || is_my_shared_folder(api_get_user_id(), Security::remove_XSS($dir), api_get_session_id()))) {
 	api_not_allowed(true);
 }
 

@@ -259,7 +259,7 @@ class Pagerfanta implements \Countable, \IteratorAggregate, PagerfantaInterface
             return $this->getNbPages();
         }
 
-        throw new OutOfRangeCurrentPageException(sprintf('Page "%d" does not exists. The currentPage must be inferior to "%d"', $currentPage, $this->getNbPages()));
+        throw new OutOfRangeCurrentPageException(sprintf('Page "%d" does not exist. The currentPage must be inferior to "%d"', $currentPage, $this->getNbPages()));
     }
 
     private function resetForCurrentPageChange()
@@ -310,6 +310,30 @@ class Pagerfanta implements \Countable, \IteratorAggregate, PagerfantaInterface
     }
 
     /**
+     * Calculates the current page offset start
+     *
+     * @return int
+     */
+    public function getCurrentPageOffsetStart()
+    {
+        return $this->getNbResults() ?
+               $this->calculateOffsetForCurrentPageResults() + 1 :
+               0;
+    }
+
+    /**
+     * Calculates the current page offset end
+     *
+     * @return int
+     */
+    public function getCurrentPageOffsetEnd()
+    {
+        return $this->hasNextPage() ?
+               $this->getCurrentPage() * $this->getMaxPerPage() :
+               $this->getNbResults();
+    }
+
+    /**
      * Returns the number of results.
      *
      * @return integer
@@ -335,7 +359,23 @@ class Pagerfanta implements \Countable, \IteratorAggregate, PagerfantaInterface
      */
     public function getNbPages()
     {
+        $nbPages = $this->calculateNbPages();
+
+        if ($nbPages == 0) {
+            return $this->minimumNbPages();
+        }
+
+        return $nbPages;
+    }
+
+    private function calculateNbPages()
+    {
         return (int) ceil($this->getNbResults() / $this->getMaxPerPage());
+    }
+
+    private function minimumNbPages()
+    {
+        return 1;
     }
 
     /**

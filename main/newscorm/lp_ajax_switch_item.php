@@ -19,6 +19,10 @@ $language_file[] = 'learnpath';
 
 require_once '../inc/global.inc.php';
 
+$app['template.show_footer'] = false;
+$app['template.show_header'] = false;
+$app['default_layout'] = 'default/layout/blank.tpl';
+
 require_once 'learnpath.class.php';
 require_once 'scorm.class.php';
 require_once 'aicc.class.php';
@@ -260,3 +264,4 @@ function switch_item_details($lp_id, $user_id, $view_id, $current_item, $next_it
     return $return;
 }
 echo switch_item_details($_REQUEST['lid'], $_REQUEST['uid'], $_REQUEST['vid'], $_REQUEST['iid'], $_REQUEST['next']);
+exit;

@@ -2,74 +2,109 @@
 /* For licensing terms, see /license.txt */
 namespace ChamiloLMS\Controller;
 
-use \ChamiloSession as Session;
 use Silex\Application;
 use Knp\Menu\Matcher\Matcher;
+use ChamiloLMS\Controller\BaseController;
 
 
 /**
  * @package ChamiloLMS.CommonController
  * @author Julio Montoya <gugli100@gmail.com>
+ * @todo improve breadcrumb management
  */
-class CommonController
+class CommonController extends BaseController
 {
-
-    public $languageFiles = array();
-
     /**
-     *
-    */
-    public function __construct()
-    {
-    }
-
-    /**
-     *
+     * @return bool
      */
-    public function cidReset()
+    public function isCourseTeacher()
     {
-        Session::erase('_cid');
-        Session::erase('_real_cid');
-        Session::erase('_course');
-
-        if (!empty($_SESSION)) {
-            foreach ($_SESSION as $key => $item) {
-                if (strpos($key, 'lp_autolunch_') === false) {
-                    continue;
-                } else {
-                    if (isset($_SESSION[$key])) {
-                        Session::erase($key);
-                    }
-                }
+        $course = $this->getCourse();
+        if (!$course) {
+            return false;
+        } else {
+            if ($this->getSecurity()->isGranted('ROLE_ADMIN')) {
+                return true;
             }
-        }
-        // Deleting session info.
-        if (api_get_session_id()) {
-            Session::erase('id_session');
-            Session::erase('session_name');
-        }
-        // Deleting group info.
-        if (api_get_group_id()) {
-            Session::erase('_gid');
+            $course->getId();
+            $role = "ROLE_TEACHER_COURSE_".$course->getId().'_SESSION_0';
+            //var_dump($role);
+            return $this->getSecurity()->isGranted($role);
         }
     }
 
     /**
-     * @param Application $app
+     * {@inheritdoc}
+     */
+    protected function getRepository()
+    {
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function getNewEntity()
+    {
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function getFormType()
+    {
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function getControllerAlias()
+    {
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function generateLinks()
+    {
+        return $this->generateDefaultCrudRoutes();
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function getTemplatePath()
+    {
+    }
+
+    protected function generateDefaultCrudRoutes()
+    {
+        $className = $this->getControllerAlias();
+        return array(
+            'create_link' => $className.':addAction',
+            'read_link' => $className.':readAction',
+            'update_link' => $className.':editAction',
+            'delete_link' => $className.':deleteAction',
+            'list_link' => $className.':indexAction'
+        );
+    }
+
+    /**
+     *
      * @param array $breadcrumbs
      */
-    public function setBreadcrumb(Application $app, $breadcrumbs)
+    protected function setBreadcrumb($breadcrumbs)
     {
-        $courseInfo = api_get_course_info();
+        $course = $this->getCourse();
+        //$session =  $this->getSession();
 
         // Adding course breadcrumb.
-        if (!empty($courseInfo)) {
+        if (!empty($course)) {
             $courseBreadcrumb = array(
-                'name' => \Display::return_icon('home.png').' '.$courseInfo['title'],
+                'name' => \Display::return_icon('home.png').' '.$course->getTitle(),
                 'url' => array(
                     'route' => 'course',
                     'routeParameters' => array(
-                        'cidReq' => api_get_course_id(),
+                        'cidReq' => $course->getCode(),
                         'id_session' => api_get_session_id()
                     )
                 )
@@ -77,8 +112,10 @@ class CommonController
             array_unshift($breadcrumbs, $courseBreadcrumb);
         }
 
+        $app = $this->app;
+
         $app['main_breadcrumb'] = function ($app) use ($breadcrumbs) {
-            /** @var  \Knp\Menu\Silex\RouterAwareFactory $menu */
+            /** @var  \Knp\Menu\MenuItem $menu */
             $menu = $app['knp_menu.factory']->createItem(
                 'root',
                 array(
@@ -89,24 +126,29 @@ class CommonController
                 )
             );
 
-            foreach ($breadcrumbs as $item) {
-                $menu->addChild($item['name'], $item['url']);
+            if (!empty($breadcrumbs)) {
+                foreach ($breadcrumbs as $item) {
+                    if (empty($item['url'])) {
+                        $item['url'] = array();
+                    }
+                    $menu->addChild($item['name'], $item['url']);
+                }
             }
+
             return $menu;
         };
 
         $matcher = new Matcher();
         $voter = new \Knp\Menu\Silex\Voter\RouteVoter();
-        $voter->setRequest($app['request']);
+        $voter->setRequest($this->getRequest());
         $matcher->addVoter($voter);
-        $renderer = new \Knp\Menu\Renderer\TwigRenderer($app['twig'], 'bread.tpl', $matcher);
+        $renderer = new \Knp\Menu\Renderer\TwigRenderer($this->get('twig'), 'bread.tpl', $matcher);
         $bread = $renderer->render(
-            $app['main_breadcrumb'],
+            $this->get('main_breadcrumb'),
             array(
                 'template' => 'default/layout/bread.tpl'
             )
         );
         $app['breadcrumbs'] = $bread;
     }
-
 }

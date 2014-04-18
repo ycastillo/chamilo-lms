@@ -60,9 +60,10 @@ if (isset($_GET['thematic_id'])) {
 if (isset($_GET['description_type'])) {
 	$description_type = intval($_GET['description_type']);
 }
+$courseInfo = api_get_course_info();
 
 // instance thematic object for using like library here
-$thematic = new Thematic();
+$thematic = new Thematic($courseInfo);
 
 // thematic controller object
 $thematic_controller = new ThematicController();
@@ -188,7 +189,6 @@ function datetime_by_attendance(attendance_id, thematic_advance_id) {
 
 	$.ajax({
 		contentType: "application/x-www-form-urlencoded",
-		beforeSend: function(objeto) {},
 		type: "GET",
 		url: "'.api_get_path(WEB_AJAX_PATH).'thematic.ajax.php?a=get_datetime_by_attendance",
 		data: "attendance_id="+attendance_id+"&thematic_advance_id="+thematic_advance_id,
@@ -204,7 +204,6 @@ function datetime_by_attendance(attendance_id, thematic_advance_id) {
 function update_done_thematic_advance(selected_value) {
 	$.ajax({
 		contentType: "application/x-www-form-urlencoded",
-		beforeSend: function(objeto) {},
 		type: "GET",
 		url: "'.api_get_path(WEB_AJAX_PATH).'thematic.ajax.php?a=update_done_thematic_advance",
 		data: "thematic_advance_id="+selected_value,

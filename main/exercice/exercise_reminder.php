@@ -42,7 +42,7 @@ if ( empty ($objExercise)) { $objExercise = $_SESSION['objExercise'];}
 if (!$objExercise) {
 	//Redirect to the exercise overview
 	//Check if the exe_id exists
-	header("Location: overview.php?exerciseId=".$exerciseId);
+    header("Location: ".$urlMainExercise."overview.php?exerciseId=".$exerciseId."&".api_get_cidreq());
 	exit;
 }
 
@@ -54,10 +54,10 @@ if ($objExercise->expired_time != 0 && !empty($clock_expired_time)) {
 }
 
 if ($time_control) {
-    // Get time left for exipiring time
+    // Get time left for expiring time
     $time_left = api_strtotime($clock_expired_time,'UTC') - time();
-    $htmlHeadXtra[] = api_get_css(api_get_path(WEB_LIBRARY_PATH).'javascript/epiclock/stylesheet/jquery.epiclock.css');
-    $htmlHeadXtra[] = api_get_css(api_get_path(WEB_LIBRARY_PATH).'javascript/epiclock/renderers/minute/epiclock.minute.css');
+    $htmlHeadXtra[] = api_get_css(api_get_path(WEB_LIBRARY_JS_PATH).'epiclock/stylesheet/jquery.epiclock.css');
+    $htmlHeadXtra[] = api_get_css(api_get_path(WEB_LIBRARY_JS_PATH).'epiclock/renderers/minute/epiclock.minute.css');
     $htmlHeadXtra[] = api_get_js('epiclock/javascript/jquery.dateformat.min.js');
     $htmlHeadXtra[] = api_get_js('epiclock/javascript/jquery.epiclock.min.js');
     $htmlHeadXtra[] = api_get_js('epiclock/renderers/minute/epiclock.minute.js');
@@ -68,7 +68,7 @@ $exe_id = null;
 if (isset($_SESSION['exe_id'])) {
 	$exe_id = intval($_SESSION['exe_id']);
 }
-$exercise_stat_info	= $objExercise->get_stat_track_exercise_info_by_exe_id($exe_id);
+$exercise_stat_info	= $objExercise->getStatTrackExerciseInfoByExeId($exe_id);
 if (!empty($exercise_stat_info['data_tracking'])) {
 	$question_list = explode(',', $exercise_stat_info['data_tracking']);
 }
@@ -100,17 +100,19 @@ if (api_is_course_admin() && $origin != 'learnpath') {
 echo Display::page_subheader2(get_lang('QuestionsToReview'));
 
 if ($time_control) {
-    echo $objExercise->return_time_left_div();
+    echo $objExercise->returnTimeLeftDiv();
 }
 
 echo Display::div('', array('id' => 'message'));
+
+$urlMainExercise = api_get_path(WEB_CODE_PATH).'exercice/';
+echo $objExercise->returnWarningJs($urlMainExercise.'exercise_result.php?origin='.$origin.'&exe_id='.$exe_id);
 
 echo '<script>
 		lp_data = $.param({"learnpath_id": '.$learnpath_id.', "learnpath_item_id" : '.$learnpath_item_id.', "learnpath_item_view_id": '.$learnpath_item_view_id.'});
 
         function final_submit() {
-        	//Normal inputs
-        	window.location = "exercise_result.php?origin='.$origin.'&exe_id='.$exe_id.'&" + lp_data;
+            $("#dialog-confirm").dialog("open");
 		}
 
 		function review_questions() {
@@ -126,7 +128,7 @@ echo '<script>
 				$("#message").addClass("warning-message");
 				$("#message").html("'.addslashes(get_lang('SelectAQuestionToReview')).'");
 			}
-			window.location = "exercise_submit.php?'.api_get_cidreq().'&exerciseId='.$objExercise->id.'&reminder=2&origin='.$origin.'&" + lp_data;
+			window.location = "'.$urlMainExercise.'exercise_submit.php?'.api_get_cidreq().'&exerciseId='.$objExercise->id.'&reminder=2&origin='.$origin.'&" + lp_data;
 		}
 
 		function save_remind_item(obj, question_id) {
@@ -145,7 +147,7 @@ echo '<script>
 		}
 </script>';
 
-$exercise_result = get_answered_questions_from_attempt($exe_id, $objExercise);
+$exercise_result = getAnsweredQuestionsFromAttempt($exe_id, $objExercise);
 
 $remind_list = $exercise_stat_info['questions_to_check'];
 $remind_list = explode(',', $remind_list);
@@ -187,7 +189,7 @@ foreach ($question_list as $questionId) {
     }
 
     $checkbox = Display::input('checkbox', 'remind_list['.$questionId.']', '', $attributes);
-    $url = 'exercise_submit.php?exerciseId='.$objExercise->id.'&num='.$counter.'&reminder=1';
+    $url = $urlMainExercise.'exercise_submit.php?exerciseId='.$objExercise->id.'&num='.$counter.'&reminder=1';
 
     $counter++;
     if ($objExercise->type == ONE_PER_PAGE) {
@@ -203,7 +205,7 @@ foreach ($question_list as $questionId) {
 
     $rootCategories = null;
     global $app;
-    $repo = $app['orm.em']->getRepository('Entity\CQuizCategory');
+    $repo = $app['orm.em']->getRepository('ChamiloLMS\Entity\CQuizCategory');
     foreach ($objQuestionTmp->category_list as $categoryId) {
         $cat = $repo->find($categoryId);
         $parentCat = $repo->getPath($cat);
@@ -243,18 +245,13 @@ foreach ($question_list as $questionId) {
 $table .= "</div>";
 $table .= "</div>";
 
-/*echo Display::label(get_lang('QuestionWithNoAnswer'), 'warning');
-echo '<hr>';
-echo '<div class="clear"></div><br />';
-echo Display::div($table, array('class' => 'span12'));
-*/
 $exercise_actions = Display::url(get_lang('EndTest'), 'javascript://', array('onclick' => 'final_submit();', 'class' => 'btn btn-warning'));
 
 //$exercise_actions .= '&nbsp;'.Display::url(get_lang('ReviewQuestions'), 'javascript://', array('onclick' => 'review_questions();', 'class' => 'btn btn-success'));
 
 $questionList = explode(',', $exercise_stat_info['data_tracking']);
 
-$questionListFlatten = $objExercise->transform_question_list_with_medias($questionList, true);
+$questionListFlatten = $objExercise->transformQuestionListWithMedias($questionList, true);
 $mediaQuestions = $objExercise->getMediaList($questionList);
 
 $params = "exe_id=$exe_id&exerciseId=$exerciseId&origin=$origin&learnpath_id=$learnpath_id&learnpath_item_id=$learnpath_item_id&learnpath_item_view_id=$learnpath_item_view_id&".api_get_cidreq();
@@ -273,6 +270,7 @@ echo $objExercise->getProgressPagination(
 
 echo Display::div('', array('class' => 'clear'));
 echo Display::div($exercise_actions, array('class' => 'form-actions'));
+echo $objExercise->returnWarningHtml();
 
 if ($origin != 'learnpath') {
     //we are not in learnpath tool

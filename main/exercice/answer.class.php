@@ -48,9 +48,9 @@ class Answer
      * @author Olivier Brouckaert
      * @param  integer   Question ID that answers belong to
      * @param int course id
-     * @param \Exercise
+     * @param \Exercise obj
      */
-    public function Answer($questionId, $course_id = null, $exercise = null)
+    public function Answer($questionId, $course_id = null, \Exercise $exercise = null)
     {
         $this->questionId          = intval($questionId);
         $this->answer              = array();
@@ -115,9 +115,6 @@ class Answer
         $TBL_ANSWER = Database::get_course_table(TABLE_QUIZ_ANSWER);
         $questionId = $this->questionId;
 
-        /*$sql = "SELECT id, id_auto, answer,correct,comment,ponderation, position, hotspot_coordinates, hotspot_type, destination  FROM
-		      $TBL_ANSWER WHERE c_id = {$this->course_id} AND question_id ='".$questionId."' ORDER BY position";
-        */
         $sql = "SELECT iid, answer, correct, comment, ponderation, position, hotspot_coordinates, hotspot_type, destination
                 FROM $TBL_ANSWER
                 WHERE question_id ='".$questionId."'
@@ -146,7 +143,7 @@ class Answer
     }
 
     /**
-     * reads answer informations from the data base ordered by parameter
+     * Reads answer information from the database ordered by parameter
      * @param    string    Field we want to order by
      * @param    string    DESC or ASC
      * @author     Frederic Vauthier
@@ -171,7 +168,7 @@ class Answer
         $question_type   = Database::fetch_array($result_question);
 
         $sql = "SELECT * FROM $TBL_ANSWER
-                WHERE c_id = {$this->course_id} AND question_id = '".$questionId."'
+                WHERE question_id = '".$questionId."'
 				ORDER BY $field $order";
         $result = Database::query($sql);
 
@@ -191,20 +188,17 @@ class Answer
             $this->weighting[$i]   = $object->ponderation;
             $this->position[$i]    = $object->position;
             $this->destination[$i] = $object->destination;
-            //$this->autoId[$i]      = $object->id_auto;
         }
 
         if ($question_type['type'] == UNIQUE_ANSWER_NO_OPTION && !empty($doubt_data)) {
             $i = $doubt_data->iid;
             $this->id[$i] = $doubt_data->iid;
-
             $this->answer[$i]      = $doubt_data->answer;
             $this->correct[$i]     = $doubt_data->correct;
             $this->comment[$i]     = $doubt_data->comment;
             $this->weighting[$i]   = $doubt_data->ponderation;
             $this->position[$i]    = $doubt_data->position;
             $this->destination[$i] = $doubt_data->destination;
-            //$this->autoId[$i]      = $doubt_data->id_auto;
         }
         $this->nbrAnswers = count($this->answer);
     }
@@ -329,7 +323,7 @@ class Answer
                 }
 
                 $list[] = array(
-                    'iid'            => $i,
+                    'iid'           => $i,
                     'answer'        => $this->answer[$i],
                     'comment'       => $this->comment[$i],
                     'grade'         => $this->weighting[$i],
@@ -385,10 +379,11 @@ class Answer
      */
     public function isCorrect($id)
     {
-        return $this->correct[$id];
+        return isset($this->correct[$id]) ? $this->correct[$id] : null;
     }
 
-    public function getAnswerIdFromList($answer_id) {
+    public function getAnswerIdFromList($answer_id)
+    {
         $counter = 1;
         foreach ($this->answer as $my_answer_id => $item) {
             if ($answer_id == $my_answer_id) {
@@ -398,7 +393,8 @@ class Answer
         }
     }
 
-    public function getRealAnswerIdFromList($answer_id) {
+    public function getRealAnswerIdFromList($answer_id)
+    {
         $counter = 1;
         foreach ($this->answer as $my_answer_id => $item) {
             if ($answer_id == $counter) {
@@ -408,7 +404,8 @@ class Answer
         }
     }
 
-    public function getCorrectAnswerPosition($correct_id) {
+    public function getCorrectAnswerPosition($correct_id)
+    {
         $counter = 1;
         foreach ($this->correct as $my_correct_id => $item) {
             if ($correct_id == $my_correct_id) {
@@ -427,7 +424,7 @@ class Answer
      */
     public function selectComment($id)
     {
-        return $this->comment[$id];
+        return isset($this->comment[$id]) ? $this->comment[$id] : null;
     }
 
     /**
@@ -439,7 +436,7 @@ class Answer
      */
     public function selectWeighting($id)
     {
-        return $this->weighting[$id];
+        return isset($this->weighting[$id]) ? $this->weighting[$id] : null;
     }
 
     /**
@@ -451,7 +448,7 @@ class Answer
      */
     public function selectPosition($id)
     {
-        return $this->position[$id];
+        return isset($this->position[$id]) ? $this->position[$id] : null;
     }
 
     /**
@@ -513,30 +510,6 @@ class Answer
     }
 
     /**
-     * Updates an answer
-     *
-     * @author Toon Keppens
-     * @param    string    Answer title
-     * @param    string    Answer comment
-     * @param    integer    Answer weighting
-     * @param    integer    Answer position
-     */
-    public function updateAnswers($answer, $comment, $weighting, $position, $destination)
-    {
-        $TBL_REPONSES = Database :: get_course_table(TABLE_QUIZ_ANSWER);
-
-        $questionId = $this->questionId;
-        $sql = "UPDATE $TBL_REPONSES SET
-                answer = '".Database::escape_string($answer)."',
-				comment = '".Database::escape_string($comment)."',
-				ponderation = '".Database::escape_string($weighting)."',
-				position = '".Database::escape_string($position)."',
-				destination = '".Database::escape_string($destination)."'
-				WHERE iid = '".Database::escape_string($position)."' AND question_id = '".Database::escape_string($questionId)."'";
-        Database::query($sql);
-    }
-
-    /**
      * Records answers into the data base
      *
      * @author - Olivier Brouckaert
@@ -545,7 +518,7 @@ class Answer
     {
         $table_quiz_answer = Database :: get_course_table(TABLE_QUIZ_ANSWER);
         $questionId = intval($this->questionId);
-        $c_id = $this->course['real_id'];
+        //$c_id = $this->course['real_id'];
         $answersAlreadyCreated = array_keys($this->answer);
 
         // @todo don't do this!
@@ -563,33 +536,33 @@ class Answer
                 $update = $answersAlreadyCreated[$i-1];
             }
 
-            $answer = Database::escape_string($this->new_answer[$i]);
-            $correct = Database::escape_string($this->new_correct[$i]);
-            $comment = Database::escape_string($this->new_comment[$i]);
-            $weighting = Database::escape_string($this->new_weighting[$i]);
-            $position = Database::escape_string($this->new_position[$i]);
-            $hotspot_coordinates = Database::escape_string($this->new_hotspot_coordinates[$i]);
-            $hotspot_type = Database::escape_string($this->new_hotspot_type[$i]);
-            $destination = Database::escape_string($this->new_destination[$i]);
-
             if ($update) {
                 $params = array(
-                    'answer' =>  $answer,
-                    'correct' => $correct,
-                    'comment' => $comment,
-                    'ponderation' => $weighting,
-                    'position' => $position,
-                    'hotspot_coordinates' => $hotspot_coordinates,
-                    'hotspot_type' => $hotspot_type,
-                    'destination' => $destination
+                    'answer' =>  $this->new_answer[$i],
+                    'correct' => $this->new_correct[$i],
+                    'comment' => $this->new_comment[$i],
+                    'ponderation' => $this->new_weighting[$i],
+                    'position' => $this->new_position[$i],
+                    'hotspot_coordinates' => $this->new_hotspot_coordinates[$i],
+                    'hotspot_type' => $this->new_hotspot_type[$i],
+                    'destination' => $this->new_destination[$i]
                 );
                 Database::update($table_quiz_answer, $params, array('iid = ? '=> array($update)));
                 $latest_insert_id = $update;
             } else {
+                $answer = Database::escape_string($this->new_answer[$i]);
+                $correct = Database::escape_string($this->new_correct[$i]);
+                $comment = Database::escape_string($this->new_comment[$i]);
+                $weighting = Database::escape_string($this->new_weighting[$i]);
+                $position = Database::escape_string($this->new_position[$i]);
+                $hotspot_coordinates = Database::escape_string($this->new_hotspot_coordinates[$i]);
+                $hotspot_type = Database::escape_string($this->new_hotspot_type[$i]);
+                $destination = Database::escape_string($this->new_destination[$i]);
+
                 // No need to add the c_id because the answers are unique per question
                 $sql = "INSERT INTO $table_quiz_answer (question_id, answer, correct, comment, ponderation, position, hotspot_coordinates, hotspot_type, destination) VALUES ";
                 $sql.= "('$questionId','$answer','$correct','$comment','$weighting','$position','$hotspot_coordinates','$hotspot_type','$destination')";
-                error_log($sql);
+
                 Database::query($sql);
                 $latest_insert_id = Database::insert_id();
             }
@@ -600,7 +573,6 @@ class Answer
         if (!empty($latest_insert_id)) {
             $idsToDelete = implode("','", $real_correct_ids);
             if (!empty($idsToDelete) && !empty($questionId)) {
-                //$sql = "DELETE FROM $table_quiz_answer WHERE c_id = $c_id AND question_id = $questionId AND iid NOT IN ('$idsToDelete')";
                 $sql = "DELETE FROM $table_quiz_answer WHERE question_id = $questionId AND iid NOT IN ('$idsToDelete')";
                 Database::query($sql);
             }

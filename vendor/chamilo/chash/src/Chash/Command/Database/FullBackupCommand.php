@@ -10,11 +10,16 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Input\ArrayInput;
 
 /**
- * Make a full backup of the given/current install and put the results (files and db) into the given file. Store the temporary data into the /tmp/ directory
+ * Make a full backup of the given/current install and put the results
+ * (files and db) into the given file.
+ * Store the temporary data into the /tmp/ directory
  * @param array $params The params received
  */
-class FullBackupCommand extends CommonChamiloDatabaseCommand
+class FullBackupCommand extends CommonDatabaseCommand
 {
+    /**
+     *
+     */
     protected function configure()
     {
         parent::configure();
@@ -45,11 +50,16 @@ class FullBackupCommand extends CommonChamiloDatabaseCommand
             );
     }
 
+    /**
+     * @param InputInterface $input
+     * @param OutputInterface $output
+     * @return int|null|void
+     */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         parent::execute($input, $output);
 
-        $_configuration = $this->getHelper('configuration')->getConfiguration();
+        $_configuration = $this->getConfigurationArray();
         $resultPath     = $input->getArgument('result');
         $tmpFolder      = $input->getOption('tmp');
 
@@ -64,10 +74,10 @@ class FullBackupCommand extends CommonChamiloDatabaseCommand
 
         if ($deleteTemp) {
             //Calling command
-            $command = $this->getApplication()->find('files:clean_archives');
+            $command = $this->getApplication()->find('files:clean_temp_folder');
 
             $arguments = array(
-                'command' => 'files:clean_archives'
+                'command' => 'files:clean_temp_folder'
             );
             $input     = new ArrayInput($arguments);
             $command->run($input, $output);

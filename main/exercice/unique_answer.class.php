@@ -39,27 +39,19 @@ class UniqueAnswer extends Question
 
     /**
      * function which redifines Question::createAnswersForm
-     * @param the formvalidator instance
-     * @param the answers number to display
+     * @param FormValidator instance
      */
     public function createAnswersForm($form)
     {
         // Getting the exercise list
+        /** @var Exercise $obj_ex */
         $obj_ex = $this->exercise;
-
         $editor_config = array('ToolbarSet' => 'TestProposedAnswer', 'Width' => '100%', 'Height' => '125');
 
         //this line define how many question by default appear when creating a choice question
-        $nb_answers = isset($_POST['nb_answers']) ? (int)$_POST['nb_answers'] : 4; // The previous default value was 2. See task #1759.
+        // The previous default value was 2. See task #1759.
+        $nb_answers = isset($_POST['nb_answers']) ? (int)$_POST['nb_answers'] : 4;
         $nb_answers += (isset($_POST['lessAnswers']) ? -1 : (isset($_POST['moreAnswers']) ? 1 : 0));
-
-        /*
-             Types of Feedback
-             $feedback_option[0]=get_lang('Feedback');
-            $feedback_option[1]=get_lang('DirectFeedback');
-            $feedback_option[2]=get_lang('NoFeedback');
-         */
-
         $feedback_title = '';
         $comment_title  = '';
 
@@ -102,27 +94,8 @@ class UniqueAnswer extends Question
                 $nb_answers = $answer->nbrAnswers;
             }
         }
+
         $form->addElement('hidden', 'nb_answers');
-
-        // Feedback SELECT
-        $question_list      = $obj_ex->selectQuestionList();
-        $select_question    = array();
-        $select_question[0] = get_lang('SelectTargetQuestion');
-
-        if (is_array($question_list)) {
-            foreach ($question_list as $key => $questionid) {
-                //To avoid warning messages
-                if (!is_numeric($questionid)) {
-                    continue;
-                }
-                $question = Question::read($questionid);
-
-                if ($question) {
-                    $select_question[$questionid] = 'Q'.$key.' :'.Text::cut($question->selectTitle(), 20);
-                }
-            }
-        }
-        $select_question[-1] = get_lang('ExitTest');
 
         $list            = new LearnpathList(api_get_user_id());
         $flat_list       = $list->get_flat_list();
@@ -218,20 +191,59 @@ class UniqueAnswer extends Question
             $answer_number->freeze();
 
             $form->addElement('radio', 'correct', null, null, $i, 'class="checkbox" style="margin-left: 0em;"');
-            $form->addElement('html_editor', 'answer['.$i.']', null, 'style="vertical-align:middle"', $editor_config);
+
+            if ($obj_ex->fastEdition) {
+                $form->addElement('textarea', 'answer['.$i.']', null, $this->textareaSettings);
+            } else {
+                $form->addElement('html_editor', 'answer['.$i.']', null, 'style="vertical-align:middle"', $editor_config);
+            }
 
             $form->addRule('answer['.$i.']', get_lang('ThisFieldIsRequired'), 'required');
 
             if ($obj_ex->selectFeedbackType() == EXERCISE_FEEDBACK_TYPE_END) {
-                // feedback
-                $form->addElement(
-                    'html_editor',
-                    'comment['.$i.']',
-                    null,
-                    'style="vertical-align:middle"',
-                    $editor_config
-                );
+
+                if ($obj_ex->fastEdition) {
+                    // feedback
+                    $form->addElement(
+                        'textarea',
+                        'comment['.$i.']',
+                        null,
+                        $this->textareaSettings
+                    );
+                } else {
+                    // feedback
+                    $form->addElement(
+                        'html_editor',
+                        'comment['.$i.']',
+                        null,
+                        'style="vertical-align:middle"',
+                        $editor_config
+                    );
+                }
             } elseif ($obj_ex->selectFeedbackType() == EXERCISE_FEEDBACK_TYPE_DIRECT) {
+
+                // Feedback SELECT
+
+                $question_list      = $obj_ex->selectQuestionList();
+                $select_question    = array();
+                $select_question[0] = get_lang('SelectTargetQuestion');
+                // @todo improve this loop if you have 5000 questions it will blow!
+                if (is_array($question_list)) {
+                    foreach ($question_list as $key => $questionid) {
+                        //To avoid warning messages
+                        if (!is_numeric($questionid)) {
+                            continue;
+                        }
+                        $question = Question::read($questionid);
+
+                        if ($question) {
+                            $select_question[$questionid] = 'Q'.$key.' :'.Text::cut($question->selectTitle(), 20);
+                        }
+                    }
+                }
+
+                $select_question[-1] = get_lang('ExitTest');
+
                 $form->addElement(
                     'html_editor',
                     'comment['.$i.']',
@@ -239,6 +251,7 @@ class UniqueAnswer extends Question
                     'style="vertical-align:middle"',
                     $editor_config
                 );
+
                 // Direct feedback
 
                 //Adding extra feedback fields
@@ -281,21 +294,23 @@ class UniqueAnswer extends Question
 
         // ie6 fix.
 
-        if ($obj_ex->edit_exercise_in_lp == true) {
-            if ($navigator_info['name'] == 'Internet Explorer' && $navigator_info['version'] == '6') {
-                $form->addElement('submit', 'lessAnswers', get_lang('LessAnswer'), 'class="btn minus"');
-                $form->addElement('submit', 'moreAnswers', get_lang('PlusAnswer'), 'class="btn plus"');
-                $form->addElement('submit', 'submitQuestion', $this->submitText, 'class="'.$this->submitClass.'"');
-            } else {
-                //setting the save button here and not in the question class.php
-                $form->addElement('style_submit_button', 'lessAnswers', get_lang('LessAnswer'), 'class="btn minus"');
-                $form->addElement('style_submit_button', 'moreAnswers', get_lang('PlusAnswer'), 'class="btn plus"');
-                $form->addElement('style_submit_button', 'submitQuestion', $this->submitText, 'class="'.$this->submitClass.'"');
+        if ($form->isFrozen() == false) {
+            if ($obj_ex->edit_exercise_in_lp == true) {
+                if ($navigator_info['name'] == 'Internet Explorer' && $navigator_info['version'] == '6') {
+                    $form->addElement('submit', 'lessAnswers', get_lang('LessAnswer'), 'class="btn minus"');
+                    $form->addElement('submit', 'moreAnswers', get_lang('PlusAnswer'), 'class="btn plus"');
+                    $form->addElement('submit', 'submitQuestion', $this->submitText, 'class="'.$this->submitClass.'"');
+                } else {
+                    //setting the save button here and not in the question class.php
+                    $form->addElement('style_submit_button', 'lessAnswers', get_lang('LessAnswer'), 'class="btn minus"');
+                    $form->addElement('style_submit_button', 'moreAnswers', get_lang('PlusAnswer'), 'class="btn plus"');
+                    $form->addElement('style_submit_button', 'submitQuestion', $this->submitText, 'class="'.$this->submitClass.'"');
+                }
             }
+            $renderer->setElementTemplate('{element}&nbsp;', 'submitQuestion');
+            $renderer->setElementTemplate('{element}&nbsp;', 'lessAnswers');
+            $renderer->setElementTemplate('{element}&nbsp;', 'moreAnswers');
         }
-        $renderer->setElementTemplate('{element}&nbsp;', 'submitQuestion');
-        $renderer->setElementTemplate('{element}&nbsp;', 'lessAnswers');
-        $renderer->setElementTemplate('{element}&nbsp;', 'moreAnswers');
 
         $form->addElement('html', '</div></div>');
 
@@ -401,9 +416,12 @@ class UniqueAnswer extends Question
         $this->save();
     }
 
-    public function return_header($feedback_type = null, $counter = null, $score = null, $show_media = false)
+    /**
+     * {@inheritdoc}
+     */
+    public function return_header($feedback_type = null, $counter = null, $score = null, $show_media = false, $hideTitle = 0)
     {
-        $header = parent::return_header($feedback_type, $counter, $score, $show_media);
+        $header = parent::return_header($feedback_type, $counter, $score, $show_media, $hideTitle);
         $header .= '<table class="'.$this->question_table_class.'">
 			<tr>
 				<th>'.get_lang("Choice").'</th>
@@ -452,6 +470,9 @@ class UniqueAnswer extends Question
         $question_id = filter_var($question_id, FILTER_SANITIZE_NUMBER_INT);
         $score       = filter_var($score, FILTER_SANITIZE_NUMBER_FLOAT);
         $correct     = filter_var($correct, FILTER_SANITIZE_NUMBER_INT);
+        if (empty($question_id) or empty($score) or empty($correct)) {
+            return false;
+        }
         // Get the max position
         $sql      = "SELECT max(position) as max_position FROM $tbl_quiz_answer WHERE question_id = $question_id";
         $rs_max   = Database::query($sql);

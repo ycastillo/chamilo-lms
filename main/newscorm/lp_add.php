@@ -29,6 +29,10 @@ $language_file = 'learnpath';
 /* Header and action code */
 
 $currentstyle = api_get_setting('stylesheets');
+
+$showImg = Display::return_icon('div_show.gif');
+$hideImg = Display::return_icon('div_hide.gif');
+
 $htmlHeadXtra[] = '<script>
 function setFocus(){
     $("#learnpath_title").focus();
@@ -37,16 +41,6 @@ function setFocus(){
 $(document).ready(function () {
     setFocus();
 });
-
-function advanced_parameters() {
-    if(document.getElementById(\'options\').style.display == \'none\') {
-        document.getElementById(\'options\').style.display = \'block\';
-        document.getElementById(\'img_plus_and_minus\').innerHTML=\'&nbsp;<img style="vertical-align:middle;" src="../img/div_hide.gif" alt="" />&nbsp;'.get_lang('AdvancedParameters').'\';
-    } else {
-        document.getElementById(\'options\').style.display = \'none\';
-        document.getElementById(\'img_plus_and_minus\').innerHTML=\'&nbsp;<img style="vertical-align:middle;" src="../img/div_show.gif" alt="" />&nbsp;'.get_lang('AdvancedParameters').'\';
-    }
-}
 
 function activate_start_date() {
 	if(document.getElementById(\'start_date_div\').style.display == \'none\') {
@@ -123,13 +117,10 @@ $form->addElement('header', null, get_lang('AddLpToStart'));
 $form->addElement('text', 'lp_name', api_ucfirst(get_lang('LPName')), array('class' => 'span6'));
 $form->applyFilter('lp_name', 'html_filter');
 $form->addRule('lp_name', get_lang('ThisFieldIsRequired'), 'required');
-
 $form->addElement('hidden', 'post_time', time());
 $form->addElement('hidden', 'action', 'add_lp');
-
-$advanced = '<a href="javascript://" onclick=" return advanced_parameters()"><span id="img_plus_and_minus"><div style="vertical-align:top;" ><img style="vertical-align:middle;" src="../img/div_show.gif" alt="" />&nbsp;'.get_lang('AdvancedParameters').'</div></span></a>';
-$form -> addElement('advanced_settings',$advanced);
-$form -> addElement('html','<div id="options" style="display:none">');
+$form->addElement('advanced_settings', 'lp', get_lang('AdvancedParameters'));
+$form->addElement('html','<div id="lp_options" style="display:none">');
 
 $items = learnpath::get_category_from_course_into_select(api_get_course_int_id());
 if (!empty($items)) {

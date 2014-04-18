@@ -15,7 +15,9 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
 /**
+ * Class SetLanguageCommand
  * Changes the language for all platform users
+ * @package Chash\Command\User
  */
 class SetLanguageCommand extends CommonChamiloUserCommand
 {
@@ -28,17 +30,22 @@ class SetLanguageCommand extends CommonChamiloUserCommand
             ->setAliases(array('usl'))
             ->setDescription('Sets the users language to the one given')
             ->addArgument(
-                'language', 
+                'language',
                 InputArgument::OPTIONAL,
                 'The English name for the new language to set all users to'
             );
     }
 
+    /**
+     * @param InputInterface $input
+     * @param OutputInterface $output
+     * @return int|null|void
+     */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         parent::execute($input, $output);
         $_configuration = $this->getHelper('configuration')->getConfiguration();
-        $dbh = $this->getHelper('configuration')->getConnection();
+        $connection = $this->getConnection();
         $lang = mysql_real_escape_string($input->getArgument('language'));
         if (empty($lang)) {
             $ls = "SELECT DISTINCT language, count(*) as num FROM user GROUP BY 1 ORDER BY language";

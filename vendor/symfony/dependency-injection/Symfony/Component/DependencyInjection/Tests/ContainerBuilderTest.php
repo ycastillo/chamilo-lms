@@ -21,10 +21,13 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Exception\RuntimeException;
+use Symfony\Component\DependencyInjection\Exception\InactiveScopeException;
+use Symfony\Component\DependencyInjection\Loader\ClosureLoader;
 use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBag;
 use Symfony\Component\DependencyInjection\Scope;
 use Symfony\Component\Config\Resource\FileResource;
+use Symfony\Component\ExpressionLanguage\Expression;
 
 class ContainerBuilderTest extends \PHPUnit_Framework_TestCase
 {
@@ -148,6 +151,16 @@ class ContainerBuilderTest extends \PHPUnit_Framework_TestCase
         $builder->register('foo', 'stdClass')->setScope('request');
 
         $this->assertNull($builder->get('foo', ContainerInterface::NULL_ON_INVALID_REFERENCE));
+    }
+
+    /**
+     * @covers Symfony\Component\DependencyInjection\ContainerBuilder::get
+     */
+    public function testGetReturnsNullOnInactiveScopeWhenServiceIsCreatedByAMethod()
+    {
+        $builder = new ProjectContainer();
+
+        $this->assertNull($builder->get('foobaz', ContainerInterface::NULL_ON_INVALID_REFERENCE));
     }
 
     /**
@@ -377,6 +390,15 @@ class ContainerBuilderTest extends \PHPUnit_Framework_TestCase
         $builder->get('foo');
     }
 
+    public function testCreateServiceWithExpression()
+    {
+        $builder = new ContainerBuilder();
+        $builder->setParameter('bar', 'bar');
+        $builder->register('bar', 'BarClass');
+        $builder->register('foo', 'FooClass')->addArgument(array('foo' => new Expression('service("bar").foo ~ parameter("bar")')));
+        $this->assertEquals('foobar', $builder->get('foo')->arguments['foo']);
+    }
+
     /**
      * @covers Symfony\Component\DependencyInjection\ContainerBuilder::resolveServices
      */
@@ -386,6 +408,7 @@ class ContainerBuilderTest extends \PHPUnit_Framework_TestCase
         $builder->register('foo', 'FooClass');
         $this->assertEquals($builder->get('foo'), $builder->resolveServices(new Reference('foo')), '->resolveServices() resolves service references to service instances');
         $this->assertEquals(array('foo' => array('foo', $builder->get('foo'))), $builder->resolveServices(array('foo' => array('foo', new Reference('foo')))), '->resolveServices() resolves service references to service instances in nested arrays');
+        $this->assertEquals($builder->get('foo'), $builder->resolveServices(new Expression('service("foo")')), '->resolveServices() resolves expressions');
     }
 
     /**
@@ -403,7 +426,6 @@ class ContainerBuilderTest extends \PHPUnit_Framework_TestCase
         $container->setResourceTracking(false);
         $config = new ContainerBuilder(new ParameterBag(array('foo' => '%bar%')));
         $container->merge($config);
-////// FIXME
         $container->compile();
         $this->assertEquals(array('bar' => 'foo', 'foo' => 'foo'), $container->getParameterBag()->all(), '->merge() evaluates the values of the parameters towards already defined ones');
 
@@ -411,7 +433,6 @@ class ContainerBuilderTest extends \PHPUnit_Framework_TestCase
         $container->setResourceTracking(false);
         $config = new ContainerBuilder(new ParameterBag(array('foo' => '%bar%', 'baz' => '%foo%')));
         $container->merge($config);
-////// FIXME
         $container->compile();
         $this->assertEquals(array('bar' => 'foo', 'foo' => 'foo', 'baz' => 'foo'), $container->getParameterBag()->all(), '->merge() evaluates the values of the parameters towards already defined ones');
 
@@ -439,7 +460,7 @@ class ContainerBuilderTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @covers Symfony\Component\DependencyInjection\ContainerBuilder::merge
-     * @expectedException LogicException
+     * @expectedException \LogicException
      */
     public function testMergeLogicException()
     {
@@ -487,10 +508,6 @@ class ContainerBuilderTest extends \PHPUnit_Framework_TestCase
      */
     public function testAddObjectResource()
     {
-        if (!class_exists('Symfony\Component\Config\Resource\FileResource')) {
-            $this->markTestSkipped('The "Config" component is not available');
-        }
-
         $container = new ContainerBuilder();
 
         $container->setResourceTracking(false);
@@ -517,10 +534,6 @@ class ContainerBuilderTest extends \PHPUnit_Framework_TestCase
      */
     public function testAddClassResource()
     {
-        if (!class_exists('Symfony\Component\Config\Resource\FileResource')) {
-            $this->markTestSkipped('The "Config" component is not available');
-        }
-
         $container = new ContainerBuilder();
 
         $container->setResourceTracking(false);
@@ -547,10 +560,6 @@ class ContainerBuilderTest extends \PHPUnit_Framework_TestCase
      */
     public function testCompilesClassDefinitionsOfLazyServices()
     {
-        if (!class_exists('Symfony\Component\Config\Resource\FileResource')) {
-            $this->markTestSkipped('The "Config" component is not available');
-        }
-
         $container = new ContainerBuilder();
 
         $this->assertEmpty($container->getResources(), 'No resources get registered without resource tracking');
@@ -577,10 +586,6 @@ class ContainerBuilderTest extends \PHPUnit_Framework_TestCase
      */
     public function testResources()
     {
-        if (!class_exists('Symfony\Component\Config\Resource\FileResource')) {
-            $this->markTestSkipped('The "Config" component is not available');
-        }
-
         $container = new ContainerBuilder();
         $container->addResource($a = new FileResource(__DIR__.'/Fixtures/xml/services1.xml'));
         $container->addResource($b = new FileResource(__DIR__.'/Fixtures/xml/services2.xml'));
@@ -655,7 +660,7 @@ class ContainerBuilderTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * @expectedException BadMethodCallException
+     * @expectedException \BadMethodCallException
      */
     public function testThrowsExceptionWhenSetServiceOnAFrozenContainer()
     {
@@ -667,14 +672,10 @@ class ContainerBuilderTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * @expectedException BadMethodCallException
+     * @expectedException \BadMethodCallException
      */
     public function testThrowsExceptionWhenAddServiceOnAFrozenContainer()
     {
-        if (!class_exists('Symfony\Component\Config\Resource\FileResource')) {
-            $this->markTestSkipped('The "Config" component is not available');
-        }
-
         $container = new ContainerBuilder();
         $container->compile();
         $container->set('a', new \stdClass());
@@ -682,10 +683,6 @@ class ContainerBuilderTest extends \PHPUnit_Framework_TestCase
 
     public function testNoExceptionWhenSetSyntheticServiceOnAFrozenContainer()
     {
-        if (!class_exists('Symfony\Component\Config\Resource\FileResource')) {
-            $this->markTestSkipped('The "Config" component is not available');
-        }
-
         $container = new ContainerBuilder();
         $def = new Definition('stdClass');
         $def->setSynthetic(true);
@@ -742,7 +739,7 @@ class ContainerBuilderTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * @expectedException BadMethodCallException
+     * @expectedException \BadMethodCallException
      */
     public function testThrowsExceptionWhenSetDefinitionOnAFrozenContainer()
     {
@@ -773,6 +770,47 @@ class ContainerBuilderTest extends \PHPUnit_Framework_TestCase
         $configs = $container->getExtensionConfig('foo');
         $this->assertEquals(array($second, $first), $configs);
     }
+
+    public function testLazyLoadedService()
+    {
+        $loader = new ClosureLoader($container = new ContainerBuilder());
+        $loader->load(function (ContainerBuilder $container) {
+                $container->set('a', new \BazClass());
+                $definition = new Definition('BazClass');
+                $definition->setLazy(true);
+                $container->setDefinition('a', $definition);
+            }
+        );
+
+        $container->setResourceTracking(true);
+
+        $container->compile();
+
+        $class = new \BazClass();
+        $reflectionClass = new \ReflectionClass($class);
+
+        $r = new \ReflectionProperty($container, 'resources');
+        $r->setAccessible(true);
+        $resources = $r->getValue($container);
+
+        $classInList = false;
+        foreach ($resources as $resource) {
+            if ($resource->getResource() === $reflectionClass->getFileName()) {
+                $classInList = true;
+                break;
+            }
+        }
+
+        $this->assertTrue($classInList);
+    }
 }
 
 class FooClass {}
+
+class ProjectContainer extends ContainerBuilder
+{
+    public function getFoobazService()
+    {
+        throw new InactiveScopeException('foo', 'request');
+    }
+}

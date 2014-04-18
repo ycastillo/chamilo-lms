@@ -10,6 +10,7 @@ $action = $_GET['a'];
 switch ($action) {
     case 'get_user_popup':
         $user_info = api_get_user_info($_REQUEST['user_id']);
+        //var_dump($user_info);
         echo '<div class="well">';
             echo '<div class="row">';
             echo '<div class="span2">';
@@ -24,7 +25,7 @@ switch ($action) {
                 $user_info['mail'] = ' '.$user_info['mail'].' ';
             }
             echo '<h3>'.$user_info['complete_name'].'</h3>'.$user_info['mail'].$user_info['official_code'];
-            echo '<br/><br/><a class="btn" href="'.api_get_path(WEB_CODE_PATH).'social/profile.php?u='.$user_info['user_id'].'">'.get_lang('ViewSharedProfile').'</a>';
+            echo '<br/><br/><a class="btn" href="'.$user_info['profile_url'].'">'.get_lang('ViewSharedProfile').'</a>';
             echo '</div>';
             echo '</div>';
         echo '</div>';
@@ -70,8 +71,10 @@ switch ($action) {
         break;
 	case 'active_user':
 		if (api_is_platform_admin() && api_global_admin_can_edit_admin($_GET['user_id'])) {
+
 			$user_id = intval($_GET['user_id']);
 			$status  = intval($_GET['status']);
+
 			if (!empty($user_id)) {
                 UserManager::change_active_state($user_id, $status, true);
                 echo $status;
