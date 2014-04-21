@@ -32,6 +32,7 @@ $course_id = api_get_course_int_id();
 $userId = api_get_user_id();
 $surveyId = Database::escape_string($_GET['survey_id']);
 $userInvited = 0;
+$surveyAnonymous = 0;
 
 //query to ask if logged user is allowed to see the preview (if he is invited of he is a teacher)
 $sql = "SELECT survey_invitation.user FROM $table_survey_invitation survey_invitation LEFT JOIN $table_survey survey
@@ -39,11 +40,6 @@ $sql = "SELECT survey_invitation.user FROM $table_survey_invitation survey_invit
 $result = Database::query($sql);
 if (Database::num_rows($result) > 0) {
     $userInvited = 1;    
-}
-if($userInvited == 0) {
-    if(!api_is_allowed_to_edit()) {    
-        api_not_allowed();
-    }                
 }
 // We exit here if ther is no valid $_GET parameter
 if (!isset($_GET['survey_id']) || !is_numeric($_GET['survey_id'])){
@@ -70,10 +66,22 @@ if (api_strlen(strip_tags($survey_data['title'])) > 40) {
 }*/
 
 $urlname = strip_tags($survey_data['title']);
+if (api_is_allowed_to_edit()) {
+    // Breadcrumbs
+    $interbreadcrumb[] = array('url' => 'survey_list.php', 'name' => get_lang('SurveyList'));
+    $interbreadcrumb[] = array('url' => 'survey.php?survey_id='.$survey_id, 'name' => $urlname);
+}
 
-// Breadcrumbs
-$interbreadcrumb[] = array('url' => 'survey_list.php', 'name' => get_lang('SurveyList'));
-$interbreadcrumb[] = array('url' => 'survey.php?survey_id='.$survey_id, 'name' => $urlname);
+$courseCode = $_GET['cidReq'];
+$surveyAnonymous = survey_manager::get_survey($survey_id, 0, $courseCode);
+$surveyAnonymous = $surveyAnonymous['anonymous'];
+if ($surveyAnonymous == 0 && api_is_anonymous()) {
+    api_not_allowed(true);
+} elseif ($surveyAnonymous == 0 && $userInvited == 0) {
+    if (!api_is_allowed_to_edit()) {    
+        api_not_allowed(true);
+    }                
+}
 
 // Header
 Display :: display_header(get_lang('SurveyPreview'));
