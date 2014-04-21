@@ -68,13 +68,11 @@ if (empty($survey_data)) {
 }
 
 $urlname = strip_tags($survey_data['title']);
-
 if (api_is_allowed_to_edit()) {
     // Breadcrumbs
     $interbreadcrumb[] = array('url' => api_get_path(WEB_CODE_PATH).'survey/survey_list.php', 'name' => get_lang('SurveyList'));
     $interbreadcrumb[] = array('url' => api_get_path(WEB_CODE_PATH).'survey/survey.php?survey_id='.$survey_id, 'name' => $urlname);
 }
-
 $courseCode = $_GET['cidReq'];
 $surveyAnonymous = survey_manager::get_survey($survey_id, 0, $courseCode);
 $surveyAnonymous = $surveyAnonymous['anonymous'];
@@ -85,7 +83,6 @@ if ($surveyAnonymous == 0 && api_is_anonymous()) {
         api_not_allowed(true);
     }                
 }
-
 // Header
 Display :: display_header(get_lang('SurveyPreview'));
 
