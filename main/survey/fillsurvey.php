@@ -64,6 +64,8 @@ if (empty($course_info)) {
 
 $course_id = $course_info['real_id'];
 $surveyCode = isset($_GET['scode']) ? Database::escape_string($_GET['scode']) : ''; 
+// Header
+Display :: display_header(get_lang('ToolSurvey'));
 
 if ($surveyCode != "") {
     // Firstly we check if this survey is ready for anonymous use:
@@ -71,17 +73,13 @@ if ($surveyCode != "") {
     $resultAnonymous = Database::query($sqlAnonymous);
     $rowAnonymous = Database::fetch_array($resultAnonymous, 'ASSOC');
     // If is anonymous and is not allowed to take the survey to anonymous users, forbid access:
-    if (!isset($rowAnonymous['anonymous']) || ($rowAnonymous['anonymous'] == 0 && api_is_anonymous($_user['user_id'], true)) || count($rowAnonymous) == 0) {
+    if (!isset($rowAnonymous['anonymous']) || ($rowAnonymous['anonymous'] == 0 && api_is_anonymous()) || count($rowAnonymous) == 0) {
         api_not_allowed();
     } 
 // If is anonymous and it is allowed to take the survey as anonymous, mark survey as anonymous:
 } else {
     //nothing to do
 } 
-
-// Header
-Display :: display_header(get_lang('ToolSurvey'));
-
 // First we check if the needed parameters are present
 if ((!isset($_GET['course']) || !isset($_GET['invitationcode'])) && !isset($_GET['user_id'])) {
     Display :: display_error_message(get_lang('SurveyParametersMissingUseCopyPaste'), false);
