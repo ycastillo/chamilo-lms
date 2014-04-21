@@ -47,11 +47,7 @@ $result = Database::query($sql);
 if (Database::num_rows($result) > 0) {
     $userInvited = 1;
 }
-if ($userInvited == 0) {
-    if(!api_is_allowed_to_edit()) {
-        api_not_allowed();
-    }
-}
+
 // We exit here if ther is no valid $_GET parameter
 if (!isset($_GET['survey_id']) || !is_numeric($_GET['survey_id'])){
 	Display::display_header(get_lang('SurveyPreview'));
@@ -78,19 +74,18 @@ if (api_is_allowed_to_edit()) {
     $interbreadcrumb[] = array('url' => api_get_path(WEB_CODE_PATH).'survey/survey_list.php', 'name' => get_lang('SurveyList'));
     $interbreadcrumb[] = array('url' => api_get_path(WEB_CODE_PATH).'survey/survey.php?survey_id='.$survey_id, 'name' => $urlname);
 }
-// Header
-Display :: display_header(get_lang('SurveyPreview'));
 $courseCode = $_GET['cidReq'];
 $surveyAnonymous = survey_manager::get_survey($survey_id, 0, $courseCode);
 $surveyAnonymous = $surveyAnonymous['anonymous'];
 if ($surveyAnonymous == 0 && api_is_anonymous()) {
-    api_not_allowed();
+    api_not_allowed(true);
 } elseif ($surveyAnonymous == 0 && $userInvited == 0) {
-    if(!api_is_allowed_to_edit()) {    
-        api_not_allowed();
+    if (!api_is_allowed_to_edit()) {    
+        api_not_allowed(true);
     }                
 }
-
+// Header
+Display :: display_header(get_lang('SurveyPreview'));
 // We exit here is the first or last question is a pagebreak (which causes errors)
 SurveyUtil::check_first_last_question($survey_id, false);
 
