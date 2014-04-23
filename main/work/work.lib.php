@@ -4114,11 +4114,7 @@ function getFile($id, $course_info, $download = true)
 {
     $file = getFileContents($id, $course_info);
     if (!empty($file) && is_array($file)) {
-        DocumentManager::file_send_for_download(
-            $file['path'],
-            $download,
-            $file['title']
-        );
+        return DocumentManager::file_send_for_download( $file['path'], $download, $file['title']);
     }
     return false;
 }
