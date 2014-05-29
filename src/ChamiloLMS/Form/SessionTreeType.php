@@ -1,4 +1,5 @@
 <?php
+/* For licensing terms, see /license.txt */
 
 namespace ChamiloLMS\Form;
 
@@ -67,7 +68,7 @@ class SessionTreeType extends AbstractType
     {
         $resolver->setDefaults(
             array(
-                'data_class' => 'Entity\SessionTree'
+                'data_class' => 'ChamiloLMS\Entity\SessionTree'
             )
         );
     }

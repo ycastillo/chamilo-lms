@@ -1,5 +1,6 @@
 <?php
 /* For licensing terms, see /license.txt */
+
 namespace ChamiloLMS\Component\Editor\Driver;
 
 use ChamiloLMS\Entity\CDropboxFile;
@@ -79,7 +80,7 @@ class DropBoxDriver extends \elFinderVolumeMySQL implements InterfaceDriver
                         'driver'     => 'DropBoxDriver',
                         'path'       => '1',
                         'alias' => 'dropbox',
-                        'tmpPath' => $this->connector->paths['sys_temp_path'],
+                        'tmpPath' => $this->connector->paths['path.temp'],
                         //'alias' => $courseInfo['code'].' personal documents',
                         //'URL' => $this->getCourseDocumentRelativeWebPath().$path,
                         'accessControl' => 'access'

@@ -1,4 +1,5 @@
 <?php
+/* For licensing terms, see /license.txt */
 
 namespace ChamiloLMS\Form;
 
@@ -19,7 +20,7 @@ class QuestionScoreType extends AbstractType
     {
         $resolver->setDefaults(
             array(
-                'data_class' => 'Entity\QuestionScore'
+                'data_class' => 'ChamiloLMS\Entity\QuestionScore'
             )
         );
     }

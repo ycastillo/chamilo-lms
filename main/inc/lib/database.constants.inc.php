@@ -5,7 +5,7 @@
  *  This file is called by database.lib.php and database.mysqli.lib.php
  *
  *  @todo the table constants have all to start with TABLE_
- *        This is because of the analogy with the tool constants TOOL_
+ *  This is because of the analogy with the tool constants TOOL_
  *
  *	@package chamilo.library
  */
@@ -281,9 +281,6 @@ define('TABLE_NOTEBOOK', 'notebook');
 // Message
 define('TABLE_MESSAGE', 'message');
 define('TABLE_MESSAGE_ATTACHMENT', 'message_attachment');
-
-// Metadata
-define('TABLE_METADATA', 'metadata');
 
 // Attendance Sheet
 define('TABLE_ATTENDANCE',          'attendance');

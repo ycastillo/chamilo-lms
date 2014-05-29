@@ -1,4 +1,5 @@
 <?php
+/* For licensing terms, see /license.txt */
 
 namespace ChamiloLMS\Component\Editor\CkEditor\Toolbar;
 
@@ -29,10 +30,7 @@ class Documents extends Basic
         );
 
         $config['extraPlugins'] = $this->getConfigAttribute('extraPlugins').',mathjax';
-        $config['mathJaxLib'] = $this->urlGenerator->generate(
-            'legacy.controller:getJavascript',
-            array('file' => 'math_jax/MathJax.js', 'config'=> 'default')
-        );
+        $config['mathJaxLib'] = $this->urlGenerator->generate('javascript').'/math_jax/MathJax.js?config=default';
         $config['fullPage'] = true;
         return $config;
     }

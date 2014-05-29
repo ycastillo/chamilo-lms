@@ -1,5 +1,6 @@
 <?php
 /* For licensing terms, see /license.txt */
+
 namespace ChamiloLMS\Component\DataFilesystem;
 
 use Symfony\Component\Finder\Finder;
@@ -176,7 +177,7 @@ class DataFilesystem
         if (!empty($extension)) {
             $extension = ".$extension";
         }
-        $filePath = $this->paths['sys_temp_path'].$fileName.$extension;
+        $filePath = $this->paths['path.temp'].$fileName.$extension;
         $this->fs->touch($filePath);
         if ($this->fs->exists($filePath)) {
             return $filePath;

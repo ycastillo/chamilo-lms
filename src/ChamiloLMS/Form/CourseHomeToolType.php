@@ -1,4 +1,5 @@
 <?php
+/* For licensing terms, see /license.txt */
 
 namespace ChamiloLMS\Form;
 
@@ -36,7 +37,7 @@ class CourseHomeToolType extends AbstractType
     {
         $resolver->setDefaults(
             array(
-                'data_class' => 'Entity\CTool'
+                'data_class' => 'ChamiloLMS\Entity\CTool'
             )
         );
     }

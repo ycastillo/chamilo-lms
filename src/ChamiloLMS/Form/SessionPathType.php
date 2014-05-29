@@ -1,4 +1,5 @@
 <?php
+/* For licensing terms, see /license.txt */
 
 namespace ChamiloLMS\Form;
 
@@ -31,7 +32,7 @@ class SessionPathType extends AbstractType
     {
         $resolver->setDefaults(
             array(
-                'data_class' => 'Entity\SessionPath'
+                'data_class' => 'ChamiloLMS\Entity\SessionPath'
             )
         );
     }

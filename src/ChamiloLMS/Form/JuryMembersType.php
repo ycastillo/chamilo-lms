@@ -1,4 +1,5 @@
 <?php
+/* For licensing terms, see /license.txt */
 
 namespace ChamiloLMS\Form;
 
@@ -45,7 +46,7 @@ class JuryMembersType extends AbstractType
     {
         $resolver->setDefaults(
             array(
-                'data_class' => 'Entity\JuryMembers'
+                'data_class' => 'ChamiloLMS\Entity\JuryMembers'
             )
         );
     }

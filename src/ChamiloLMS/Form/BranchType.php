@@ -1,4 +1,5 @@
 <?php
+/* For licensing terms, see /license.txt */
 
 namespace ChamiloLMS\Form;
 
@@ -60,7 +61,7 @@ class BranchType extends AbstractType
     {
         $resolver->setDefaults(
             array(
-                'data_class' => 'Entity\BranchSync'
+                'data_class' => 'ChamiloLMS\Entity\BranchSync'
             )
         );
     }

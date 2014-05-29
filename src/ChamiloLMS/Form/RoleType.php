@@ -1,4 +1,5 @@
 <?php
+/* For licensing terms, see /license.txt */
 
 namespace ChamiloLMS\Form;
 
@@ -20,7 +21,7 @@ class RoleType extends AbstractType
     {
         $resolver->setDefaults(
             array(
-                'data_class' => 'Entity\Role'
+                'data_class' => 'ChamiloLMS\Entity\Role'
             )
         );
     }

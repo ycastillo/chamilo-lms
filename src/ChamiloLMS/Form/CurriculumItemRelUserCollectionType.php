@@ -1,4 +1,5 @@
 <?php
+/* For licensing terms, see /license.txt */
 
 namespace ChamiloLMS\Form;
 
@@ -45,7 +46,7 @@ class CurriculumItemRelUserCollectionType extends AbstractType
     {
         $resolver->setDefaults(
             array(
-                'data_class' => 'Entity\CurriculumItem'
+                'data_class' => 'ChamiloLMS\Entity\CurriculumItem'
             )
         );
     }

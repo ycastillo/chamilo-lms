@@ -2,6 +2,8 @@
 /* For licensing terms, see /license.txt */
 
 /**
+ * Class Display
+ *
  * This is a display library for Chamilo.
  *
  * Include/require it in your code to use its public functionality.
@@ -13,17 +15,21 @@
  *
  * @package chamilo.library
  */
-/**
- * Code
- */
 class Display
 {
     /** The main template */
     public static $global_template;
     public static $preview_style = null;
+    public static $urlGenerator = null;
 
     public function __construct()
     {
+
+    }
+
+    public static function setUrlGenerator($urlGenerator)
+    {
+        self::$urlGenerator = $urlGenerator;
     }
 
     /**
@@ -100,7 +106,7 @@ class Display
     }
 
     /**
-     * @param Symfony\Component\Routing\RouterInterface $urlGenerator
+     * @param \Symfony\Component\Routing\RouterInterface $urlGenerator
      * @param string $tool
      * @param array $toolList
      * @return null|string
@@ -208,7 +214,7 @@ class Display
 
                     $url = $urlGenerator->generate(
                         'introduction.controller:editAction',
-                        array('tool' => $tool, 'course' => api_get_course_id())
+                        array('tool' => $tool, 'courseCode' => api_get_course_id())
                     );
 
                     $introduction_section .=  "<a href=\"".$url."?".api_get_cidreq()."\">";
@@ -222,7 +228,7 @@ class Display
                     $introduction_section .=  '<div id="introduction_block_action" class="col-md-2 col-md-offset-10">';
                     $url = $urlGenerator->generate(
                         'introduction.controller:editAction',
-                        array('tool' => $tool, 'course' => api_get_course_id())
+                        array('tool' => $tool, 'courseCode' => api_get_course_id())
                     );
 
                     $introduction_section .=  "<a href=\"".$url."?".api_get_cidreq()."\">";
@@ -231,7 +237,7 @@ class Display
 
                     $url = $urlGenerator->generate(
                         'introduction.controller:deleteAction',
-                        array('tool' => $tool, 'course' => api_get_course_id())
+                        array('tool' => $tool, 'courseCode' => api_get_course_id())
                     );
 
                     $introduction_section .=  "<a onclick=\"javascript:if(!confirm('".addslashes(api_htmlentities(get_lang('ConfirmYourChoice')))."')) return false;\" href=\"".$url."?".api_get_cidreq()."\">";
@@ -783,9 +789,11 @@ class Display
         $show_text = true,
         $return_only_path = false
     ) {
-
         $code_path   = api_get_path(SYS_IMG_PATH);
         $w_code_path = api_get_path(WEB_IMG_PATH);
+
+        //$code_path = self::$urlGenerator->generate('root');
+        //$w_code_path = self::$urlGenerator->generate('root');
 
         $image      = trim($image);
         $theme      = 'css/'.api_get_visual_theme().'/icons/';
@@ -1772,8 +1780,9 @@ class Display
             case 'warning':
                 $class = 'label-warning';
                 break;
+            case 'danger':
             case 'important':
-                $class = 'label-important';
+                $class = 'label-danger';
                 break;
             case 'info':
                 $class = 'label-info';

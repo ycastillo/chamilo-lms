@@ -1,5 +1,6 @@
 <?php
 /* For licensing terms, see /license.txt */
+
 /**
  * Chamilo installation
  * This script could be loaded via browser using the URL: main/install/index.php
@@ -9,8 +10,9 @@
  */
 
 require_once __DIR__.'/../../vendor/autoload.php';
-require_once 'install.lib.php';
-require_once '../inc/lib/api.lib.php';
+require_once __DIR__.'/../inc/lib/api.lib.php';
+require_once __DIR__.'/install.lib.php';
+$versionData = require_once __DIR__.'/version.php';
 
 error_reporting(-1);
 ini_set('display_errors', '1');
@@ -19,17 +21,25 @@ set_time_limit(0);
 use Symfony\Component\Console\Output\Output;
 use Symfony\Component\HttpFoundation\Request;
 use ChamiloLMS\Component\Console\Output\BufferedOutput;
+use ChamiloLMS\Framework\Application;
+use Chash\Command\Installation\InstallCommand;
+use Chash\Command\Installation\UpgradeCommand;
 
-$app = new Silex\Application();
+$app = new Application();
 
 // Setting paths
-$app['root_sys'] = dirname(dirname(__DIR__)).'/';
-$app['sys_root'] = $app['root_sys'];
-$app['sys_data_path'] = isset($_configuration['sys_data_path']) ? $_configuration['sys_data_path'] : $app['root_sys'].'data/';
-$app['sys_config_path'] = isset($_configuration['sys_config_path']) ? $_configuration['sys_config_path'] : $app['root_sys'].'config/';
-$app['sys_course_path'] = isset($_configuration['sys_course_path']) ? $_configuration['sys_course_path'] : $app['sys_data_path'].'/course';
-$app['sys_log_path'] = isset($_configuration['sys_log_path']) ? $_configuration['sys_log_path'] : $app['root_sys'].'logs/';
-$app['sys_temp_path'] = isset($_configuration['sys_temp_path']) ? $_configuration['sys_temp_path'] : $app['sys_data_path'].'temp/';
+$app['path.base'] = dirname(dirname(__DIR__)).'/';
+$app['path.app'] = $app['path.base'].'src/ChamiloLMS/';
+$app['path.config'] = $app['path.base'].'config/';
+
+$app->bindInstallPaths(require $app['path.app'].'paths.php');
+$app->readConfigurationFiles();
+
+$app['path.data'] = isset($_configuration['path.data']) ? $_configuration['path.data'] : $app['path.data'];
+$app['path.courses'] = isset($_configuration['path.courses']) ? $_configuration['path.courses'] : $app['path.courses'];
+$app['path.logs'] = isset($_configuration['path.logs']) ? $_configuration['path.logs'] : $app['path.logs'];
+$app['path.temp'] = isset($_configuration['path.temp']) ? $_configuration['path.temp'] : $app['path.temp'];
+
 
 // Registering services
 $app['debug'] = true;
@@ -99,8 +109,8 @@ $console->addCommands(
         new \Doctrine\DBAL\Migrations\Tools\Console\Command\VersionCommand(),
 
         // Chash commands.
-        new Chash\Command\Installation\UpgradeCommand(),
-        new Chash\Command\Installation\InstallCommand(),
+        new UpgradeCommand(),
+        new InstallCommand(),
 
         new Chash\Command\Files\CleanCoursesFilesCommand(),
         new Chash\Command\Files\CleanTempFolderCommand(),
@@ -121,10 +131,7 @@ foreach ($helpers as $name => $helper) {
 }
 
 $blockInstallation = function () use ($app) {
-
-    if (file_exists($app['root_sys'].'config/configuration.php') ||
-        file_exists($app['root_sys'].'config/configuration.yml')
-    ) {
+    if (file_exists($app['path.config'].'configuration.php')) {
         return $app->abort(500, "A Chamilo installation was found. You can't reinstall.");
     }
 
@@ -166,26 +173,29 @@ $app->match('/', function () use ($app) {
         ))
         ->add('continue', 'submit', array('attr' => array('class' => 'btn')))
         ->getForm();
-
+    
     if ('POST' == $request->getMethod()) {
         $url = $app['url_generator']->generate('requirements');
 
         return $app->redirect($url);
     }
 
-    return $app['twig']->render('index.tpl', array('form' => $form->createView()));
+    return $app['twig']->render(
+        'index.tpl',
+        array('form' => $form->createView())
+    );
 })
-->bind('welcome')
+->bind('root') // need because api_get_path()
 ->before($blockInstallation);
 
 $app->match('/requirements', function () use ($app) {
-
+    
     $allowedToContinue = checkRequiredSettings();
 
     $request = $app['request'];
     $builder = $app['form.factory']->createBuilder('form');
     if ($allowedToContinue) {
-        $builder->add('continue', 'submit', array('attr' => array('class' => 'btn-default')));
+        $builder->add('continue', 'submit', array('attr' => array('class' => 'btn btn-default')));
     } else {
         $message = $app['translator']->trans("You need to check your server settings.");
         $app['session']->getFlashBag()->add('error', $message);
@@ -250,14 +260,13 @@ $app->match('/check-database', function () use ($app) {
         if ($form->isValid()) {
             $parameters = $form->getData();
 
-            /** @var \Chash\Command\Installation\InstallCommand $command */
+            /** @var InstallCommand $command */
             $command = $app['console']->get('chamilo:install');
             $command->setDatabaseSettings($parameters);
 
             $connection = $command->getUserAccessConnectionToHost();
 
             try {
-                //$connect = $connection->connect();
                 $sm = $connection->getSchemaManager();
                 $databases = $sm->listDatabases();
 
@@ -281,7 +290,10 @@ $app->match('/check-database', function () use ($app) {
 
                 return $app->redirect($url);
             } catch (Exception $e) {
-                $app['session']->getFlashBag()->add('success', 'Connection error !'.$e->getMessage());
+                $app['session']->getFlashBag()->add(
+                    'success',
+                    'Connection error !'.$e->getMessage()
+                );
             }
         }
     }
@@ -297,9 +309,9 @@ $app->match('/portal-settings', function () use ($app) {
     /** @var Request $request */
     $request = $app['request'];
 
-    /** @var \Chash\Command\Installation\InstallCommand $command */
+    /** @var InstallCommand $command */
     $command = $app['console']->get('chamilo:install');
-    $builder  = $app['form.factory']->createBuilder('form');
+    $builder = $app['form.factory']->createBuilder('form');
 
     $data = $command->getPortalSettingsParams();
     $data['institution_url']['attributes']['data'] = str_replace('main/install/', '', $request->getUriForPath('/'));
@@ -352,7 +364,7 @@ $app->match('/portal-settings', function () use ($app) {
 $app->match('/admin-settings', function () use ($app) {
     $request = $app['request'];
 
-    /** @var Chash\Command\Installation\InstallCommand $command */
+    /** @var InstallCommand $command */
     $command = $app['console']->get('chamilo:install');
 
     $data = $command->getAdminSettingsParams();
@@ -418,7 +430,6 @@ $app->match('/resume', function () use ($app) {
             )
         );
     } else {
-
         $url = $app['url_generator']->generate('check-database');
 
         return $app->redirect($url);
@@ -427,13 +438,13 @@ $app->match('/resume', function () use ($app) {
 
 // Installation process.
 
-$app->match('/installing', function () use ($app) {
+$app->match('/installing', function () use ($app, $versionData) {
 
     $portalSettings = $app['session']->get('portal_settings');
     $adminSettings = $app['session']->get('admin_settings');
     $databaseSettings = $app['session']->get('database_settings');
 
-    /** @var Chash\Command\Installation\InstallCommand $command */
+    /** @var InstallCommand $command */
     $command = $app['console']->get('chamilo:install');
 
     $def = $command->getDefinition();
@@ -441,7 +452,7 @@ $app->match('/installing', function () use ($app) {
         array(
             'name',
             'path' => realpath(__DIR__.'/../../').'/',
-            'version' => '1.10.0'
+            'version' => $versionData['version']
         ),
         $def
     );
@@ -478,13 +489,13 @@ $app->get('/finish', function () use ($app) {
     $output = $app['session']->get('output');
     $message = $app['translator']->trans(
         'To protect your site, make the whole %s directory read-only (chmod 0555 on Unix/Linux)',
-        array('%s' => $app['root_sys'].'config')
+        array('%s' => $app['path.config'])
     );
     $app['session']->getFlashBag()->add('warning', $message);
 
     $message = $app['translator']->trans(
         'Delete the %s directory.',
-        array('%s' => $app['root_sys'].'install')
+        array('%s' => $app['path.base'].'install')
     );
     $app['session']->getFlashBag()->add('warning', $message);
 
@@ -519,3 +530,5 @@ if (PHP_SAPI == 'cli') {
 } else {
     $app->run();
 }
+
+
