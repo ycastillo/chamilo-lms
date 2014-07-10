@@ -3206,7 +3206,8 @@ class CourseManager
 
         $my_course_image = new Image($source_file);
         $result = $my_course_image->send_image($course_image, -1, 'png');
-        //Redimension image to 100x85
+        //Redimension image to 100x85 (should be 85x85 but 100x85 visually gives
+        // better results for most images people put as course icon)
         if ($result) {
             $medium = new Image($course_image);
             //$picture_infos = $medium->get_image_size();
@@ -4359,7 +4360,7 @@ class CourseManager
         $row = Database::fetch_row($res);
         return $row[0];
     }
-    
+
     /**
      * Get availab le courses count
      * @param int Access URL ID (optional)
@@ -4375,7 +4376,7 @@ class CourseManager
         if (!empty($specialCourseList)) {
             $withoutSpecialCourses = ' AND c.code NOT IN ("'.implode('","',$specialCourseList).'")';
         }
-        
+
         if (!empty($accessUrlId) && $accessUrlId == intval($accessUrlId)) {
             $sql = "SELECT count(id) FROM $tableCourse c, $tableCourseRelAccessUrl u WHERE c.code = u.course_code AND u.access_url_id = $accessUrlId AND c.visibility != 0 AND c.visibility != 4 $withoutSpecialCourses";
         }
@@ -4582,7 +4583,8 @@ class CourseManager
             'email_alert_to_teacher_on_new_user_in_course',
             'enable_lp_auto_launch',
             'pdf_export_watermark_text',
-            'show_system_folders'
+            'show_system_folders',
+            //'lp_return_link'
         );
         if (!empty($pluginCourseSettings)) {
             $courseSettings = array_merge(
@@ -4641,6 +4643,49 @@ class CourseManager
         $sql = "SELECT variable FROM $courseSetting WHERE c_id = $courseId AND variable = '$variable'";
         $result = Database::query($sql);
         return Database::num_rows($result) > 0;
+    }
+
+    /**
+     * Get information from the track_e_course_access table
+     * @param int $sessionId
+     * @param int $userId
+     * @return array
+     */
+    public static function getCourseAccessPerSessionAndUser($sessionId, $userId, $limit = null)
+    {
+        $table = Database :: get_main_table(TABLE_STATISTIC_TRACK_E_COURSE_ACCESS);
+        $sql = "SELECT * FROM $table
+                WHERE session_id = $sessionId AND user_id = $userId";
+
+        if (!empty($limit)) {
+            $limit = intval($limit);
+            $sql .= " LIMIT $limit";
+        }
+        $result = Database::query($sql);
+
+        return Database::store_result($result);
+    }
+
+    /**
+     * Get information from the track_e_course_access table
+     * @param int $sessionId
+     * @param int $userId
+     * @return array
+     */
+    public static function getFirstCourseAccessPerSessionAndUser($sessionId, $userId)
+    {
+        $table = Database :: get_main_table(TABLE_STATISTIC_TRACK_E_COURSE_ACCESS);
+        $sql = "SELECT * FROM $table
+                WHERE session_id = $sessionId AND user_id = $userId
+                ORDER BY login_course_date ASC
+                LIMIT 1";
+
+        $result = Database::query($sql);
+        $courseAccess = array();
+        if (Database::num_rows($result)) {
+            $courseAccess = Database::fetch_array($result, 'ASSOC');
+        }
+        return $courseAccess;
     }
 
 }

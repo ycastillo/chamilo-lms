@@ -814,6 +814,7 @@ class learnpath
                                 error_log('Found one incomplete child of ' . $parent_id . ': ' . $child . ' is ' . $this->items[$child]->get_status(), 0);
                             }
                             $completed = false;
+                            break;
                         }
                     }
                 }
@@ -832,7 +833,7 @@ class learnpath
             }
         } else {
             if ($debug) {
-                error_log("#$item is an item doesn't have parents");
+                error_log("#$item is an item that doesn't have parents");
             }
         }
     }
@@ -1345,7 +1346,7 @@ class learnpath
 
             Database::query($sql_update_order);
         }
-        
+
         if ($row_select['item_type'] == 'link') {
             require_once api_get_path(LIBRARY_PATH).'link.lib.php';
             $link = new Link();
@@ -2116,10 +2117,12 @@ class learnpath
         $tbl_lp_item_view 	= Database :: get_course_table(TABLE_LP_ITEM_VIEW);
 
         // Getting all the information about the item.
-        $sql = "SELECT * FROM ".$tbl_lp_item." as lp INNER  JOIN ".$tbl_lp_item_view." as lp_view on lp.id = lp_view.lp_item_id ".
-                "WHERE  lp.id = '".$_SESSION['oLP']->current."' AND
-                        lp.c_id = $course_id AND
-                        lp_view.c_id = $course_id";
+        $sql = "SELECT * FROM ".$tbl_lp_item." as lp
+                INNER JOIN ".$tbl_lp_item_view." as lp_view on lp.id = lp_view.lp_item_id
+                WHERE
+                    lp.id = '".$_SESSION['oLP']->current."' AND
+                    lp.c_id = $course_id AND
+                    lp_view.c_id = $course_id";
         $result = Database::query($sql);
         $row 	= Database::fetch_assoc($result);
         $output = '';
@@ -2150,11 +2153,12 @@ class learnpath
             $audio = $row['audio'];
 
             $file = api_get_path(SYS_COURSE_PATH).$courseInfo['path'].'/document/audio/'.$audio;
-            $url = api_get_path(WEB_COURSE_PATH).$courseInfo['path'].'/document/audio/'.$audio;
+            $url = api_get_path(WEB_COURSE_PATH).$courseInfo['path'].'/document/audio/'.$audio.'?'.api_get_cidreq();
+
             if (!file_exists($file)) {
                 $lpPathInfo = $_SESSION['oLP']->generate_lp_folder(api_get_course_info());
                 $file = api_get_path(SYS_COURSE_PATH).$_course['path'].'/document'.$lpPathInfo['dir'].$audio;
-                $url = api_get_path(WEB_COURSE_PATH).$_course['path'].'/document'.$lpPathInfo['dir'].$audio;
+                $url = api_get_path(WEB_COURSE_PATH).$_course['path'].'/document'.$lpPathInfo['dir'].$audio.'?'.api_get_cidreq();
             }
 
             $player = Display::getMediaPlayer(
@@ -2511,7 +2515,6 @@ class learnpath
         if (empty($prereq)) {
             return '';
         }
-        //var_dump($this->refs_list, $prereq);
         if (preg_match('/^\d+$/', $prereq) && is_object($this->items[$prereq])) {
             // If the prerequisite is a simple integer ID and this ID exists as an item ID,
             // then simply return it (with the ITEM_ prefix).
@@ -2795,12 +2798,12 @@ class learnpath
      * used by get_html_toc() to be ready to display
      * @return	array	TOC as a table with 4 elements per row: title, link, status and level
      */
-    public function get_toc() {
+    public function get_toc()
+    {
         if ($this->debug > 0) {
             error_log('learnpath::get_toc()', 0);
         }
         $toc = array();
-        //echo "<pre>".print_r($this->items,true)."</pre>";
         foreach ($this->ordered_items as $item_id) {
             if ($this->debug > 2) {
                 error_log('learnpath::get_toc(): getting info for item ' . $item_id, 0);
@@ -2892,7 +2895,8 @@ class learnpath
      * @param	integer	Parent ID of the items to look for
      * @return	mixed	Ordered list of item IDs or false on error
      */
-    public static function get_flat_ordered_items_list($lp, $parent = 0, $course_id = null) {
+    public static function get_flat_ordered_items_list($lp, $parent = 0, $course_id = null)
+    {
         if (empty($course_id)) {
             $course_id = api_get_course_int_id();
         } else {
@@ -2903,7 +2907,10 @@ class learnpath
             return false;
         }
         $tbl_lp_item = Database :: get_course_table(TABLE_LP_ITEM);
-        $sql = "SELECT id FROM $tbl_lp_item WHERE c_id = $course_id AND lp_id = $lp AND parent_item_id = $parent ORDER BY display_order";
+        $sql = "SELECT id FROM $tbl_lp_item
+                WHERE c_id = $course_id AND lp_id = $lp AND parent_item_id = $parent
+                ORDER BY display_order";
+
         $res = Database::query($sql);
         while ($row = Database :: fetch_array($res)) {
             $sublist = learnpath :: get_flat_ordered_items_list($lp, $row['id'], $course_id);
@@ -2970,18 +2977,16 @@ class learnpath
 
             $class_name = array (
                 'not attempted' => 'scorm_not_attempted',
-                'incomplete'    => 'scorm_incomplete',
-                'failed'        => 'scorm_failed',
+                'incomplete'    => 'scorm_not_attempted',
+                'failed'        => 'scorm_not_attempted',
                 'completed'     => 'scorm_completed',
-                'passed'        => 'scorm_passed',
-                'succeeded'     => 'scorm_succeeded',
+                'passed'        => 'scorm_completed',
+                'succeeded'     => 'scorm_completed',
                 'browsed'       => 'scorm_completed',
             );
 
-            $style = 'scorm_item';
             $scorm_color_background = 'scorm_item_2';
             $style_item = 'scorm_item';
-            $current = false;
 
             if ($color_counter % 2 == 0) {
                 $scorm_color_background = 'scorm_item_1';
@@ -2990,8 +2995,9 @@ class learnpath
                 $scorm_color_background =' scorm_item_section ';
             }
             if ($item['id'] == $this->current) {
-                $style = 'scorm_item_highlight';
                 $scorm_color_background .= ' scorm_item_highlight';
+            } else {
+                $scorm_color_background .= ' scorm_item_normal';
             }
 
             $html .= '<div id="toc_' . $item['id'] . '" class="' . $scorm_color_background . ' '.$class_name[$item['status']].' ">';
@@ -9000,7 +9006,6 @@ class learnpath
 
                     //Add files inside the HTMLs
                     $new_path = str_replace('/courses/', '', $old_new['orig']);
-                    //var_dump($sys_course_path.$new_path); var_dump($archive_path.$temp_dir_short.'/'.$old_new['dest']); echo '---';
                     if (file_exists($sys_course_path.$new_path)) {
                         copy($sys_course_path.$new_path, $archive_path.$temp_dir_short.'/'.$old_new['dest']);
                     }
@@ -9042,29 +9047,27 @@ class learnpath
 
         if (is_array($links_to_create)) {
             foreach ($links_to_create as $file => $link) {
-               $file_content = '<!DOCTYPE html>
-    <head>
-                   <meta charset="'.api_get_language_isocode().'" />
-        <title>'.$link['title'].'</title>
-    </head>
-    <body dir="'.api_get_text_direction().'">
-                        <div style="text-align:center">
-                        <a href="'.$link['url'].'">'.$link['title'].'</a></div>
-    </body>
-</html>';
+               $file_content = '<!DOCTYPE html><head>
+                                <meta charset="'.api_get_language_isocode().'" />
+                                <title>'.$link['title'].'</title>
+                                </head>
+                                <body dir="'.api_get_text_direction().'">
+                                <div style="text-align:center">
+                                <a href="'.$link['url'].'">'.$link['title'].'</a></div>
+                                </body>
+                                </html>';
                 file_put_contents($archive_path.$temp_dir_short.'/'.$file, $file_content);
             }
         }
 
         // Add non exportable message explanation.
         $lang_not_exportable = get_lang('ThisItemIsNotExportable');
-        $file_content = '<!DOCTYPE html>
-    <head>
-            <meta charset="'.api_get_language_isocode().'" />
-        <title>'.$lang_not_exportable.'</title>
-        <meta http-equiv="Content-Type" content="text/html; charset='.api_get_system_encoding().'" />
-    </head>
-        <body dir="'.api_get_text_direction().'">';
+        $file_content = '<!DOCTYPE html><head>
+                        <meta charset="'.api_get_language_isocode().'" />
+                        <title>'.$lang_not_exportable.'</title>
+                        <meta http-equiv="Content-Type" content="text/html; charset='.api_get_system_encoding().'" />
+                        </head>
+                        <body dir="'.api_get_text_direction().'">';
         $file_content .=
 <<<EOD
         <style>

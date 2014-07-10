@@ -1841,9 +1841,11 @@ function api_set_failure($failure_type) {
  */
 function api_set_anonymous() {
     global $_user;
+
     if (!empty($_user['user_id'])) {
         return false;
     }
+
     $user_id = api_get_anonymous_id();
     if ($user_id == 0) {
         return false;
@@ -1851,8 +1853,8 @@ function api_set_anonymous() {
     Session::erase('_user');
     $_user['user_id'] = $user_id;
     $_user['is_anonymous'] = true;
-    Session::write('_user',$_user);
     $GLOBALS['_user'] = $_user;
+    Session::write('_user', $_user);
     return true;
 }
 
@@ -2001,23 +2003,37 @@ function api_get_session_visibility($session_id, $course_code = null, $ignore_vi
         $session_id = intval($session_id);
         $tbl_session = Database::get_main_table(TABLE_MAIN_SESSION);
 
-        $sql = "SELECT
-                      visibility,
-                      date_start,
-                      date_end,
-                      nb_days_access_after_end,
-                      nb_days_access_before_beginning
-                FROM $tbl_session
+        $sql = "SELECT * FROM $tbl_session
                 WHERE id = $session_id ";
 
         $result = Database::query($sql);
 
-        if (Database::num_rows($result) > 0 ) {
+        if (Database::num_rows($result) > 0) {
             $row = Database::fetch_array($result, 'ASSOC');
             $visibility = $original_visibility = $row['visibility'];
 
             // I don't care the session visibility.
             if ($row['date_start'] == '0000-00-00' && $row['date_end'] == '0000-00-00') {
+
+                // Session duration per student.
+                if (SessionManager::durationPerUserIsEnabled()) {
+                    if (isset($row['duration']) && !empty($row['duration'])) {
+                        $duration = $row['duration']*24*60*60;
+
+                        $courseAccess = CourseManager::getFirstCourseAccessPerSessionAndUser(
+                            $session_id,
+                            api_get_user_id()
+                        );
+                        $currentTime = time();
+                        $firstAccess = api_strtotime($courseAccess['login_course_date'], 'UTC');
+                        if (($firstAccess + $duration) > $currentTime) {
+                            return SESSION_AVAILABLE;
+                        } else {
+                            return SESSION_INVISIBLE;
+                        }
+                    }
+                }
+
                 return SESSION_AVAILABLE;
             } else {
                 // If start date was set.
@@ -2279,7 +2295,6 @@ function api_delete_settings_params($params) {
 function api_get_self() {
     return htmlentities($_SERVER['PHP_SELF']);
 }
-
 
 /* USER PERMISSIONS */
 
@@ -3043,8 +3058,9 @@ function api_not_allowed($print_headers = false, $message = null)
 
     global $this_section;
 
-    if (!isset($user_id)) {
-        //Why the CustomPages::enabled() need to be to set the request_uri
+    if (empty($user_id)) {
+
+        // Why the CustomPages::enabled() need to be to set the request_uri
         $_SESSION['request_uri'] = $_SERVER['REQUEST_URI'];
     }
 
@@ -3070,8 +3086,10 @@ function api_not_allowed($print_headers = false, $message = null)
     }
 
     $tpl = new Template(null, $show_headers, $show_headers);
-    $tpl->assign('content', $msg);
 
+    $tpl->assign('hide_login_link', 1);
+
+    $tpl->assign('content', $msg);
     if (($user_id!=0 && !api_is_anonymous()) && (!isset($course) || $course == -1) && empty($_GET['cidReq'])) {
         // if the access is not authorized and there is some login information
         // but the cidReq is not found, assume we are missing course data and send the user
@@ -3094,7 +3112,6 @@ function api_not_allowed($print_headers = false, $message = null)
             $tpl->display_one_col_template();
             exit;
         }
-
         if (!is_null(api_get_course_id())) {
             api_set_firstpage_parameter(api_get_course_id());
         }
@@ -3124,7 +3141,7 @@ function api_not_allowed($print_headers = false, $message = null)
             $content .= "</div>";
         }
         $content .= '<hr/><p style="text-align:center"><a href="'.$home_url.'">'.get_lang('ReturnToCourseHomepage').'</a></p>';
-
+        $tpl->setLoginBodyClass();
         $tpl->assign('content', $content);
         $tpl->display_one_col_template();
         exit;
@@ -3143,6 +3160,7 @@ function api_not_allowed($print_headers = false, $message = null)
         // or we try to get directly to a private course without being logged
         if (!is_null(api_get_course_int_id())) {
             api_set_firstpage_parameter(api_get_course_id());
+            $tpl->setLoginBodyClass();
             $action = api_get_self().'?'.Security::remove_XSS($_SERVER['QUERY_STRING']);
             $action = str_replace('&amp;', '&', $action);
             $form = new FormValidator('formLogin', 'post', $action, null, array('class'=>'form-stacked'));
@@ -3230,6 +3248,7 @@ function api_get_item_visibility($_course, $tool, $id, $session = 0)
     if (!is_array($_course) || count($_course) == 0 || empty($tool) || empty($id)) {
         return -1;
     }
+
     $tool = Database::escape_string($tool);
     $id = intval($id);
     $session = (int) $session;
@@ -3591,28 +3610,30 @@ function api_get_track_item_property_history($tool, $ref)
  * @param int    	course id
  * @param string    tool name, linked to 'rubrique' of the course tool_list (Warning: language sensitive !!)
  * @param int       id of the item itself, linked to key of every tool ('id', ...), "*" = all items of the tool
+ * @param int $session_id
  */
 function api_get_item_property_info($course_id, $tool, $ref, $session_id = 0)
 {
     $course_info = api_get_course_info_by_id($course_id);
+
     if (empty($course_info)) {
         return false;
     }
 
-    $tool           = Database::escape_string($tool);
-    $ref            = intval($ref);
-    $course_id      = intval($course_id);
+    $tool = Database::escape_string($tool);
+    $ref = intval($ref);
+    $course_id	 = $course_info['real_id'];
+    $session_id = intval($session_id);
 
     // Definition of tables.
-    $TABLE_ITEMPROPERTY = Database::get_course_table(TABLE_ITEM_PROPERTY);
-    $course_id	 = $course_info['real_id'];
+    $table = Database::get_course_table(TABLE_ITEM_PROPERTY);
 
-   	$sql = "SELECT * FROM $TABLE_ITEMPROPERTY
-   	        WHERE c_id = $course_id AND tool = '$tool' AND ref = $ref ";
-   	if (!empty($session_id)) {
-   		$session_id = intval($session_id);
-   		$sql .= "AND id_session = $session_id ";
-   	}
+   	$sql = "SELECT * FROM $table
+   	        WHERE
+   	            c_id = $course_id AND
+   	            tool = '$tool' AND
+   	            ref = $ref AND
+   	            id_session = $session_id ";
 
     $rs  = Database::query($sql);
     $row = array();
@@ -3682,6 +3703,7 @@ function api_display_language_form($hide_if_no_choice = false) {
     if (isset($_SESSION['user_language_choice'])) {
         $user_selected_language = $_SESSION['user_language_choice'];
     }
+
     if (empty($user_selected_language)) {
         $user_selected_language = api_get_setting('platformLanguage');
     }
@@ -3697,10 +3719,12 @@ function api_display_language_form($hide_if_no_choice = false) {
     }
     //-->
     </script>';
-
+//    var_dump($user_selected_language);
     $html .= '<form id="lang_form" name="lang_form" method="post" action="'.api_get_self().'">';
     $html .= '<label style="display: none;" for="language_list">' . get_lang('Language') . '</label>';
     $html .=  '<select id="language_list" class="chzn-select" name="language_list" onchange="javascript: jumpMenu(\'parent\',this,0);">';
+
+
     foreach ($original_languages as $key => $value) {
         if ($folder[$key] == $user_selected_language) {
             $option_end = ' selected="selected" >';
@@ -7201,7 +7225,7 @@ function api_get_protocol()
 /**
  * Return a string where " are replaced with 2 '
  * It is useful when you pass a PHP variable in a Javascript browser dialog
- * e.g. : alert("<?php get_lang('message') ?>");
+ * e.g. : alert("<?php get_lang('Message') ?>");
  * and message contains character "
  *
  * @param string $in_text

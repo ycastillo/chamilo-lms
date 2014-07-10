@@ -95,6 +95,8 @@ class learnpathItem
         $course_id = null,
         $item_content = null
     ) {
+        $items_table = Database::get_course_table(TABLE_LP_ITEM);
+
         // Get items table.
         if (!isset($user_id)) {
             $user_id = api_get_user_id();
@@ -109,7 +111,7 @@ class learnpathItem
         $id = intval($id);
 
         if (empty($item_content)) {
-            $items_table = Database::get_course_table(TABLE_LP_ITEM);
+
             if (empty($course_id)) {
                 $course_id = api_get_course_int_id();
             } else {
@@ -149,6 +151,17 @@ class learnpathItem
         }
         $this->save_on_close = true;
         $this->db_id = $id;
+
+        // Load children list
+        $sql = "SELECT id FROM $items_table WHERE c_id = $course_id AND lp_id = ".$this->lp_id." AND parent_item_id = $id";
+        $res = Database::query($sql);
+        if (Database::num_rows($res) < 1) {
+            // Nothing to do (no children)
+        } else {
+            while ($row = Database::fetch_assoc($res)) {
+                $this->children[] = $row['id'];
+            }
+        }
 
         //$this->seriousgame_mode = $this->get_seriousgame_mode();
         $this->seriousgame_mode = 0;
