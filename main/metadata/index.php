@@ -72,7 +72,6 @@ while ($row = Database::fetch_array($result))
 // XML and DB STUFF ----------------------------------------------------------->
 
 $is_allowed_to_edit = isset($_user['user_id']) && $is_courseMember && api_is_allowed_to_edit();
-$putted = 0;
 $mdStore = new mdstore($is_allowed_to_edit);
 
 if (($mdt_rec = $mdStore->mds_get(EID)) === FALSE)  // no record, default XML
@@ -136,7 +135,6 @@ if ($is_allowed_to_edit && isset($_POST['mda'])) {
     $mdt = ''; $xhtDoc->xht_param['traceinfo'] = get_lang('PressAgain');
 
     $mdt_rec = FALSE;  // cached HTML obsolete, must re-apply templates
-    $putted = 1;
     
 }
 
@@ -193,9 +191,6 @@ if (($ti = $xhtDoc->xht_param['traceinfo'])) $xhtDoc->xht_param['traceinfo'] =
 echo $xhtDoc->xht_fill_template('METADATA'), "\n";
 
 if ($xhtDoc->xht_dbgn) echo $xhtDoc->xht_dbgo;
-if ($putted == 1) {
-   
-}
 
 Display::display_footer();
 ?>

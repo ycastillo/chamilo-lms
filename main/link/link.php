@@ -546,9 +546,6 @@ if (empty($_GET['action']) || ($_GET['action'] != 'editlink' && $_GET['action'] 
 		$i++;
 	}
 	echo '</table>';
-    
-    
-    
 
 }
 
