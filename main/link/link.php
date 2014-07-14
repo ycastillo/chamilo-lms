@@ -49,12 +49,6 @@ $htmlHeadXtra[] = '<script type="text/javascript">
     	$("#url_id_"+id).load(url);
      }
      function viewMetadata() {
-        /*var url = $("#urllink").val();
-        var title = $("#title").val();
-        var description = $("#description").val();
-        
-        
-        var addlink = "'.api_get_path(WEB_AJAX_PATH).'link.ajax.php?a=addlink&url=" +url+"&title="+title+"&description="+description+"&selectcategory="+selectcategory;*/
         $("#hdnMeta").val("meta");
         $("#formLink").submit();
      }
