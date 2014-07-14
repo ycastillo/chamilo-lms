@@ -142,11 +142,11 @@ if (isset($_GET['action'])) {
 				   	if (!$clean_link_id) {	// Here we add a link
 						unset($submit_link);
 					}
-                    if ($metaSubmitted) {
-                        if ($clean_link_id) {
-                            header('location:../metadata/index.php?eid='.urlencode('Link.'.$clean_link_id));
-                        }
-                    }
+                              if ($metaSubmitted) {
+                                  if ($clean_link_id) {
+                                      header('location:../metadata/index.php?eid='.urlencode('Link.'.$clean_link_id));
+                                  }
+                              }
 				}
 				break;
 			case 'addcategory':
@@ -169,10 +169,10 @@ if (isset($_GET['action'])) {
 				break;
 			case 'editlink':
 				editlinkcategory('link'); // Here we edit a link
-                if ($metaSubmitted) {
-                    $linkId = $_POST['id'];
-                    header('location:../metadata/index.php?eid='.urlencode('Link.'.$linkId));
-                }
+                          if ($metaSubmitted) {
+                              $linkId = $_POST['id'];
+                              header('location:../metadata/index.php?eid='.urlencode('Link.'.$linkId));
+                          }
 				break;
 			case 'editcategory':
 				editlinkcategory('category'); // Here we edit a category
@@ -266,7 +266,7 @@ if (api_is_allowed_to_edit(null, true) && isset($_GET['action'])) {
 					<div class="controls">
 						<a href="#" onclick = "viewMetadata();">'.get_lang('AddMetadata').'</a>
 					</div>
-                    <input type="hidden" name="hdnMeta" id="hdnMeta"/>
+                                      <input type="hidden" name="hdnMeta" id="hdnMeta"/>
      
 				</div>';
          
