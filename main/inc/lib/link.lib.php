@@ -134,7 +134,7 @@ function addlinkcategory($type)
 			$catlinkstatus = get_lang('LinkAdded');
 			Database :: query($sql);
 			$link_id = Database :: insert_id();
-
+            $ok = $link_id;
             if ($link_id) {
                 api_set_default_visibility($link_id, TOOL_LINK);
             }
@@ -400,7 +400,7 @@ function editlinkcategory($type)
 		}
 
 		// This is used to put the modified info of the link-form into the database.
-		if ($_POST['submitLink']) {
+		if ($_POST['submitLink'] || $_POST['hdnMeta']) {
 
 			// Ivan, 13-OCT-2010: It is a litle bit messy code below, just in case I added some extra-security checks here.
 			$_POST['urllink']        = trim($_POST['urllink']);

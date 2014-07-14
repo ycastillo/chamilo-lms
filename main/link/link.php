@@ -48,11 +48,22 @@ $htmlHeadXtra[] = '<script type="text/javascript">
      	$("#url_id_"+id).html(loading);
     	$("#url_id_"+id).load(url);
      }
+     function viewMetadata() {
+        /*var url = $("#urllink").val();
+        var title = $("#title").val();
+        var description = $("#description").val();
+        
+        
+        var addlink = "'.api_get_path(WEB_AJAX_PATH).'link.ajax.php?a=addlink&url=" +url+"&title="+title+"&description="+description+"&selectcategory="+selectcategory;*/
+        $("#hdnMeta").val("meta");
+        $("#formLink").submit();
+     }
  </script>';
 
 // @todo change the $_REQUEST into $_POST or $_GET
 // @todo remove this code
-$link_submitted = isset($_POST['submitLink']);
+$link_submitted = (isset($_POST['submitLink']) || $_POST['hdnMeta'] == "meta");
+$metaSubmitted = (isset($_POST['hdnMeta']) && $_POST['hdnMeta'] == "meta");
 $category_submitted = isset($_POST['submitCategory']);
 $urlview = !empty($_GET['urlview']) ? $_GET['urlview'] : '';
 $submit_import = !empty($_POST['submitImport']) ? $_POST['submitImport'] : '';
@@ -126,10 +137,16 @@ if (isset($_GET['action'])) {
 	if ($check_token) {
 		switch ($_GET['action']) {
 			case 'addlink':
-				if ($link_submitted) {
-					if (!addlinkcategory("link")) {	// Here we add a link
+				if ($link_submitted || $metaSubmitted) {
+				    $clean_link_id = addlinkcategory("link");
+				   	if (!$clean_link_id) {	// Here we add a link
 						unset($submit_link);
 					}
+                    if ($metaSubmitted) {
+                        if ($clean_link_id) {
+                            header('location:../metadata/index.php?eid='.urlencode('Link.'.$clean_link_id));
+                        }
+                    }
 				}
 				break;
 			case 'addcategory':
@@ -152,6 +169,10 @@ if (isset($_GET['action'])) {
 				break;
 			case 'editlink':
 				editlinkcategory('link'); // Here we edit a link
+                if ($metaSubmitted) {
+                    $linkId = $_POST['id'];
+                    header('location:../metadata/index.php?eid='.urlencode('Link.'.$linkId));
+                }
 				break;
 			case 'editcategory':
 				editlinkcategory('category'); // Here we edit a category
@@ -195,7 +216,7 @@ if (api_is_allowed_to_edit(null, true) && isset($_GET['action'])) {
 		if ($category == '') {
 			$category = 0;
 		}
-		echo '<form class="form-horizontal" method="post" action="'.api_get_self().'?action='.Security::remove_XSS($_GET['action']).'&amp;urlview='.Security::remove_XSS($urlview).'">';
+		echo '<form class="form-horizontal" method="post" id="formLink" action="'.api_get_self().'?action='.Security::remove_XSS($_GET['action']).'&amp;urlview='.Security::remove_XSS($urlview).'">';
         if ($_GET['action'] == 'addlink') {
 			echo '<legend>'.get_lang('LinkAdd').'</legend>';
 		} else {
@@ -227,7 +248,7 @@ if (api_is_allowed_to_edit(null, true) && isset($_GET['action'])) {
 						<span class="form_required">*</span> URL
 					</label>
 					<div class="controls">
-						<input type="text" name="urllink" class="span6" value="' . (empty($urllink) ? 'http://' : Security::remove_XSS($urllink)) . '" />
+						<input type="text" name="urllink" id="urllink" class="span6" value="' . (empty($urllink) ? 'http://' : Security::remove_XSS($urllink)) . '" />
 					</div>
 				</div>';
 		echo '	<div class="control-group title">
@@ -235,7 +256,7 @@ if (api_is_allowed_to_edit(null, true) && isset($_GET['action'])) {
 						'.get_lang('LinkName').'
 					</label>
 					<div class="controls">
-						<input type="text" name="title" class="span6" value="' . Security::remove_XSS($title) . '" />
+						<input type="text" name="title" id="title" class="span6" value="' . Security::remove_XSS($title) . '" />
 					</div>
 				</div>';
 		echo '	<div class="control-group metadata">
@@ -243,15 +264,21 @@ if (api_is_allowed_to_edit(null, true) && isset($_GET['action'])) {
 						'.get_lang('Metadata').'
 					</label>
 					<div class="controls">
-						<a href="../metadata/index.php?eid='.urlencode('Link.'.$clean_link_id).'">'.get_lang('AddMetadata').'</a>
+						<a href="#" onclick = "viewMetadata();">'.get_lang('AddMetadata').'</a>
 					</div>
+                    <input type="hidden" name="hdnMeta" id="hdnMeta"/>
+     
 				</div>';
+         
+         
+                
+              
 		echo '	<div class="control-group description">
 					<label class="control-label">
 						'.get_lang('Description').'
 					</label>
 					<div class="controls">
-						<textarea class="span3" cols="50" name="description">' .	Security::remove_XSS($description) . '</textarea>
+						<textarea class="span3" cols="50" name="description" id="description">' .	Security::remove_XSS($description) . '</textarea>
 					</div>
 				</div>';
 
@@ -264,7 +291,7 @@ if (api_is_allowed_to_edit(null, true) && isset($_GET['action'])) {
 							'.get_lang('Category').'
 						</label>
 						<div class="controls">';
-			echo '			<select name="selectcategory">';
+			echo '			<select name="selectcategory" id="description">';
 			echo '			<option value="0">--</option>';
 			while ($myrow = Database::fetch_array($resultcategories)) {
 				echo '		<option value="'.$myrow['id'].'"';
@@ -519,6 +546,10 @@ if (empty($_GET['action']) || ($_GET['action'] != 'editlink' && $_GET['action'] 
 		$i++;
 	}
 	echo '</table>';
+    
+    
+    
+
 }
 
 Display::display_footer();

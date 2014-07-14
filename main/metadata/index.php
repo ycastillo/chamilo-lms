@@ -53,6 +53,7 @@ $_course = api_get_course_info(); isset($_course) or give_up(get_lang('Sorry'));
 
 require api_get_path(LIBRARY_PATH) . 'xmd.lib.php';
 require api_get_path(LIBRARY_PATH) . 'xht.lib.php';
+require api_get_path(LIBRARY_PATH) . 'link.lib.php';
 
 $mdObj = new mdobject($_course, EID_ID);  // see 'md_' . EID_TYPE . '.php'
 
@@ -71,7 +72,7 @@ while ($row = Database::fetch_array($result))
 // XML and DB STUFF ----------------------------------------------------------->
 
 $is_allowed_to_edit = isset($_user['user_id']) && $is_courseMember && api_is_allowed_to_edit();
-
+$putted = 0;
 $mdStore = new mdstore($is_allowed_to_edit);
 
 if (($mdt_rec = $mdStore->mds_get(EID)) === FALSE)  // no record, default XML
@@ -103,7 +104,15 @@ if ($is_allowed_to_edit && isset($_POST['mda'])) {
     $mdt = $mdStore->mds_update_xml_and_mdt($mdObj, $xhtDoc->xht_xmldoc,
         get_magic_quotes_gpc() ? stripslashes($_POST['mda']) : $_POST['mda'],
         EID, $xhtDoc->xht_param['traceinfo'], $mdt_rec !== FALSE);
-
+    if ($mdt != '') {
+        $linkId = explode(".",EID);
+        $linkId = $linkId[1];
+        $courseCode = $_course['code'];
+        $sessionId = api_get_session_id();
+        $linkInfo = get_link_info($linkId);
+        $category = $linkInfo['category_id'];
+        header('location:../link/link.php?cidReq='.$courseCode.'&id_session='.$sessionId.'&action=editlink&category='.$category.'&id='.$linkId);
+    }
     if ($mdt_rec !== FALSE) {
          if (strpos($xhtDoc->xht_param['traceinfo'], 'DELETE') !== FALSE)
             $xhtDoc->xht_param['dbrecord'] = '';
@@ -114,6 +123,7 @@ if ($is_allowed_to_edit && isset($_POST['mda'])) {
         $mdObj->mdo_storeback($xhtDoc->xht_xmldoc);
 
     $mdt_rec = FALSE;  // cached HTML obsolete, must re-apply templates
+    
 } elseif ($is_allowed_to_edit && $_POST['mdt']) {
      // md_editxml.htt 
     $mdStore->mds_put(EID,
@@ -126,6 +136,8 @@ if ($is_allowed_to_edit && isset($_POST['mda'])) {
     $mdt = ''; $xhtDoc->xht_param['traceinfo'] = get_lang('PressAgain');
 
     $mdt_rec = FALSE;  // cached HTML obsolete, must re-apply templates
+    $putted = 1;
+    
 }
 
 $xhtDoc->xht_param['mdt'] = $mdt;
@@ -181,6 +193,9 @@ if (($ti = $xhtDoc->xht_param['traceinfo'])) $xhtDoc->xht_param['traceinfo'] =
 echo $xhtDoc->xht_fill_template('METADATA'), "\n";
 
 if ($xhtDoc->xht_dbgn) echo $xhtDoc->xht_dbgo;
+if ($putted == 1) {
+   
+}
 
 Display::display_footer();
 ?>
