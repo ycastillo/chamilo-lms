@@ -187,7 +187,8 @@ class SessionManager
                                 WHERE id = $session_id";
                         Database::query($sql);
                     }
-                    $sql = "UPDATE $tbl_session SET duration = $duration
+                    $sql = "UPDATE $tbl_session
+                            SET duration = '$duration'
                             WHERE id = $session_id";
                     Database::query($sql);
                 }
@@ -2673,7 +2674,7 @@ class SessionManager
      * @param string $course_name
      * @return array list of courses
      */
-    public static function get_course_list_by_session_id($session_id, $course_name = '', $orderBy = 'title')
+    public static function get_course_list_by_session_id($session_id, $course_name = '', $orderBy = null)
     {
         $tbl_course = Database::get_main_table(TABLE_MAIN_COURSE);
         $tbl_session_rel_course = Database::get_main_table(TABLE_MAIN_SESSION_COURSE);
@@ -2690,9 +2691,17 @@ class SessionManager
             $sql .= " AND c.title LIKE '%$course_name%' ";
         }
 
-        $orderBy = Database::escape_string($orderBy);
+        if (!empty($orderBy)) {
+            $orderBy = "ORDER BY $orderBy";
+        } else {
+            if (SessionManager::orderCourseIsEnabled()) {
+                $orderBy .= " ORDER BY position ";
+            } else {
+                $orderBy .= " ORDER BY title ";
+            }
+        }
 
-        $sql .= "ORDER BY $orderBy";
+        $sql .= Database::escape_string($orderBy);
 
         $result 	= Database::query($sql);
         $num_rows 	= Database::num_rows($result);
@@ -2905,6 +2914,7 @@ class SessionManager
         }
 
         $result = Database::query($sql);
+        $return_array = array();
         while ($row = Database::fetch_array($result, 'ASSOC')) {
             $return_array[] = $row;
         }
@@ -3789,6 +3799,7 @@ class SessionManager
                 Database::query($sql_update_users);
             }
         }
+
         return array(
             'error_message' => $error_message,
             'session_counter' => $session_counter,
@@ -4656,7 +4667,9 @@ class SessionManager
 
     /**
      * Use the session duration to allow/block user access see BT#8317
-     * Needs "ALTER TABLE session ADD COLUMN duration int;"
+     * Needs these DB changes
+     * ALTER TABLE session ADD COLUMN duration int;
+     * ALTER TABLE session_rel_user ADD COLUMN duration int;
      */
     public static function durationPerUserIsEnabled()
     {
@@ -4671,26 +4684,81 @@ class SessionManager
     }
 
     /**
+     * Returns the number of days the student has left in a session when using
+     * sessions durations
      * @param int $userId
      * @param int $sessionId
+     * @param int $duration in days
      * @return int
      */
-    public function getDayLeftInSession($sessionId, $userId, $duration)
+    public static function getDayLeftInSession($sessionId, $userId, $duration)
     {
+        // Get an array with the details of the first access of the student to
+        // this session
         $courseAccess = CourseManager::getFirstCourseAccessPerSessionAndUser(
             $sessionId,
             $userId
         );
+
         $currentTime = time();
 
+        // If no previous access, return false
+        if (count($courseAccess) == 0) {
+            return false;
+        }
+
         $firstAccess = api_strtotime($courseAccess['login_course_date'], 'UTC');
-        //var_dump(api_get_utc_datetime($firstAccess));
-        //var_dump($duration);
+
         $endDateInSeconds = $firstAccess + $duration*24*60*60;
         $leftDays = round(($endDateInSeconds- $currentTime) / 60 / 60 / 24);
-        /*var_dump(api_get_utc_datetime($endDateInSeconds));
-        var_dump(api_get_utc_datetime($currentTime));*/
-        return $leftDays;
 
+        return $leftDays;
+    }
+
+    /**
+     * @param int $duration
+     * @param int $userId
+     * @param int $sessionId
+     */
+    public static function editUserSessionDuration($duration, $userId, $sessionId)
+    {
+        $duration = intval($duration);
+        $userId = intval($userId);
+        $sessionId = intval($sessionId);
+
+        if (empty($userId) || empty($sessionId)) {
+            return false;
+        }
+
+        $table = Database::get_main_table(TABLE_MAIN_SESSION_USER);
+        $parameters = array('duration' => $duration);
+        $where = array('id_session = ? AND id_user = ? ' => array($sessionId, $userId));
+        Database::update($table, $parameters, $where);
+    }
+
+    /**
+     * Gets one row from the session_rel_user table
+     * @param int The user ID
+     * @param int The session ID
+     * @return array
+     */
+    public static function getUserSession($userId, $sessionId)
+    {
+        $userId = intval($userId);
+        $sessionId = intval($sessionId);
+
+        if (empty($userId) || empty($sessionId)) {
+            return false;
+        }
+
+        $table = Database::get_main_table(TABLE_MAIN_SESSION_USER);
+        $sql = "SELECT * FROM $table WHERE id_session =$sessionId AND id_user = $userId";
+        $result = Database::query($sql);
+        $values = array();
+        if (Database::num_rows($result)) {
+            $values = Database::fetch_array($result, 'ASSOC');
+        }
+
+        return $values;
     }
 }

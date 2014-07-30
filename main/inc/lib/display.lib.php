@@ -1389,7 +1389,21 @@ class Display
                     $session['coach'] = get_lang('GeneralCoach').': '.api_get_person_name($session_info['firstname'], $session_info['lastname']);
                 }
                 if (isset($session_info['duration']) && !empty($session_info['duration'])) {
-                    $daysLeft = SessionManager::getDayLeftInSession($session_id, api_get_user_id(), $session_info['duration']);
+                    $userDurationData = SessionManager::getUserSession(
+                            api_get_user_id(),
+                            $session_id
+                    );
+                    $userDuration = 0;
+                    if (isset($userDurationData['duration'])) {
+                        $userDuration = intval($userDurationData['duration']);
+                    }
+                    $totalDuration = $session_info['duration'] + $userDuration;
+
+                    $daysLeft = SessionManager::getDayLeftInSession(
+                        $session_id,
+                        api_get_user_id(),
+                        $totalDuration
+                    );
                     $session['duration'] = sprintf(get_lang('SessionDurationXDaysLeft'), $daysLeft);
                 }
                 $active = true;
