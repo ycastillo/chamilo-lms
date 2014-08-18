@@ -272,6 +272,13 @@ switch ($action) {
                 echo 0;
             }
         }
+        break;
+        
+    case 'get_profile':
+        $skillRelProfile = new SkillRelProfile();
+        $profileId = isset($_REQUEST['profile_id']) ? $_REQUEST['profile_id'] : null;
+        $profile = $skillRelProfile->getProfileInfo($profileId);
+        echo json_encode($profile);
         break;             
     case 'save_profile':
         if (api_is_platform_admin() || api_is_drh()) {
@@ -279,7 +286,12 @@ switch ($action) {
             $params = $_REQUEST;
             //$params['skills'] = isset($_SESSION['skills']) ? $_SESSION['skills'] : null; 
             $params['skills'] = $params['skill_id'];
-            $skill_data = $skill_profile->save($params);        
+            $profileId = isset($_REQUEST['profile']) ? $_REQUEST['profile'] : null;
+            if ($profileId > 0) {
+                $skill_data = $skill_profile->UpdateProfileInfo($profileId,$params['name'],$params['description']);
+            } else {
+                $skill_data = $skill_profile->save($params);
+            }          
             if (!empty($skill_data)) {
                 echo 1;
             } else {

@@ -32,6 +32,22 @@ class SkillProfile extends Model
         return $profiles;
     }
 
+    
+    /**
+    * This function is for editing profile info from profile_id.
+    * @param int $profileId
+    * @param string $name
+    * @param string $description
+    */
+    
+    public function UpdateProfileInfo($profileId, $name, $description)
+    {
+        $sql = "UPDATE $this->table SET `name` = '$name', `description` = '$description' WHERE id = $profileId ";
+        $result = Database::query($sql);
+        return $result;
+    }
+    
+    
     public function save($params, $show_query = false)
     {
         if (!empty($params)) {
@@ -58,6 +74,7 @@ class SkillRelProfile extends Model
     public function __construct()
     {
         $this->table = Database::get_main_table(TABLE_MAIN_SKILL_REL_PROFILE);
+        $this->tableProfile = Database::get_main_table(TABLE_MAIN_SKILL_PROFILE);
     }
 
     public function get_skills_by_profile($profile_id)
@@ -70,6 +87,19 @@ class SkillRelProfile extends Model
             }
         }
         return $return_array;
+    }
+    
+    /**
+    * This function is for getting profile info from profile_id.
+    * @param int $profileId
+    */
+
+    public function getProfileInfo($profileId)
+    {
+        $sql = "SELECT * FROM $this->table p INNER JOIN $this->tableProfile pr ON(pr.id = p.profile_id) WHERE p.profile_id = $profileId ";
+        $result = Database::query($sql);
+        $profileData = Database::fetch_array($result, 'ASSOC');
+        return $profileData;
     }
 }
 
