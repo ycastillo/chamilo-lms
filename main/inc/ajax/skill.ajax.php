@@ -136,6 +136,16 @@ switch ($action) {
         $all = $skill->get_skills_tree_json($user_id, $skill_id, false, $depth);
         echo $all;
         break;
+    case 'get_user_skill':
+        $userId = api_get_user_id();
+        $skillId   = isset($_REQUEST['profile_id']) ? $_REQUEST['profile_id'] : 0;
+        $skill = $skill->user_has_skill($userId, $skillId);
+        if ($skill) {
+            echo 1;
+        } else {
+            echo 0;
+        }
+        break;
     case 'get_user_skills':
         $skills = $skill->get_user_skills($user_id, true);        
         Display::display_no_header();        
