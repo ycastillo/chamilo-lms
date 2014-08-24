@@ -1286,6 +1286,9 @@ class CourseManager
 
         if (!empty($session_id)) {
             $sql = 'SELECT DISTINCT user.user_id, session_course_user.status as status_session, user.*  ';
+            if ($return_count) {
+                $sql = " SELECT COUNT(user.user_id) as count";
+            }
             $sql .= ' FROM '.Database::get_main_table(TABLE_MAIN_USER).' as user ';
             $sql .= ' LEFT JOIN '.Database::get_main_table(TABLE_MAIN_SESSION_COURSE_USER).' as session_course_user
                       ON user.user_id = session_course_user.id_user
@@ -1389,12 +1392,12 @@ class CourseManager
         $table_user_field_value = Database::get_main_table(TABLE_MAIN_USER_FIELD_VALUES);
         if ($count_rows) {
             while ($user = Database::fetch_array($rs)) {
-                $report_info = array();
-
                 if ($return_count) {
                     return $user['count'];
                 }
+                $report_info = array();
                 $user_info = $user;
+                
                 $user_info['status'] = $user['status'];
 
                 if (isset($user['role'])) {
@@ -4367,6 +4370,7 @@ class CourseManager
      */
     public static function countAvailableCourses($accessUrlId = null)
     {
+        global $_configuration;
         $tableCourse = Database::get_main_table(TABLE_MAIN_COURSE);
         $tableCourseRelAccessUrl = Database::get_main_table(TABLE_MAIN_ACCESS_URL_REL_COURSE);
         $specialCourseList = self::get_special_course_list();
@@ -4376,8 +4380,15 @@ class CourseManager
             $withoutSpecialCourses = ' AND c.code NOT IN ("'.implode('","',$specialCourseList).'")';
         }
         
+        if (isset($_configuration['course_catalog_hide_private'])) {
+            if ($_configuration['course_catalog_hide_private'] == false) {
+                $courseInfo = api_get_course_info();
+                $courseVisibility = $courseInfo['visibility'];
+                $visibilityCondition = ' AND c.visibility <> 1';
+            }
+        }
         if (!empty($accessUrlId) && $accessUrlId == intval($accessUrlId)) {
-            $sql = "SELECT count(id) FROM $tableCourse c, $tableCourseRelAccessUrl u WHERE c.code = u.course_code AND u.access_url_id = $accessUrlId AND c.visibility != 0 AND c.visibility != 4 $withoutSpecialCourses";
+            $sql = "SELECT count(id) FROM $tableCourse c, $tableCourseRelAccessUrl u WHERE c.code = u.course_code AND u.access_url_id = $accessUrlId AND c.visibility != 0 AND c.visibility != 4 $withoutSpecialCourses $visibilityCondition";
         }
         $res = Database::query($sql);
         $row = Database::fetch_row($res);
