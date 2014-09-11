@@ -477,7 +477,7 @@ if ($form->validate() && is_settings_editable()) {
     require '../inc/local.inc.php';
     $url = api_get_path(WEB_CODE_PATH).'course_info/infocours.php?action=show_message&cidReq='.$course_code;
     header("Location: $url");
-    exit;
+    //exit;
 }
 
 /*	Header */

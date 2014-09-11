@@ -441,7 +441,7 @@ if ($form->validate()) {
 		}
 		$tok = Security::get_token();
 		header('Location: user_list.php?action=show_message&message='.urlencode(get_lang('UserUpdated')).'&sec_token='.$tok);
-		exit();
+	//	exit();
 	}
 }
 
