@@ -200,20 +200,32 @@ class Display
      * @param string The style that the table will show. You can set 'table' or 'grid'
      * @author bart.mollet@hogent.be
      */
-    public static function display_sortable_table($header, $content, $sorting_options = array(), $paging_options = array(), $query_vars = null, $form_actions = array(), $style = 'table') {
+    public static function display_sortable_table(
+        $header,
+        $content,
+        $sorting_options = array(),
+        $paging_options = array(),
+        $query_vars = null,
+        $form_actions = array(),
+        $style = 'table'
+    ) {
         global $origin;
         $column = isset($sorting_options['column']) ? $sorting_options['column'] : 0;
         $default_items_per_page = isset($paging_options['per_page']) ? $paging_options['per_page'] : 20;
-
         $table = new SortableTableFromArray($content, $column, $default_items_per_page);
-
         if (is_array($query_vars)) {
             $table->set_additional_parameters($query_vars);
         }
         if ($style == 'table') {
             if (is_array($header) && count($header) > 0) {
                 foreach ($header as $index => $header_item) {
-                    $table->set_header($index, $header_item[0], $header_item[1], $header_item[2], $header_item[3]);
+                    $table->set_header(
+                        $index,
+                        $header_item[0],
+                        $header_item[1],
+                        isset($header_item[2]) ? $header_item[2] : null,
+                        isset($header_item[3]) ? $header_item[3] : null
+                    );
                 }
             }
             $table->set_form_actions($form_actions);
@@ -221,6 +233,30 @@ class Display
         } else {
             $table->display_grid();
         }
+    }
+
+    public static function return_sortable_table(
+        $header,
+        $content,
+        $sorting_options = array(),
+        $paging_options = array(),
+        $query_vars = null,
+        $form_actions = array(),
+        $style = 'table'
+    ) {
+        ob_start();
+        self::display_sortable_table(
+            $header,
+            $content,
+            $sorting_options,
+            $paging_options,
+            $query_vars,
+            $form_actions,
+            $style
+        );
+        $content = ob_get_contents();
+        ob_end_clean();
+        return $content;
     }
 
     /**

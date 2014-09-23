@@ -40,8 +40,8 @@ class ImportCsv
      * @var int number of years
      */
     public $expirationDateInUserUpdate = 1;
-    public $daysCoachAccessBeforeBeginning = 30;
-    public $daysCoachAccessAfterBeginning = 60;
+    public $daysCoachAccessBeforeBeginning = 14;
+    public $daysCoachAccessAfterBeginning = 14;
     public $conditions;
 
     /**
@@ -764,9 +764,9 @@ class ImportCsv
             $this->daysCoachAccessAfterBeginning,
             $this->defaultSessionVisibility,
             $avoid,
-            false,
-            false,
-            true
+            false, // deleteUsersNotInList
+            false, // updateCourseCoaches
+            true // sessionWithCoursesModifier
         );
 
         if (!empty($result['error_message'])) {

@@ -1276,6 +1276,26 @@ function api_get_user_info_from_username($username = '')
 }
 
 /**
+ * Get first user with an email
+ * @param string $email
+ * @return array|bool
+ */
+function api_get_user_info_from_email($email = '')
+{
+    if (empty($email)) {
+        return false;
+    }
+    $sql = "SELECT * FROM ".Database :: get_main_table(TABLE_MAIN_USER)."
+            WHERE email ='".Database::escape_string($email)."' LIMIT 1";
+    $result = Database::query($sql);
+    if (Database::num_rows($result) > 0) {
+        $result_array = Database::fetch_array($result);
+        return _api_format_user($result_array);
+    }
+    return false;
+}
+
+/**
  * @return string
  */
 function api_get_course_id() {
@@ -1985,10 +2005,17 @@ function api_get_session_info($session_id) {
  * @param int $session_id
  * @param string $course_code
  * @param bool $ignore_visibility_for_admins
- * @return int  0 = session still available, SESSION_VISIBLE_READ_ONLY = 1, SESSION_VISIBLE = 2, SESSION_INVISIBLE = 3
+ * @return int
+ *  0 = session still available,
+ *  SESSION_VISIBLE_READ_ONLY = 1,
+ *  SESSION_VISIBLE = 2,
+ *  SESSION_INVISIBLE = 3
  */
-function api_get_session_visibility($session_id, $course_code = null, $ignore_visibility_for_admins = true)
-{
+function api_get_session_visibility(
+    $session_id,
+    $course_code = null,
+    $ignore_visibility_for_admins = true
+) {
     // Means that the session is still available.
     $visibility = 0;
 
@@ -3553,6 +3580,45 @@ function api_get_item_property_by_tool($tool, $course_code, $session_id = null)
     $sql = "SELECT * FROM $item_property_table
             WHERE c_id = $course_id AND tool = '$tool'  $session_condition ";
     $rs  = Database::query($sql);
+    $list = array();
+    if (Database::num_rows($rs) > 0) {
+        while ($row = Database::fetch_array($rs, 'ASSOC')) {
+            $list[] = $row;
+        }
+    }
+    return $list;
+}
+
+/**
+ * Gets item property by tool and user
+ * @param int $userId
+ * @param int $tool
+ * @param int $courseId
+ * @param int $session_id
+ * @return array
+ */
+function api_get_item_property_list_by_tool_by_user(
+    $userId,
+    $tool,
+    $courseId,
+    $session_id = 0
+) {
+    $userId = intval($userId);
+    $tool = Database::escape_string($tool);
+    $session_id = intval($session_id);
+    $courseId = intval($courseId);
+
+    // Definition of tables.
+    $item_property_table = Database::get_course_table(TABLE_ITEM_PROPERTY);
+    $session_condition = ' AND id_session = '.$session_id;
+    $sql = "SELECT * FROM $item_property_table
+            WHERE
+                insert_user_id = $userId AND
+                c_id = $courseId AND
+                tool = '$tool'
+                $session_condition ";
+
+    $rs = Database::query($sql);
     $list = array();
     if (Database::num_rows($rs) > 0) {
         while ($row = Database::fetch_array($rs, 'ASSOC')) {
@@ -5742,7 +5808,7 @@ function api_sql_query($query, $file = '', $line = 0) {
  * @author Ivan Tcholakov, 04-OCT-2009, a reworked version of this function.
  * @link http://www.dokeos.com/forum/viewtopic.php?t=15557
  */
-function api_send_mail($to, $subject, $message, $additional_headers = null, $additional_parameters = null) {
+function api_send_mail($to, $subject, $message, $additional_headers = null, $additional_parameters = array()) {
 
     require_once api_get_path(LIBRARY_PATH).'phpmailer/class.phpmailer.php';
 
@@ -5828,6 +5894,15 @@ function api_send_mail($to, $subject, $message, $additional_headers = null, $add
     // Send mail.
     if (!$mail->Send()) {
         return 0;
+    }
+
+    $plugin = new AppPlugin();
+    $installedPluginsList = $plugin->getInstalledPluginListObject();
+    foreach ($installedPluginsList as $installedPlugin) {
+        if ($installedPlugin->isMailPlugin and array_key_exists("smsType", $additional_parameters)) {
+            $clockworksmsObject = new Clockworksms();
+            $clockworksmsObject->send($additional_parameters);
+        }
     }
 
     // Clear all the addresses.
