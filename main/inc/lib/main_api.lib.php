@@ -69,6 +69,8 @@ define('SESSION_VISIBLE', 2);
 define('SESSION_INVISIBLE', 3); // not available
 define('SESSION_AVAILABLE', 4);
 
+define('SESSION_LINK_TARGET','_self');
+
 define('SUBSCRIBE_ALLOWED', 1);
 define('SUBSCRIBE_NOT_ALLOWED', 0);
 define('UNSUBSCRIBE_ALLOWED', 1);
@@ -1535,7 +1537,7 @@ function api_format_course_array($course_data) {
     if (file_exists(api_get_path(SYS_COURSE_PATH).$course_data['directory'].'/course-pic85x85.png')) {
         $url_image = api_get_path(WEB_COURSE_PATH).$course_data['directory'].'/course-pic85x85.png';
     } else {
-        $url_image = api_get_path(WEB_IMG_PATH).'without_picture.png';
+        $url_image = Display::return_icon('course.png', null, null, ICON_SIZE_BIG, null, true);
     }
     $_course['course_image'] = $url_image;
     return $_course;
