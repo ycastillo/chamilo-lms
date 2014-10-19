@@ -41,6 +41,9 @@ class SkillProfile extends Model
 
     public function UpdateProfileInfo($profileId, $name, $description)
     {
+        $name = Database::escape_string($name);
+        $description = Database::escape_string($description);
+        $profileId = intval($profileId);
         $sql = "UPDATE $this->table SET `name` = '$name', `description` = '$description' WHERE id = $profileId ";
         $result = Database::query($sql);
         return $result;
@@ -94,6 +97,7 @@ class SkillRelProfile extends Model
 
     public function getProfileInfo($profileId)
     { 
+        $profileId = intval($profileId);
         $sql = "SELECT * FROM $this->table p INNER JOIN $this->tableProfile pr ON(pr.id = p.profile_id) WHERE p.profile_id = $profileId ";
         $result = Database::query($sql);
         $profileData = Database::fetch_array($result, 'ASSOC');

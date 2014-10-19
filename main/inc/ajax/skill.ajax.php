@@ -138,7 +138,8 @@ switch ($action) {
         break;
     case 'get_user_skill':
         $userId = api_get_user_id();
-        $skillId = isset($_REQUEST['profile_id']) ? $_REQUEST['profile_id'] : 0;
+        $profileId = intval($_REQUEST['profile_id']);
+        $skillId = isset($profileId) ? ($profileId) : 0;
         $skill = $skill->user_has_skill($userId, $skillId);
         if ($skill) {
             echo 1;
@@ -285,7 +286,8 @@ switch ($action) {
         break;             
     case 'get_profile':
         $skillRelProfile = new SkillRelProfile();
-        $profileId = isset($_REQUEST['profile_id']) ? $_REQUEST['profile_id'] : null;
+        $proId = intval($_REQUEST['profile_id']);
+        $profileId = isset($proId) ? $proId : null;
         $profile = $skillRelProfile->getProfileInfo($profileId);
         echo json_encode($profile);
         break; 
@@ -295,7 +297,8 @@ switch ($action) {
             $params = $_REQUEST;
             //$params['skills'] = isset($_SESSION['skills']) ? $_SESSION['skills'] : null; 
             $params['skills'] = $params['skill_id'];
-            $profileId = isset($_REQUEST['profile']) ? $_REQUEST['profile'] : null;
+            $proId = intval($_REQUEST['profile']);
+            $profileId = isset($proId) ? $proId : null;
             if ($profileId > 0) {
                 $skill_data = $skill_profile->UpdateProfileInfo($profileId,$params['name'],$params['description']);
             } else {
