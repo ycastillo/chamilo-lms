@@ -10,9 +10,7 @@
  * @version $Id: exercise.lib.php 22247 2009-07-20 15:57:25Z ivantcholakov $
  * Modified by Hubert Borderiou 2011-10-21 Question Category
  */
-/**
- * Code
- */
+
 // The initialization class for the online editor is needed here.
 require_once dirname(__FILE__).'/../inc/lib/fckeditor/fckeditor.php';
 
@@ -25,7 +23,18 @@ require_once dirname(__FILE__).'/../inc/lib/fckeditor/fckeditor.php';
  * @param int   current item from the list of questions
  * @param int   number of total questions
  * */
-function showQuestion($questionId, $only_questions = false, $origin = false, $current_item = '', $show_title = true, $freeze = false, $user_choice = array(), $show_comment = false, $exercise_feedback = null, $show_answers = false) {
+function showQuestion(
+    $questionId,
+    $only_questions = false,
+    $origin = false,
+    $current_item = '',
+    $show_title = true,
+    $freeze = false,
+    $user_choice = array(),
+    $show_comment = false,
+    $exercise_feedback = null,
+    $show_answers = false
+) {
 
     // Text direction for the current language
     $is_ltr_text_direction = api_get_text_direction() != 'rtl';
@@ -213,7 +222,6 @@ function showQuestion($questionId, $only_questions = false, $origin = false, $cu
         		$user_choice_array[] = $item['answer'];
         	}
         }
-
 
     	for ($answerId=1; $answerId <= $nbrAnswers; $answerId++) {
     		$answer          = $objAnswerTmp->selectAnswer($answerId);
@@ -526,8 +534,100 @@ function showQuestion($questionId, $only_questions = false, $origin = false, $cu
                             $attributes
                         ), $answer);*/
                 }
-    			$s .= $answer;
+                $s .= $answer;
 
+            } elseif ($answerType == CALCULATED_ANSWER) {
+                /*
+                 * In the CALCULATED_ANSWER test
+                 * you mustn't have [ and ] in the textarea
+                 * you mustn't have @@ in the textarea
+                 * the text to find mustn't be empty or contains only spaces
+                 * the text to find mustn't contains HTML tags
+                 * the text to find mustn't contains char "
+                 */
+                if ($origin !== null) {
+                    global $exe_id;
+                    $trackAttempts = Database::get_statistic_table(TABLE_STATISTIC_TRACK_E_ATTEMPT);
+                    $sqlTrackAttempt = 'SELECT answer FROM '.$trackAttempts.' WHERE exe_id='.$exe_id.' AND question_id='.$questionId;
+                    $rsLastAttempt = Database::query($sqlTrackAttempt);
+                    $rowLastAttempt = Database::fetch_array($rsLastAttempt);
+                    $answer = $rowLastAttempt['answer'];
+                    if (empty($answer)) {
+                        $_SESSION['calculatedAnswerId'][$questionId] = mt_rand(1, $nbrAnswers);
+                        $answer = $objAnswerTmp->selectAnswer($_SESSION['calculatedAnswerId'][$questionId]);
+                    }
+                }
+                list($answer) = explode('@@', $answer);
+                // $correctAnswerList array of array with correct anwsers 0=> [0=>[\p] 1=>[plop]]
+                api_preg_match_all('/\[[^]]+\]/', $answer, $correctAnswerList);
+                // get student answer to display it if student go back to previous calculated answer question in a test
+                if (isset($user_choice[0]['answer'])) {
+                    api_preg_match_all('/\[[^]]+\]/', $answer, $studentAnswerList);
+                    $studentAnswerListTobecleaned = $studentAnswerList[0];
+                    $studentAnswerList = array();
+
+                    for ($i=0; $i < count($studentAnswerListTobecleaned); $i++) {
+                        $answerCorrected = $studentAnswerListTobecleaned[$i];
+                        $answerCorrected = api_preg_replace('| / <font color="green"><b>.*$|', '', $answerCorrected);
+                        $answerCorrected = api_preg_replace('/^\[/', '', $answerCorrected);
+                        $answerCorrected = api_preg_replace('|^<font color="red"><s>|', '', $answerCorrected);
+                        $answerCorrected = api_preg_replace('|</s></font>$|', '', $answerCorrected);
+                        $answerCorrected = '['.$answerCorrected.']';
+                        $studentAnswerList[] = $answerCorrected;
+                    }
+                }
+                // If display preview of answer in test view for exemple, set the student answer to the correct answers
+                if ($debug_mark_answer) {
+                    // contain the rights answers surronded with brackets
+                    $studentAnswerList = $correctAnswerList[0];
+                }
+                /*
+                Split the response by bracket
+                tabComments is an array with text surrounding the text to find
+                we add a space before and after the answerQuestion to be sure to
+                have a block of text before and after [xxx] patterns
+                so we have n text to find ([xxx]) and n+1 block of texts before,
+                between and after the text to find
+                */
+                $tabComments = api_preg_split('/\[[^]]+\]/', ' '.$answer.' ');
+                if (!empty($correctAnswerList) && !empty($studentAnswerList)) {
+                    $answer = "";
+                    $i = 0;
+                    foreach ($studentAnswerList as $studentItem) {
+                        // remove surronding brackets
+                        $studentResponse = api_substr($studentItem, 1, api_strlen($studentItem) - 2);
+                        $size = strlen($studentItem);
+                        $attributes['class'] = detectInputAppropriateClass($size);
+
+                        $answer .= $tabComments[$i].
+                            Display::input(
+                                'text',
+                                "choice[$questionId][]",
+                                $studentResponse,
+                                $attributes
+                            );
+                        $i++;
+                    }
+                    $answer .= $tabComments[$i];
+                } else {
+                    // display exercise with empty input fields
+                    // every [xxx] are replaced with an empty input field
+                    foreach ($correctAnswerList[0] as $item) {
+                        $size = strlen($item);
+                        $attributes['class'] = detectInputAppropriateClass($size);
+                        $answer = str_replace(
+                            $item,
+                            Display::input('text', "choice[$questionId][]", '', $attributes),
+                            $answer
+                        );
+                    }
+                }
+                if ($origin !== null) {
+                    $s = $answer;
+                    break;
+                } else {
+                    $s .= $answer;
+                }
             } elseif ($answerType == MATCHING) {
     			// matching type, showing suggestions and answers
     			// TODO: replace $answerId by $numAnswer
@@ -829,7 +929,12 @@ function showQuestion($questionId, $only_questions = false, $origin = false, $cu
     return $nbrAnswers;
 }
 
-function get_exercise_track_exercise_info($exe_id) {
+/**
+ * @param int $exe_id
+ * @return array
+ */
+function get_exercise_track_exercise_info($exe_id)
+{
     $TBL_EXERCICES         	= Database::get_course_table(TABLE_QUIZ_TEST);
     $TBL_TRACK_EXERCICES	= Database::get_statistic_table(TABLE_STATISTIC_TRACK_E_EXERCICES);
     $TBL_COURSE             = Database::get_main_table(TABLE_MAIN_COURSE);
@@ -855,7 +960,8 @@ function get_exercise_track_exercise_info($exe_id) {
 /**
  * Validates the time control key
  */
-function exercise_time_control_is_valid($exercise_id, $lp_id = 0 , $lp_item_id = 0) {
+function exercise_time_control_is_valid($exercise_id, $lp_id = 0 , $lp_item_id = 0)
+{
     $course_id = api_get_course_int_id();
     $exercise_id = intval($exercise_id);
     $TBL_EXERCICES =  Database::get_course_table(TABLE_QUIZ_TEST);
@@ -937,10 +1043,18 @@ function get_count_exam_hotpotatoes_results($in_hotpot_path) {
  * @param null $where_condition
  * @return array|int
  */
-function get_exam_results_hotpotatoes_data($in_from, $in_number_of_items, $in_column, $in_direction, $in_hotpot_path, $in_get_count = false, $where_condition = null)
-{
+function get_exam_results_hotpotatoes_data(
+    $in_from,
+    $in_number_of_items,
+    $in_column,
+    $in_direction,
+    $in_hotpot_path,
+    $in_get_count = false,
+    $where_condition = null
+) {
     $course_code = api_get_course_id();
-    // by default in_column = 1 If parameters given, it is the name of the column witch is the bdd field name
+    /* by default in_column = 1 If parameters given,
+    it is the name of the column witch is the bdd field name*/
     if ($in_column == 1) {
         $in_column = 'firstname';
     }
@@ -992,15 +1106,59 @@ function get_exam_results_hotpotatoes_data($in_from, $in_number_of_items, $in_co
             'actions' => $actions,
         );
     }
+
     return $result;
+}
+
+/**
+ * @param string $exercisePath
+ * @param int $userId
+ * @param int $courseId
+ * @param int $sessionId
+ *
+ * @return array
+ */
+function getLatestHotPotatoResult(
+    $exercisePath,
+    $userId,
+    $courseId,
+    $sessionId)
+{
+    $table = Database :: get_statistic_table(TABLE_STATISTIC_TRACK_E_HOTPOTATOES);
+
+    $courseInfo = api_get_course_info_by_id($courseId);
+    $courseCode = $courseInfo['code'];
+    $exercisePath = Database::escape_string($exercisePath);
+    $userId = intval($userId);
+
+    $sql = "SELECT * FROM $table
+            WHERE
+                exe_cours_id = '$courseCode' AND
+                exe_name LIKE '$exercisePath%' AND
+                exe_user_id = $userId
+            ORDER BY id
+            LIMIT 1";
+    $result = Database::query($sql);
+    $attempt = array();
+    if (Database::num_rows($result)) {
+        $attempt = Database::fetch_array($result, 'ASSOC');
+    }
+    return $attempt;
 }
 
 /**
  * Gets the exam'data results
  * @todo this function should be moved in a library  + no global calls
  */
-function get_exam_results_data($from, $number_of_items, $column, $direction, $exercise_id, $extra_where_conditions = null, $get_count = false) {
-
+function get_exam_results_data(
+    $from,
+    $number_of_items,
+    $column,
+    $direction,
+    $exercise_id,
+    $extra_where_conditions = null,
+    $get_count = false
+) {
     //@todo replace all this globals
     global $documentPath, $filter;
 
@@ -1099,11 +1257,10 @@ function get_exam_results_data($from, $number_of_items, $column, $direction, $ex
             $is_empty_sql_inner_join_tbl_user = true;
              $sql_inner_join_tbl_user = "
             (
-                SELECT u.user_id, firstname, lastname, email, username, ' ' as group_name, '' as group_id
+                SELECT u.user_id, firstname, lastname, email, username, ' ' as group_name, '' as group_id, official_code
                 FROM $TBL_USER u
             )";
         }
-
 
         $sqlFromOption = " , $TBL_GROUP_REL_USER AS gru ";
         $sqlWhereOption = "  AND gru.c_id = ".api_get_course_int_id()." AND gru.user_id = user.user_id ";
@@ -1116,6 +1273,7 @@ function get_exam_results_data($from, $number_of_items, $column, $direction, $ex
             $sql_select = "SELECT DISTINCT
                     user_id,
                     $first_and_last_name,
+                    official_code,
                     ce.title,
                     username,
                     te.exe_result,
@@ -1154,6 +1312,7 @@ function get_exam_results_data($from, $number_of_items, $column, $direction, $ex
             $hpsql_select = "SELECT
                     $first_and_last_name ,
                     username,
+                    official_code,
                     tth.exe_name,
                     tth.exe_result ,
                     tth.exe_weighting,
@@ -1227,8 +1386,7 @@ function get_exam_results_data($from, $number_of_items, $column, $direction, $ex
             }
             $sizeof = count($results);
 
-            $user_list_id = array ();
-
+            $user_list_id = array();
             $locked = api_resource_is_locked_by_gradebook($exercise_id, LINK_EXERCISE);
 
             //Looping results
@@ -1348,7 +1506,6 @@ function get_exam_results_data($from, $number_of_items, $column, $direction, $ex
             }
         }
     } else {
-        //echo $hpsql; var_dump($hpsql);
         $hpresults = getManyResultsXCol($hpsql, 6);
 
         // Print HotPotatoes test results.
@@ -1359,7 +1516,6 @@ function get_exam_results_data($from, $number_of_items, $column, $direction, $ex
                 if ($hp_title == '') {
                     $hp_title = basename($hpresults[$i][3]);
                 }
-                //var_dump($hpresults[$i]);
 
                 $hp_date = api_get_local_time($hpresults[$i][6], null, date_default_timezone_get());
                 $hp_result = round(($hpresults[$i][4] / ($hpresults[$i][5] != 0 ? $hpresults[$i][5] : 1)) * 100, 2).'% ('.$hpresults[$i][4].' / '.$hpresults[$i][5].')';
@@ -1699,8 +1855,11 @@ function get_exercise_result_ranking($my_score, $my_exe_id, $exercise_id, $cours
                 }
             }
         //}
-        $return_value = array('position'=>$position, 'count'=>count($my_ranking));
-        //var_dump($my_score, $my_ranking);
+        $return_value = array(
+            'position' => $position,
+            'count' => count($my_ranking)
+        );
+
         if ($return_string) {
             if (!empty($position) && !empty($my_ranking)) {
                $return_value = $position.'/'.count($my_ranking);
@@ -1759,8 +1918,11 @@ function get_exercise_result_ranking_by_attempt($my_score, $my_exe_id, $exercise
             	}
             }
         }
-        $return_value = array('position'=>$position, 'count'=>count($my_ranking));
-        //var_dump($my_score, $my_ranking);
+        $return_value = array(
+            'position' => $position,
+            'count' => count($my_ranking)
+        );
+
         if ($return_string) {
             if (!empty($position) && !empty($my_ranking)) {
                return $position.'/'.count($my_ranking);
@@ -1854,7 +2016,6 @@ function get_average_score_by_course($course_code, $session_id) {
         foreach($user_results as $result) {
             if (!empty($result['exe_weighting']) && intval($result['exe_weighting']) != 0) {
                 $score = $result['exe_result']/$result['exe_weighting'];
-                //var_dump($score);
                 $avg_score +=$score;
             }
         }
@@ -1862,7 +2023,6 @@ function get_average_score_by_course($course_code, $session_id) {
         //$avg_score = show_score( $avg_score / count($user_results) , $result['exe_weighting']);
         $avg_score = ($avg_score / count($user_results));
     }
-    //var_dump($avg_score);
     return $avg_score;
 }
 
@@ -2054,7 +2214,6 @@ function get_number_students_answer_count($answer_id, $question_id, $exercise_id
                     cu.status        = ".STUDENT." AND
                     relation_type <> 2 AND
                     e.status = ''";
-    //var_dump($sql);
     $result = Database::query($sql);
     $return = 0;
     if ($result) {
@@ -2325,10 +2484,10 @@ function display_question_list_by_attempt($objExercise, $exe_id, $save_user_resu
     }
 
     if ($show_results || $show_only_score) {
-        $user_info   = api_get_user_info($exercise_stat_info['exe_user_id']);
+        $user_info = api_get_user_info($exercise_stat_info['exe_user_id']);
         //Shows exercise header
         echo $objExercise->show_exercise_result_header(
-            $user_info['complete_name'],
+            $user_info,
             api_convert_and_format_date($exercise_stat_info['start_date'], DATE_TIME_FORMAT_LONG),
             $exercise_stat_info['duration']
         );

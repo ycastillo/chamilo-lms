@@ -2,7 +2,6 @@
 /* For licensing terms, see /license.txt */
 
 /**
- *
  *  Class Matching
  *  Matching questions type class
  *
@@ -14,7 +13,7 @@
  */
 class Matching extends Question
 {
-    static $typePicture = 'matching.gif';
+    static $typePicture = 'matching.png';
     static $explanationLangVar = 'Matching';
 
     /**
