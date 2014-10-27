@@ -1315,13 +1315,12 @@ class CourseManager
         $filterByActive = null
     ) {
         // variable initialisation
-        $session_id     = intval($session_id);
-        $course_code    = Database::escape_string($course_code);
-        $where          = array();
+        $session_id = intval($session_id);
+        $course_code = Database::escape_string($course_code);
+        $where = array();
 
         // if the $order_by does not contain 'ORDER BY' we have to check if it is a valid field that can be sorted on
         if (!strstr($order_by,'ORDER BY')) {
-            //if (!empty($order_by) AND in_array($order_by, array('lastname', 'firstname', 'username', 'email', 'official_code'))) {
             $order_by = Database::escape_string($order_by);
             if (!empty($order_by)) {
                 $order_by = 'ORDER BY '.$order_by;
@@ -1339,9 +1338,10 @@ class CourseManager
             }
             $sql .= ' FROM '.Database::get_main_table(TABLE_MAIN_USER).' as user ';
             $sql .= ' LEFT JOIN '.Database::get_main_table(TABLE_MAIN_SESSION_COURSE_USER).' as session_course_user
-                      ON user.user_id = session_course_user.id_user
-                      AND session_course_user.course_code="'.$course_code.'"
-                      AND session_course_user.id_session = '.$session_id;
+                      ON
+                        user.user_id = session_course_user.id_user AND
+                        session_course_user.course_code="'.$course_code.'" AND
+                        session_course_user.id_session = '.$session_id;
             $where[] = ' session_course_user.course_code IS NOT NULL ';
 
             // 2 = coach
@@ -1429,6 +1429,7 @@ class CourseManager
         }
 
         $sql .= ' '.$order_by.' '.$limit;
+
         $rs = Database::query($sql);
         $users = array();
 
@@ -3161,12 +3162,17 @@ class CourseManager
 
     /**
      * get courses followed by user
-     * @param int $user_id
-     * @param int $from
-     * @param int $limit
-     * @param string $column
-     * @param string $direction
-     * @return array    courses
+     * @param   int     $user_id
+     * @param   int     $status
+     * @param   int     $from
+     * @param   int     $limit
+     * @param   string  $column
+     * @param   string  $direction
+     * @param   boolean $getCount
+     * @param   string  $keyword
+     * @param   int     $sessionId
+     * @param   boolean $showAllAssignedCourses
+     * @return  array   courses
      */
     public static function getCoursesFollowedByUser(
         $user_id,
@@ -3198,6 +3204,8 @@ class CourseManager
                 $whereConditions .= " AND cru.user_id = '$user_id'";
                 if (!$showAllAssignedCourses) {
                     $whereConditions .= " AND status = ".COURSEMANAGER;
+                } else {
+                    $whereConditions .= " AND relation_type = ".COURSE_RELATION_TYPE_COURSE_MANAGER;
                 }
                 break;
             case DRH:
