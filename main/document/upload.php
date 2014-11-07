@@ -210,6 +210,8 @@ Display::display_header($nameTools, 'Doc');
 
 /*    Here we do all the work */
 
+$unzip = isset($_POST['unzip']) ? $_POST['unzip'] : null;
+$index = isset($_POST['index_document']) ? $_POST['index_document'] : null;
 // User has submitted a file
 if (!empty($_FILES)) {
     DocumentManager::upload_document(
@@ -217,9 +219,9 @@ if (!empty($_FILES)) {
         $_POST['curdirpath'],
         $_POST['title'],
         $_POST['comment'],
-        $_POST['unzip'],
+        $unzip,
         $_POST['if_exists'],
-        $_POST['index_document'],
+        $index,
         true
     );
 }
@@ -303,14 +305,16 @@ $simple_form = $form->return_form();
 $url = api_get_path(WEB_AJAX_PATH).'document.ajax.php?'.api_get_cidreq().'&a=upload_file';
 $multiple_form =  get_lang('ClickToSelectOrDragAndDropMultipleFilesOnTheUploadField').'<br />';
 $multiple_form .=  '
-    <center>
+    <div class="form-ajax">
     <form id="file_upload" action="'.$url.'" method="POST" enctype="multipart/form-data">
         <input type="hidden" name="curdirpath" value="'.$path.'" />
         <input type="file" name="file" multiple>
         <button type="submit">Upload</button>
+        <div class="button-load">
         '.get_lang('UploadFiles').'
+        </div>
     </form>
-    </center>
+    </div>
     <table style="display:none; width:50%" class="files data_table">
         <tr>
             <th>'.get_lang('FileName').'</th>

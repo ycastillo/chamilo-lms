@@ -1,5 +1,6 @@
 <?php
 /* For licensing terms, see /license.txt */
+
 /**
  *	This file will show documents in a separate frame.
  *	We don't like frames, but it was the best of two bad things.
@@ -21,9 +22,7 @@
  *	@author Roan Embrechts (roan.embrechts@vub.ac.be)
  *	@package chamilo.document
  */
-/**
- * INITIALIZATION
- */
+
 $language_file[] = 'document';
 require_once '../inc/global.inc.php';
 
@@ -189,6 +188,8 @@ if (api_get_setting('show_glossary_in_documents') == 'ismanual') {
 
 
 $web_odf_supported_files = DocumentManager::get_web_odf_extension_list();
+// PDF should be displayed with viewerJS
+$web_odf_supported_files[] = 'pdf';
 if (in_array(strtolower($pathinfo['extension']), $web_odf_supported_files)) {
     $show_web_odf  = true;
     /*
@@ -208,13 +209,16 @@ if (in_array(strtolower($pathinfo['extension']), $web_odf_supported_files)) {
     */
     $htmlHeadXtra[] = '
     <script charset="utf-8">
-        resizeIframe = function(obj) {
+        resizeIframe = function() {
                 var bodyHeight = $("body").height();
                 var topbarHeight = $("#topbar").height();
-                obj.style.height = (bodyHeight - topbarHeight) + "px";
-
+                $("#viewerJSContent").height((bodyHeight - topbarHeight));
             }
-    </script>';
+        $(document).ready(function() {
+            $(window).resize(resizeIframe());
+        });
+    </script>'
+    ;
 }
 
 $execute_iframe = true;
@@ -307,9 +311,8 @@ if (!$is_nanogong_available) {
 
 if ($show_web_odf) {
     //echo Display::url(get_lang('Show'), api_get_path(WEB_CODE_PATH).'document/edit_odf.php?id='.$document_data['id'], array('class' => 'btn'));
-
-    echo '<div id="viewerJSContent">';
-    echo '<iframe frameborder="0" allowfullscreen="allowfullscreen" onload="resizeIframe(this)" style="width:100%;"
+    echo '<div id="viewerJS">';
+    echo '<iframe id="viewerJSContent" frameborder="0" allowfullscreen="allowfullscreen" style="width:100%;"
         src="'.api_get_path(WEB_LIBRARY_PATH).'javascript/ViewerJS/index.html#'.$file_url.'">
         </iframe>';
     echo '</div>';

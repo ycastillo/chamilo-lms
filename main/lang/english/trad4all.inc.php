@@ -2,6 +2,22 @@
 /*
 for more information: see languages.txt in the lang folder.
 */
+$YouHaveNotYetAchievedSkills = "You have not yet achieved skills";
+$Corn = "Corn";
+$Gray = "Gray";
+$LightBlue = "Light blue";
+$Black = "Black";
+$White = "White";
+$DisplayOptions = "Display options";
+$EnterTheSkillNameToSearch = "Enter the skill name to search";
+$SkillsSearch = "Skills search";
+$ChooseABackgroundColor = "Choose a background color";
+$SocialWriteNewComment = "Write new comment";
+$SocialWallWhatAreYouThinkingAbout = "What are you thinking about?";
+$SocialMessageDelete = "Delete comment";
+$SocialWall = "Social wall";
+$BuyCourses = "Buy courses";
+$MySessions = "My sessions";
 $ActivateAudioRecorder = "Activate audio recorder";
 $StartSpeaking = "Start speaking";
 $InverseHyperbolicTangentAtanh = "Inverse hyperbolic tangent:\tatanh(x)";
@@ -1675,8 +1691,4 @@ $DataTableSearch = "Search";
 $HideColumn = "Hide column";
 $DisplayColumn = "Show column";
 $LegalAgreementAccepted = "Legal agreement accepted";
-$FieldTypeMobilePhoneNumber = "Mobile phone";
-$CountryDialCode = "Include the country dial code";
-$MobilePhoneNumberWrong = "Mobile phone number is incomplete or contains not valid characters";
-$AreYouSureToDeleteFileX = "Are you sure you want to delete file %s ?";
 ?>

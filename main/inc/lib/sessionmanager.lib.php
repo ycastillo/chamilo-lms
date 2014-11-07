@@ -2677,6 +2677,13 @@ class SessionManager
 
                 $whereConditions = " OR (s.id_coach = $userId) ";
                 break;
+            default:
+                $sessionQuery = "SELECT sru.id_session
+                                 FROM
+                                 $tbl_session_rel_user sru
+                                 WHERE
+                                    sru.id_user = $userId";
+                break;
         }
 
         $keywordCondition = null;
@@ -2698,7 +2705,6 @@ class SessionManager
                     $whereConditions
                     $orderCondition
                     $limitCondition";
-
 
         if ($getSql) {
             return $sql;
@@ -3632,6 +3638,9 @@ class SessionManager
                         }
 
                         if (isset($sessionId) && !empty($sessionId)) {
+                            if (!empty($enreg['SessionName'])) {
+                                $params['name'] = $enreg['SessionName'];
+                            }
                             Database::update($tbl_session, $params, array('id = ?' => $sessionId));
                             $session_id = $sessionId;
                         } else {

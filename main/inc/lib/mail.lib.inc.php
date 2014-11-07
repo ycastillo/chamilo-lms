@@ -79,8 +79,8 @@ function api_mail_html(
     $recipient_email,
     $subject,
     $message,
-    $sender_name = '',
-    $sender_email = '',
+    $senderName = '',
+    $senderEmail = '',
     $extra_headers = array(),
     $data_file = array(),
     $embedded_image = false,
@@ -106,30 +106,29 @@ function api_mail_html(
     $mail->Priority = 3;
     $mail->SMTPKeepAlive = true;
 
-    // Default values:
-    $mail->From = api_get_setting('emailAdministrator');
-    $mail->Sender = api_get_setting('emailAdministrator');
-    $mail->FromName = api_get_setting('administratorName').' '.api_get_setting('administratorSurname');
+    // Default values
+    $notification = new Notification();
+    $defaultEmail = $notification->getDefaultPlatformSenderEmail();
+    $defaultName = $notification->getDefaultPlatformSenderName();
 
     // Error to admin.
-    $mail->AddCustomHeader('Errors-To: '.$mail->From);
+    $mail->AddCustomHeader('Errors-To: '.$defaultEmail);
 
     // If the parameter is set don't use the admin.
-    $mail->From = !empty($sender_email) ? $sender_email : $mail->From;
-    $mail->Sender = !empty($sender_email) ? $sender_email : $mail->Sender;
-    $mail->FromName =  !empty($sender_name) ? $sender_name : $mail->FromName;
+    $senderName = !empty($senderName) ? $senderName : $defaultEmail;
+    $senderEmail = !empty($senderEmail) ? $senderEmail : $defaultName;
 
-    // Add reply
-    if (!empty($sender_email) && !empty($sender_name)) {
-        $mail->AddReplyTo($sender_email, $sender_name);
-    }
-
+    // Reply to first
     if (isset($extra_headers['reply_to'])) {
         $mail->AddReplyTo(
             $extra_headers['reply_to']['mail'],
             $extra_headers['reply_to']['name']
         );
+        $mail->Sender = $extra_headers['reply_to']['mail'];
+        unset($extra_headers['reply_to']);
     }
+
+    $mail->SetFrom($senderEmail, $senderName);
 
     $mail->Subject = $subject;
     $mail->AltBody = strip_tags(
@@ -207,11 +206,6 @@ function api_mail_html(
                 case 'contenttype':
                 case 'content-type':
                     $mail->ContentType = $value;
-                    break;
-                case 'reply_to':
-                    if (isset($value['mail']) && isset($value['name'])) {
-                        $mail->AddReplyTo($value['mail'], $value['name']);
-                    }
                     break;
                 default:
                     $mail->AddCustomHeader($key.':'.$value);
