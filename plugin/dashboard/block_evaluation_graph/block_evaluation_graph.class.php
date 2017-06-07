@@ -1,16 +1,6 @@
 <?php
 /* For licensing terms, see /license.txt */
 
-/**
- * This file is part of evaluation graph block plugin for dashboard,
- * it should be required inside dashboard controller for showing it into dashboard interface from plattform
- * @package chamilo.dashboard
- * @author Christian Fasanando
- */
-
-/**
- * required files for getting data
- */
 require_once api_get_path(LIBRARY_PATH).'pchart/pData.class.php';
 require_once api_get_path(LIBRARY_PATH).'pchart/pChart.class.php';
 require_once api_get_path(LIBRARY_PATH).'pchart/pCache.class.php';
@@ -23,9 +13,18 @@ require_once api_get_path(SYS_CODE_PATH).'gradebook/lib/gradebook_functions.inc.
 require_once api_get_path(SYS_CODE_PATH).'gradebook/lib/be/category.class.php';
 
 /**
+ * Class BlockEvaluationGraph
  * This class is used like controller for this evaluations graph block plugin,
- * the class name must be registered inside path.info file (e.g: controller = "BlockEvaluationGraph"), so dashboard controller will be instantiate it
+ * the class name must be registered inside path.info file
+ * (e.g: controller = "BlockEvaluationGraph"),
+ * so dashboard controller will be instantiate it
+ *
+ * This file is part of evaluation graph block plugin for dashboard,
+ * it should be required inside dashboard controller for showing it
+ * into dashboard interface from platform
+ *
  * @package chamilo.dashboard
+ * @author Christian Fasanando
  */
 class BlockEvaluationGraph extends Block
 {
@@ -75,7 +74,6 @@ class BlockEvaluationGraph extends Block
      */
     public function get_block()
     {
-
 		global $charset;
     	$column = 1;
     	$data   = array();
@@ -116,6 +114,7 @@ class BlockEvaluationGraph extends Block
 
     	$data['column'] = $column;
     	$data['content_html'] = $html;
+
     	return $data;
 	}
 
@@ -144,7 +143,7 @@ class BlockEvaluationGraph extends Block
 						$max = $min = $avg = array();
 						foreach ($evaluation_sumary as $evaluation) {
 							$max[] = $evaluation['max'];
-							$min[] = $evaluation['min'];
+                            $min[] = !empty($evaluation['min']) ? $evaluation['min'] : 0;
 							$avg[] = $evaluation['avg'];
 						}
 						// Dataset definition
@@ -167,14 +166,49 @@ class BlockEvaluationGraph extends Block
 							$img_file = $cache->GetHash($graph_id, $data);
 						} else {
 							// Initialise the graph
+                            $angle = -30;
 						    $test = new pChart($this->bg_width,$this->bg_height);
 						    $test->setFontProperties(api_get_path(LIBRARY_PATH).'pchart/fonts/tahoma.ttf',8);
-						    $test->setGraphArea(50,30,$this->bg_width-75,$this->bg_height-75);
-						    $test->drawFilledRoundedRectangle(7,7,$this->bg_width-20,$this->bg_height-20,5,240,240,240);
-						    $test->drawRoundedRectangle(5,5,$this->bg_width-18,$this->bg_height-18,5,230,230,230);
-						    $test->drawGraphArea(255,255,255,TRUE);
-						    $test->setFixedScale(0,100,5);
-						    $test->drawScale($data_set->GetData(),$data_set->GetDataDescription(),SCALE_ADDALL,150,150,150,TRUE,0,2,TRUE);
+                            $test = $test->fixHeightByRotation(
+                                $data_set->GetData(),
+                                $data_set->GetDataDescription(),
+                                $angle
+                            );
+                            $test->setGraphArea(50, 30, $this->bg_width-75, $this->bg_height - 75);
+                            $test->drawFilledRoundedRectangle(
+                                7,
+                                7,
+                                $this->bg_width-20,
+                                $test->YSize - 20,
+                                5,
+                                240,
+                                240,
+                                240
+                            );
+                            $test->drawRoundedRectangle(
+                                5,
+                                5,
+                                $this->bg_width-18,
+                                $test->YSize - 18,
+                                5,
+                                230,
+                                230,
+                                230
+                            );
+                            $test->drawGraphArea(255,255,255,TRUE);
+                            $test->setFixedScale(0,100,5);
+                            $test->drawScale(
+                                $data_set->GetData(),
+                                $data_set->GetDataDescription(),
+                                SCALE_ADDALL,
+                                150,
+                                150,
+                                150,
+                                TRUE,
+                                $angle,
+                                2,
+                                TRUE
+                            );
 						    $test->setColorPalette(0,105,221,34);
 							$test->setColorPalette(1,255,135,30);
 							$test->setColorPalette(2,255,0,0);
@@ -259,14 +293,49 @@ class BlockEvaluationGraph extends Block
 								$img_file = $cache->GetHash($graph_id, $data);
 							} else {
 								// Initialise the graph
-							    $test = new pChart($this->bg_width,$this->bg_height);
-							    $test->setFontProperties(api_get_path(LIBRARY_PATH).'pchart/fonts/tahoma.ttf',8);
-							    $test->setGraphArea(50,30,$this->bg_width-75,$this->bg_height-75);
-							    $test->drawFilledRoundedRectangle(7,7,$this->bg_width-20,$this->bg_height-20,5,240,240,240);
-							    $test->drawRoundedRectangle(5,5,$this->bg_width-18,$this->bg_height-18,5,230,230,230);
+                                $angle = -30;
+							    $test = new pChart($this->bg_width, $this->bg_height);
+							    $test->setFontProperties(api_get_path(LIBRARY_PATH) . 'pchart/fonts/tahoma.ttf', 8);
+                                $test->fixHeightByRotation(
+                                    $data_set->GetData(),
+                                    $data_set->GetDataDescription(),
+                                    $angle
+                                );
+                                $test->setGraphArea(50, 30, $this->bg_width - 75, $this->bg_height - 75);
+                                $test->drawFilledRoundedRectangle(
+                                    7,
+                                    7,
+                                    $this->bg_width - 20,
+                                    $test->YSize - 20,
+                                    5,
+                                    240,
+                                    240,
+                                    240
+                                );
+                                $test->drawRoundedRectangle(
+                                    5,
+                                    5,
+                                    $this->bg_width - 18,
+                                    $test->YSize - 18,
+                                    5,
+                                    230,
+                                    230,
+                                    230
+                                );
 							    $test->drawGraphArea(255,255,255,TRUE);
 							    $test->setFixedScale(0,100,5);
-							    $test->drawScale($data_set->GetData(),$data_set->GetDataDescription(),SCALE_ADDALL,150,150,150,TRUE,0,2,TRUE);
+                                $test->drawScale(
+                                    $data_set->GetData(),
+                                    $data_set->GetDataDescription(),
+                                    SCALE_ADDALL,
+                                    150,
+                                    150,
+                                    150,
+                                    TRUE,
+                                    $angle,
+                                    2,
+                                    TRUE
+                                );
 							    $test->setColorPalette(0,105,221,34);
 								$test->setColorPalette(1,255,135,30);
 								$test->setColorPalette(2,255,0,0);

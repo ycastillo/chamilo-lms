@@ -34,12 +34,12 @@ $htmlHeadXtra[] = '<script type="text/javascript" language="javascript">
     </script>';
 $htmlHeadXtra[] = '<script type="text/javascript">
     function advanced_parameters() {
-        if(document.getElementById(\'options\').style.display == \'none\') {
-                document.getElementById(\'options\').style.display = \'block\';
-                document.getElementById(\'plus_minus\').innerHTML=\'&nbsp;'.Display::return_icon('div_hide.gif',get_lang('Hide'),array('style'=>'vertical-align:middle')).'&nbsp;'.get_lang('AdvancedParameters').'\';
+        if (document.getElementById(\'options\').style.display == \'none\') {
+            document.getElementById(\'options\').style.display = \'block\';
+            document.getElementById(\'plus_minus\').innerHTML=\'&nbsp;'.Display::return_icon('div_hide.gif',get_lang('Hide'),array('style'=>'vertical-align:middle')).'&nbsp;'.get_lang('AdvancedParameters').'\';
         } else {
-                document.getElementById(\'options\').style.display = \'none\';
-                document.getElementById(\'plus_minus\').innerHTML=\'&nbsp;'.Display::return_icon('div_show.gif',get_lang('Show'),array('style'=>'vertical-align:middle')).'&nbsp;'.get_lang('AdvancedParameters').'\';
+            document.getElementById(\'options\').style.display = \'none\';
+            document.getElementById(\'plus_minus\').innerHTML=\'&nbsp;'.Display::return_icon('div_show.gif',get_lang('Show'),array('style'=>'vertical-align:middle')).'&nbsp;'.get_lang('AdvancedParameters').'\';
         }
     }
 </script>';
@@ -75,11 +75,11 @@ $interbreadcrumb[] = array('url' => 'index.php?gradebook='.$gradebook.'&amp;sear
 
 if (!empty($_GET['action']) && !empty($_GET['content'])) {
     if ($_GET['action']=='add' && $_GET['content']=='forum' ) {
-    	$interbreadcrumb[] = array('url' =>'viewforumcategory.php?forumcategory='.$current_forum_category['cat_id'].'&amp;origin='.$origin,'name' => $current_forum_category['cat_title']);
+        $interbreadcrumb[] = array('url' =>'viewforumcategory.php?forumcategory='.$current_forum_category['cat_id'].'&amp;origin='.$origin,'name' => $current_forum_category['cat_title']);
         $interbreadcrumb[] = array('url' =>'#', 'name' => get_lang('AddForum'));
     }
 } else {
-	$interbreadcrumb[] = array('url' => '#','name' => $current_forum_category['cat_title']);
+    $interbreadcrumb[] = array('url' => '#','name' => $current_forum_category['cat_title']);
 }
 
 // Are we in a lp ?
@@ -91,7 +91,7 @@ if (isset($_GET['origin'])) {
 if ($origin=='learnpath') {
     Display::display_reduced_header();
 } else {
-    Display :: display_header(null);
+    Display::display_header(null);
 }
 
 /* ACTIONS */
@@ -108,7 +108,8 @@ if (!api_is_allowed_to_edit(false,true) AND ($current_forum_category && $current
 /* Action Links */
 echo '<div class="actions">';
 echo '<span style="float:right;">'.search_link().'</span>';
-echo '<a href="index.php?gradebook='.$gradebook.'">'.Display::return_icon('back.png', get_lang('BackToForumOverview'), '', ICON_SIZE_MEDIUM).'</a>';
+echo '<a href="index.php?gradebook='.$gradebook.'&'.api_get_cidreq().'">'.
+    Display::return_icon('back.png', get_lang('BackToForumOverview'), '', ICON_SIZE_MEDIUM).'</a>';
 if (api_is_allowed_to_edit(false,true)) {
     echo '<a href="'.api_get_self().'?'.api_get_cidreq().'&forumcategory='.$current_forum_category['cat_id'].'&amp;action=add&amp;content=forum"> '.Display::return_icon('new_forum.png', get_lang('AddForum'),'',ICON_SIZE_MEDIUM).'</a>';
 }

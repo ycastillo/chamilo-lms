@@ -9,16 +9,13 @@
  * @author Bert Steppé
  * @package chamilo.gradebook
  */
-/**
- * Init
- */
 
 require_once '../inc/global.inc.php';
 api_block_anonymous_users();
 $this_section=SECTION_COURSES;
 
 $course_code = api_get_course_id();
-$course_info = Database::get_course_info($course_code);
+$course_info = api_get_course_info($course_code);
 $course_title = $course_info['title'];
 $course_code = $return_result['code'];
 $gradebook = Security::remove_XSS($_GET['gradebook']);
@@ -26,17 +23,49 @@ $gradebook = Security::remove_XSS($_GET['gradebook']);
 $session_id = api_get_session_id();
 
 $cidReq = Security::remove_XSS($_GET['cidReq']);
+$type = Security::remove_XSS($_GET['type']);
+
+$doExerciseUrl = api_get_path(WEB_CODE_PATH).'exercice/overview.php?session_id='.$session_id.'&cidReq='.$cidReq.'&gradebook='.$gradebook.'&origin=&learnpath_id=&learnpath_item_id=&exerciseId='.intval($_GET['doexercise']);
+
+// no support for hot potatoes
+if ($type == LINK_HOTPOTATOES) {
+    $doExerciseUrl = api_get_path(WEB_CODE_PATH).'exercice/exercice.php?session_id='.$session_id.'&cidReq='.Security::remove_XSS($cidReq);
+}
 
 $_course['name'] = $course_title;
 $_course['official_code'] = $course_code;
 
 if (isset($_GET['doexercise'])) {
-	header('Location: ../exercice/overview.php?session_id='.$session_id.'&cidReq='.$cidReq.'&gradebook='.$gradebook.'&origin=&learnpath_id=&learnpath_item_id=&exerciseId='.intval($_GET['doexercise']));
-	exit;
+    header('Location: '.$doExerciseUrl);
+    exit;
 } else {
-	if (isset($_GET['gradebook'])) {
-		$add_url = '&gradebook=view&exerciseId='.intval($_GET['exerciseId']);
-	}
-	header('Location: ../exercice/exercice.php??session_id='.$session_id.'&cidReq='.Security::remove_XSS($cidReq).'&show=result'.$add_url);
-	exit;
+    $url = api_get_path(WEB_CODE_PATH).'exercice/overview.php?session_id='.$session_id.'&cidReq='.Security::remove_XSS($cidReq);
+    if (isset($_GET['gradebook'])) {
+        $url .= '&gradebook=view&exerciseId='.intval($_GET['exerciseId']);
+
+        // Check if exercise is inserted inside a LP, if that's the case
+        $exerciseId = $_GET['exerciseId'];
+        $exercise = new Exercise();
+        $exercise->read($exerciseId);
+        if (!empty($exercise->id)) {
+            if ($exercise->exercise_was_added_in_lp) {
+                if (!empty($exercise->lpList)) {
+                    $count = count($exercise->lpList);
+                    if ($count == 1) {
+                        // If the exercise was added once redirect to the LP
+                        $firstLp = current($exercise->lpList);
+                        if (isset($firstLp['lp_id'])) {
+                            $url = api_get_path(WEB_CODE_PATH) . 'newscorm/lp_controller.php?' . api_get_cidreq() . '&lp_id=' . $firstLp['lp_id'] . '&action=view&isStudentView=true';
+                        }
+                    } else {
+                        // If the exercise was added multiple times show the LP list
+                        $url = api_get_path(WEB_CODE_PATH) . 'newscorm/lp_controller.php?' . api_get_cidreq().'&action=list';
+                    }
+                }
+            }
+        }
+    }
+
+    header('Location: '.$url);
+    exit;
 }

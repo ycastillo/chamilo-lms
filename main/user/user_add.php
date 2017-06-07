@@ -1,13 +1,13 @@
 <?php
 /* For licensing terms, see /license.txt*/
 /**
-*	@package chamilo.user
+* @package chamilo.user
 */
 /**
  * Code
  */
 
-/* INIT	*/
+/* INIT */
 
 // name of the language file that needs to be included
 $language_file="registration";
@@ -25,7 +25,7 @@ $tbl_courseUser    = "course_rel_user";
 
 
 
-/* DATA CHECKING	*/
+/* DATA CHECKING */
 
 if($register) {
     /*
@@ -94,9 +94,9 @@ if($register) {
 
                     break;
                 }
-            }				// end while $result
-        }					// end if num rows
-    }						// end if datachecked
+            }       // end while $result
+        }         // end if num rows
+    }           // end if datachecked
 
 
 
@@ -193,17 +193,35 @@ if($register) {
 
         if ($courseRegSucceed)
         {
-            $emailbody = get_lang('Dear')." ".stripslashes(api_get_person_name($firstname_form, $lastname_form)).",\n".get_lang('OneResp')." $currentCourseName ".get_lang('RegYou')." ".api_get_setting('siteName')." ".get_lang('WithTheFollowingSettings')."\n\n".get_lang('Username')." : $username_form\n".get_lang('Pass').": $password_form\n".get_lang('Address')." ".api_get_setting('siteName')." ".get_lang('Is').": ".$portal_url."\n".get_lang('Problem')."\n".get_lang('Formula').",\n".api_get_person_name(api_get_setting('administratorName'), api_get_setting('administratorSurname'))."\n".get_lang('Manager')." ".api_get_setting('siteName')." \nT. ".api_get_setting('administratorTelephone')."\n".get_lang('Email').": ".api_get_setting('emailAdministrator')."\n";
+            $emailbody = get_lang('Dear')." ".stripslashes(api_get_person_name($firstname_form, $lastname_form)).",\n".get_lang('OneResp')." $currentCourseName ".get_lang('RegYou')." ".api_get_setting('siteName')." ".get_lang('WithTheFollowingSettings')."\n\n".get_lang('Username')." : $username_form\n".get_lang('Pass').": $password_form\n".get_lang('Address')." ".api_get_setting('siteName')." ".get_lang('Is').": ".$portal_url."\n".get_lang('Problem')."\n".get_lang('SignatureFormula').",\n".api_get_person_name(api_get_setting('administratorName'), api_get_setting('administratorSurname'))."\n".get_lang('Manager')." ".api_get_setting('siteName')." \nT. ".api_get_setting('administratorTelephone')."\n".get_lang('Email').": ".api_get_setting('emailAdministrator')."\n";
             $message = get_lang('TheU')." ".stripslashes(api_get_person_name($firstname_form, $lastname_form))." ".get_lang('AddedToCourse')."<a href=\"user.php\">".get_lang('BackUser')."</a>\n";
         }
         else
         {
-            $emailbody = get_lang('Dear')." ".api_get_person_name($firstname_form, $lastname_form).",\n ".get_lang('YouAreReg')."  ".api_get_setting('siteName')."  ".get_lang('WithTheFollowingSettings')."\n\n".get_lang('Username')." : $username_form\n".get_lang('Pass').": $password_form\n".get_lang('Address')." ".api_get_setting('siteName')." ".get_lang('Is').": ".$portal_url."\n".get_lang('Problem')."\n".get_lang('Formula').",\n".api_get_person_name(api_get_setting('administratorName'), api_get_setting('administratorSurname'))."\n".get_lang('Manager')." ".api_get_setting('siteName')." \nT. ".api_get_setting('administratorTelephone')."\n".get_lang('Email').": ".api_get_setting('emailAdministrator')."\n";
+            $emailbody = get_lang('Dear')." ".api_get_person_name($firstname_form, $lastname_form).",\n ".get_lang('YouAreReg')."  ".api_get_setting('siteName')."  ".get_lang('WithTheFollowingSettings')."\n\n".get_lang('Username')." : $username_form\n".get_lang('Pass').": $password_form\n".get_lang('Address')." ".api_get_setting('siteName')." ".get_lang('Is').": ".$portal_url."\n".get_lang('Problem')."\n".get_lang('SignatureFormula').",\n".api_get_person_name(api_get_setting('administratorName'), api_get_setting('administratorSurname'))."\n".get_lang('Manager')." ".api_get_setting('siteName')." \nT. ".api_get_setting('administratorTelephone')."\n".get_lang('Email').": ".api_get_setting('emailAdministrator')."\n";
 
             $message = stripslashes(api_get_person_name($firstname_form, $lastname_form))." ".get_lang('AddedU');
         }
 
-        @api_mail($recipient_name, $email_form, $emailsubject, $emailbody, $sender_name,$email_admin);
+        $plugin = new AppPlugin();
+        $additionalParameters = array(
+            'smsType' => constant($plugin->getSMSPluginName().'::BEEN_SUBSCRIBED_COURSE'),
+            'userId' => $user_id,
+            'courseTitle' => $currentCourseName
+        );
+
+        api_mail_html(
+            $recipient_name,
+            $email_form,
+            $emailsubject,
+            $emailbody,
+            $sender_name,
+            $email_admin,
+            null,
+            null,
+            null,
+            $additionalParameters
+        );
 
         /*
          * remove <form> variables to prevent any pre-filled fields
@@ -211,10 +229,10 @@ if($register) {
 
         unset($lastname_form, $firstname_form, $username_form, $password_form, $email_form, $admin_form, $tutor_form);
 
-    } 	// end if ($platformRegSucceed)
+    }   // end if ($platformRegSucceed)
     //else
     //{
-    //	$message = get_lang('UserAlreadyRegistered');
+    //  $message = get_lang('UserAlreadyRegistered');
     //}
 
 } // end if register request
@@ -326,7 +344,7 @@ if ($_cid) // if we're inside a course, then it's a course registration
 </tr>
 <?php
 
-}			// end if $_cid - for the case we're not in a course registration
+}     // end if $_cid - for the case we're not in a course registration
             // but a platform registration
 else
 {

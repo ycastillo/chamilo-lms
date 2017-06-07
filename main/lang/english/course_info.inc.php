@@ -4,7 +4,7 @@ for more information: see languages.txt in the lang folder.
 */
 $ModifInfo = "Settings";
 $langModifDone = "The information has been modified";
-$langDelCourse = "Delete the course area";
+$langDelCourse = "Completely delete this course";
 $langProfessors = "Trainers";
 $langFaculty = "Category";
 $langConfidentiality = "Confidentiality";
@@ -58,7 +58,7 @@ $langBUAnnounceInMainBase = "Backup of announcements data in main database for";
 $langBackupOfDataBase = "Backup of database";
 $langCreationDate = "Created";
 $langExpirationDate = "Expiration date";
-$langPostPone = "Post pone";
+$langPostPone = "Postpone";
 $langLastEdit = "Latest edit";
 $langLastVisit = "Latest visit";
 $langSubscription = "Subscription";

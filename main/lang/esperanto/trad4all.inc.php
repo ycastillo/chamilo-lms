@@ -2,6 +2,9 @@
 /*
 for more information: see languages.txt in the lang folder.
 */
+$AddForum = "Aldoni novan forumon";
+$ReplyShort = "Respondo:";
+$NoTimeLimits = "Sen templimo";
 $Title = "Titolo";
 $UsersOnline = "Konektitaj uzuloj";
 $Remove = "Forigi";
@@ -326,6 +329,7 @@ $From = "de";
 $To = "al";
 $Category = "Kategorio";
 $UserAge = "Aĝo";
+$NextWeek = "Venonta semajno";
 $GeneralDescription = "Ĝenerala Priskribo";
 $GeneralDescriptionQuestions = "Kiel rolas la kurso ene de la programo? Ĉu ekzistas antaŭkondiĉoj? Kiel la kurso ligiĝas kun aliaj kursoj?";
 $GeneralDescriptionInformation = "Priskribo de la kurso (nombro da horoj, oficiala kodo, klasĉambro...) kaj la instruisto (nomo, persona nomo, oficejo, telefono, retadreso...)";
@@ -347,4 +351,5 @@ $HumanAndTechnicalResourcesInformation = "Mallonga priskribo pri la diversaj kon
 $Assessment = "Pritakso";
 $AssessmentQuestions = "Kiel oni prijuĝos la uzulojn? Ĉu ekzistas utilaj strategioj por regi la studobjekton?";
 $AssessmentInformation = "Ekzemplaj ekzamenaj demandoj. Sukceskriterioj. Konsiletoj.";
+$UploadADocument = "alŝuti dokumenton";
 ?>

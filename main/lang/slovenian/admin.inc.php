@@ -2,6 +2,28 @@
 /*
 for more information: see languages.txt in the lang folder.
 */
+$HumanResourcesManagerShouldNotBeRegisteredToCourses = "Upravitelj človeških virov (HRM) ne sme biti vpisan v tečaj. Uporabniki tega tipa niso bili vpisani.";
+$CleanAndUpdateCourseCoaches = "Počisti in ažuriraj coach-e tečajev";
+$NoPDFFoundAtRoot = "V korenu ne morem najti PDF datoteke. Zagotovite, da bo PDF datoteka v korenu .zip datoteke (ne sme biti vsebovana v imeniku)";
+$PDFsMustLookLike = "PDF mora biti videti kot:";
+$ImportZipFileLocation = "Lokacija .zip datoteke za uvoz";
+$YouMustImportAZipFile = "Uvoziti je potrebno .zip datoteko";
+$ImportPDFIntroToCourses = "Uvozi uvodno besedilo v PDF obliki v tečaje";
+$SubscribeTeachersToSession = "Vpiši učitelje v sejo/seje";
+$SubscribeStudentsToSession = "Vpiši uporabnike v sejo/seje";
+$ManageCourseCategories = "Upravljaj kategorije tečajev";
+$CourseCategoryListInX = "Kategorije tečajev v okviru %s spletne strani:";
+$CourseCategoryInPlatform = "Dostopne kategorije tečajev";
+$UserGroupBelongURL = "Skupina sedaj pripada izbrani spletni strani";
+$AtLeastOneUserGroupAndOneURL = "Izbrati je potrebno vsaj eno skupino in eno spletno stran";
+$ClassIdDoesntExists = "ID razreda ne obstaja";
+$DeleteUsersNotInList = "Izpiši uporabnike, ki niso na spisku uvoza";
+$IfSessionExistsUpdate = "Če seja obstaja, jo ažuriraj";
+$SearchCourseBySession = "Išči tečaje po sejah";
+$GlobalLinkUseDoubleColumnPrivateToShowPrivately = "Uporabi ::private na koncu povezave, da je povezava prikazana le prijavljenim uporabnikom";
+$CourseVisibilityHidden = "Neviden - Popolnoma neviden za se uporabnike razen za upravitelje";
+$ApplyAllLanguages = "Uveljavi spremembe za vse razpoložljive jezike";
+$CareerUpdated = "Kariere so bile uspešno ažurirane";
 $CasMainActivateComment = "Omogočanje CAS avtentifikacije omogoči uporabnikom avtentifikacijo z njihovimi obstoječimi CAS avtentifikacijskimi podatki.<br>
 Obiščite 
 <a href=\"settings.php?category=Plugins\">Vtičniki</a>
@@ -178,7 +200,6 @@ $langTechnicalTools = "Tehnična";
 $langConfig = "Konfiguracija sistema";
 $langLogIdentLogoutComplete = "Seznam dostopov (razširjen)";
 $langLimitUsersListDefaultMax = "Največje število prikazanih uporabnikov";
-$NoTimeLimits = "Brez časovnih omejitev";
 $GeneralCoach = "Glavni inštruktor";
 $GeneralProperties = "Splošne lastnosti";
 $CourseCoach = "Inštruktor tečaja";
@@ -1074,6 +1095,7 @@ $EditTabs = "Uredi zavihke";
 $YourGradebookFirstNeedsACertificateInOrderToBeLinkedToASkill = "Certifikat redovalnice je potreben, če želite redovalnico povezati s spretnostmi";
 $PlatformUnsubscribeTitle = "Dovoli izpis iz platforme";
 $PlatformUnsubscribeComment = "S to možnostjo dovolite poljubnemu uporabniku da odstrani svoj račun in vse podatke povezane z računom, ki jih platforma hrani. Tako dejanje je zelo radikalno, vendar potrebno pri portalih, odprtih javnosti, ki omogočajo samoregistracijo v portal. V profilu uporabnika se s to možnostjo doda opcija za izpis iz portala s potrditvijo izpisa.";
+$PromotionUpdated = "Promocije so bile uspešno ažurirane";
 $BabyOrange = "Otroško oranžna";
 $BlueLagoon = "Modra laguna";
 $CoolBlue = "Odlično modra";

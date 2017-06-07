@@ -17,7 +17,6 @@ require_once '../inc/lib/xajax/xajax.inc.php';
 
 global $_configuration;
 
-// create an ajax object
 $xajax = new xajax();
 $xajax->registerFunction('search_courses');
 
@@ -60,16 +59,17 @@ if (!api_is_platform_admin()) {
 	api_not_allowed(true);
 }
 
-function search_courses($needle,$type)
+function search_courses($needle, $type)
 {
-    global $_configuration, $tbl_course, $tbl_course_rel_user, $tbl_course_rel_access_url,$user_id;
+    global $_configuration, $tbl_course, $tbl_course_rel_access_url,$user_id;
 
     $xajax_response = new XajaxResponse();
     $return = '';
-    if(!empty($needle) && !empty($type)) {
+    if (!empty($needle) && !empty($type)) {
         // xajax send utf8 datas... datas in db can be non-utf8 datas
         $charset = api_get_system_encoding();
         $needle = api_convert_encoding($needle, $charset, 'utf-8');
+		$needle = Database::escape_string($needle);
 
         $assigned_courses_to_hrm = CourseManager::get_courses_followed_by_drh($user_id);
         $assigned_courses_code = array_keys($assigned_courses_to_hrm);
@@ -191,9 +191,10 @@ if (count($assigned_courses_code) > 0) {
 }
 
 $needle = '%';
+$firstLetter = null;
 if (isset($_POST['firstLetterCourse'])) {
-	$needle = Database::escape_string($_POST['firstLetterCourse']);
-	$needle = "$needle%";
+	$firstLetter = $_POST['firstLetterCourse'];
+	$needle = Database::escape_string($firstLetter.'%');
 }
 
 if (api_is_multiple_url_enabled()) {
@@ -215,7 +216,7 @@ if (api_is_multiple_url_enabled()) {
 $result	= Database::query($sql);
 
 ?>
-<form name="formulaire" method="post" action="<?php echo api_get_self(); ?>?user=<?php echo $user_id ?>" style="margin:0px;" <?php if($ajax_search){echo ' onsubmit="valide();"';}?>>
+<form name="formulaire" method="post" action="<?php echo api_get_self(); ?>?user=<?php echo $user_id ?>" style="margin:0px;">
 <input type="hidden" name="formSent" value="1" />
 <?php
 if(!empty($msg)) {
@@ -250,7 +251,7 @@ if(!empty($msg)) {
      <select name="firstLetterCourse" onchange = "xajax_search_courses(this.value,'multiple')">
       <option value="%">--</option>
       <?php
-      echo Display :: get_alphabet_options($_POST['firstLetterCourse']);
+      echo Display :: get_alphabet_options($firstLetter);
       ?>
      </select>
 </td>
@@ -269,21 +270,9 @@ if(!empty($msg)) {
   </td>
 
   <td width="10%" valign="middle" align="center">
-  <?php
-  if ($ajax_search) {
-  ?>
-  	<button class="arrowl" type="button" onclick="remove_item(document.getElementById('destination'))"></button>
-  <?php
-  }
-  else
-  {
-  ?>
   	<button class="arrowr" type="button" onclick="moveItem(document.getElementById('origin'), document.getElementById('destination'))" onclick="moveItem(document.getElementById('origin'), document.getElementById('destination'))"></button>
 	<br /><br />
 	<button class="arrowl" type="button" onclick="moveItem(document.getElementById('destination'), document.getElementById('origin'))" onclick="moveItem(document.getElementById('destination'), document.getElementById('origin'))"></button>
-  <?php
-  }
-  ?>
 	<br /><br /><br /><br /><br /><br />
 	<?php
 		echo '<button class="save" type="button" value="" onclick="valide()" >'.$tool_name.'</button>';

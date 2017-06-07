@@ -1,18 +1,19 @@
 <?php
 /* For licensing terms, see /license.txt */
 
+require_once 'learnpathItem.class.php';
+
 /**
+ * Class aiccBlock
+ * Class defining the Block elements in an AICC Course Structure file.
+ *
  * Container for the aiccResource class that deals with elemens from AICC Course Structure file
  * @package	chamilo.learnpath
  * @author	Yannick Warnier <ywarnier@beeznest.org>
  * @license	GNU/GPL
  */
-
-/**
- * Class defining the Block elements in an AICC Course Structure file.
- */
-require_once 'learnpathItem.class.php';
-class aiccBlock extends learnpathItem {
+class aiccBlock extends learnpathItem
+{
     public $identifier = '';
     public $members = array();
 
@@ -22,7 +23,8 @@ class aiccBlock extends learnpathItem {
      * @param	string	Type of construction needed ('db' or 'config', default = 'config')
      * @param	mixed	Depending on the type given, DB id for the lp_item or parameters array
      */
-    function aiccBlock($type = 'config', $params) {
+    function aiccBlock($type = 'config', $params)
+    {
         if (isset($params)) {
             switch ($type) {
                 case 'db':
@@ -32,12 +34,12 @@ class aiccBlock extends learnpathItem {
                 default:
                     foreach ($params as $a => $value) {
                         switch ($a) {
-                               case 'system_id':
-                                   $this->identifier = strtolower($value);
+                            case 'system_id':
+                                $this->identifier = strtolower($value);
                                 break;
                             case 'member':
                                 if (strstr($value, ',') !== false) {
-                                    $temp = split(',', $value);
+                                    $temp = explode(',', $value);
                                     foreach ($temp as $val) {
                                         if (!empty($val)) {
                                             $this->members[] = $val;
@@ -47,9 +49,11 @@ class aiccBlock extends learnpathItem {
                                 break;
                         }
                     }
+
                     return true;
             }
         }
+
         return false;
     }
 }

@@ -6,9 +6,14 @@
 @import url('../base_chamilo.css');
 
 /* the following for regular <a> elements */
+body {
+  
+  -ms-text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%;
+}
 a {
     text-decoration: none;
-    color :#6E6E6E;
+    color :#666666;
 }
 a:visited {
     text-decoration: none;
@@ -30,15 +35,16 @@ a:active {
     color: #FFFFFF;
 }
 .subnav .navbar-inner {
-    background-color: #0191C7; /* Old browsers */
-    background-repeat: repeat-x; /* Repeat the gradient */
-    background-image: none;
+    -webkit-border-radius: 0px;
+    -moz-border-radius: 02px;
+    border-radius: 0px;
     border: none;
+    background: #00a9e0; /* Old browsers */
 }
 
 .subnav .nav > li > a {
-    border-left: 1px solid #0191C7;
-    border-right: 1px solid #0191C7;
+    border-left: none;
+    border-right: none;
     color: white;
     font-weight: normal;
     font-size: 13px;
@@ -48,8 +54,8 @@ a:active {
 .subnav .nav > #current > a,
 .subnav .nav > #current > a:hover {
     color: #fff;
-    background-color: #0f466a;
-    border-right-color: #0f466a;
+    background-color: #178ACC;
+    border-right-color: #178ACC;
 }
 
 .subnav li a {
@@ -58,7 +64,7 @@ a:active {
 
 /* Green hover */
 .subnav .navbar-inner li a:hover {
-    background: none repeat scroll 0 0 #FD6600;
+    background: #178ACC;
     color: #fff;
 }
 .well .nav-list > li > a:hover {
@@ -72,7 +78,9 @@ a:active {
     padding-right: 15px;
     padding-top: 3px;
 }
-
+.dropdown-menu{
+  top: 50px;
+}
 /*****************************************************
  *  CHAMILO THEME STYLE                              *
  *****************************************************/
@@ -103,17 +111,12 @@ a.thumbnail:hover{
 }
 
 .breadcrumb a{
-  line-height: 30px;
   text-transform: none;
 }
 
 .breadcrumb li{
 
     text-shadow: none;
-}
-.breadcrumb a.btn-mini{
-    line-height: 17px;
-    text-transform: none;
 }
 .breadcrumb a.btn-mini > .btn-success{
   color: #FFFFFF;
@@ -293,31 +296,6 @@ a.thumbnail:hover{
   width: 800px;
 }
 
-/* COURSE INTRO CONTENT */
-
-.page-course-intro{
-    padding: 2em;
-    border: 1px solid #DDDDDD;
-    -webkit-border-radius: 10px;
-    -moz-border-radius: 10px;
-    border-radius: 10px;
-    margin-bottom: 2em;
-}
-
-.page-course-intro ul{
-    list-style-image:url(images/vineta.png);
-    padding-top: 10px;
-}
-.page-course-intro a{
-    color: #FD6600;
-}
-.page-course-intro a:hover{
-    color: #FD6600;
-    text-decoration: underline;
-}
-
-
-/* END OF COURSE INTRO*/
 .fc-header-title h2{
     color: #0191C7;
 }
@@ -329,10 +307,10 @@ a.thumbnail:hover{
 }
 
 .well {
-  background-color: rgba(96,165,209, 0.1);
-  border: 1px solid rgba(96,165,209, 0.1);
+  background-color: rgba(255,255,255, 0.1);
+  border: 1px solid #EAEAEA;
   border-radius: 8px;
-  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05) inset;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.09) inset;
   margin-bottom: 20px;
   min-height: 20px;
   padding: 20px 10px;
@@ -362,14 +340,11 @@ a.thumbnail:hover{
     font-weight: normal;
     font-size: 20px;
     padding-left: 10px;
-    width: 250px;
 }
 #course_tools .course-title-tools h3 {
     margin-top: 10px;
     color: #0191C7;
     font-weight: normal;
-
-
 }
 .page-header {
   border-bottom-color: #0191C7;
@@ -379,8 +354,8 @@ a.thumbnail:hover{
   padding-bottom: 0px;
 }
 .well_border{
-  background-color: rgba(96,165,209, 0.1);
-  border: 1px solid rgba(96,165,209, 0.1);
+  background-color: rgba(255,255,255, 0.1);
+  border: 1px solid #EAEAEA;
   border-radius: 8px;
   box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05) inset;
   margin-bottom: 20px;
@@ -438,25 +413,9 @@ a.thumbnail:hover{
 #settings .span6 .well_border {
   min-height: 300px;
 }
-.breadcrumb {
-  margin-bottom: 0;
-  background: rgb(255,255,255); /* Old browsers */
-  background: -moz-linear-gradient(top, rgba(255,255,255,1) 0%, rgba(192,219,234,1) 100%); /* FF3.6+ */
-  background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(255,255,255,1)), color-stop(100%,rgba(192,219,234,1))); /* Chrome,Safari4+ */
-  background: -webkit-linear-gradient(top, rgba(255,255,255,1) 0%,rgba(192,219,234,1) 100%); /* Chrome10+,Safari5.1+ */
-  background: -o-linear-gradient(top, rgba(255,255,255,1) 0%,rgba(192,219,234,1) 100%); /* Opera 11.10+ */
-  background: -ms-linear-gradient(top, rgba(255,255,255,1) 0%,rgba(192,219,234,1) 100%); /* IE10+ */
-  background: linear-gradient(to bottom, rgba(255,255,255,1) 0%,rgba(192,219,234,1) 100%); /* W3C */
-  filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#ffffff', endColorstr='#c0dbea',GradientType=0 ); /* IE6-9 */
-  padding-top: 5px;
-  padding-bottom: 5px;
-  margin-top: 5px;
-  border: 1px solid #B1D6EC;
-  box-shadow: none;
-}
-.breadcrumb a{
 
-  line-height: 30px;
+.breadcrumb a{
+  padding-top: 0;
   text-transform: none;
 }
 
@@ -548,8 +507,8 @@ a.thumbnail:hover{
 
 .pagerslide h2{
     font-size: 18px;
-    background-color:  #0191C7;
-    color: #FFFFFF;
+    background-color:  #E6E6E6;
+    color: #666666;
     padding-left: 15px;
 }
 
@@ -564,14 +523,20 @@ a.thumbnail:hover{
 /*CSS PARA CONTENIDO DE CURSO INTRODUCCION*/
 
 .page-course-intro{
-    padding: 2em;
-    border: 1px solid #DDDDDD;
-    -webkit-border-radius: 10px;
+    padding: 5px;
+    border: none;
+    /*-webkit-border-radius: 10px;
     -moz-border-radius: 10px;
-    border-radius: 10px;
-    margin-bottom: 2em;
+    border-radius: 10px;*/
+    margin-bottom: 5px;
 }
-
+.thumbnail > img {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 100%;
+  height: auto;
+}
 .page-course-intro ul{
     list-style-image:url(images/vineta.png);
     padding-top: 10px;
@@ -596,15 +561,6 @@ a.thumbnail:hover{
     padding-bottom: 5px;
 }
 
-.well {
-  background-color: rgba(96,165,209, 0.1);
-  border: 1px solid rgba(96,165,209, 0.1);
-  border-radius: 8px;
-  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05) inset;
-  margin-bottom: 20px;
-  min-height: 20px;
-  padding: 20px 10px;
-}
 .sidebar-nav img{
     -webkit-border-radius: 10px;
     -moz-border-radius: 10px;
@@ -639,22 +595,7 @@ a.thumbnail:hover{
 .page-header {
   border:none;
 }
-.well_border{
-  background-color: rgba(96,165,209, 0.1);
-  border: 1px solid rgba(96,165,209, 0.1);
-  border-radius: 8px;
-  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05) inset;
-  margin-bottom: 20px;
-  min-height: 20px;
-  padding: 19px;
-}
-.well_border .row .span2 {
-  width: 98px;
-}
-.well_border .row .span2 .thumbnail {
-  background-color: #FFFFFF;
-  background-image: none;
-}
+
 #hot_courses .row .span9 .well_border .row .span6{
     width: auto;
 }
@@ -684,10 +625,8 @@ a.thumbnail:hover{
  *  FOOTER STYLES                                    *
  *****************************************************/
 footer {
-    height: 10em;
-    background-color: #0191C7;
-    background-image: none;
-    background-repeat:repeat-x;
+    height: 7em;
+    background: #00a9e0; /* Old browsers */
     color:#ffffff;
     border-top: none;
 }
@@ -744,25 +683,48 @@ footer a:link, footer a:visited {
  *  CSS CHAT END                             *
  *****************************************************/
 .normal-message {
-    color: #00407F;
-    border: 1px solid #CDE6F5;
+    background-color: #D9EDF7;
+    color: #3A87AD;
+    padding: 15px;
+    margin-bottom: 15px;
+    border-top: 1px solid #BCE8F1;
+    border-left: 1px solid #BCE8F1;
+    border-right: 1px solid #BCE8F1;
+    border-bottom: 3px solid #BCE8F1;
+    border-radius: 10px;
 }
 .warning-message {
-    border: 1px solid #FFB30F;
-    color: #000;
+    background-color: #FCF8E3;
+    color: #C09853;
+    padding: 10px;
+    margin-bottom: 15px;
+    border-top: 1px solid #FBEED5;
+    border-left: 1px solid #FBEED5;
+    border-right: 1px solid #FBEED5;
+    border-bottom: 3px solid #FBEED5;
+    border-radius: 10px;
 }
 .confirmation-message {
-	border: 1px solid #1F8323;
-  color:#1F8323;
-	background: url("images/accept_data.png") no-repeat scroll 5px center #CAF0C7;
-  padding-left: 45px;
+	background-color: #DFF0D8;
+  color: #468847;
+  padding: 10px;
+  margin-bottom: 15px;
+  border-top: 1px solid #D6E9C6;
+  border-left: 1px solid #D6E9C6;
+  border-right: 1px solid #D6E9C6;
+  border-bottom: 3px solid #D6E9C6;
+  border-radius: 10px;
 }
 .error-message {
-    border: 1px solid #FA5858;
-    color: #000;
-    padding-top: 5px;
-	  background: url("images/error.png") no-repeat scroll 5px center #F6CECE;
-    padding-left: 45px;
+  background-color: #F2DEDE;
+  color: #B94A48;
+  padding: 10px;
+  margin-bottom: 15px;
+  border-top: 1px solid #EED3D7;
+  border-left: 1px solid #EED3D7;
+  border-right: 1px solid #EED3D7;
+  border-bottom: 3px solid #EED3D7;
+  border-radius: 10px;
 }
 .error-message strong{
   font-weight: normal;
@@ -774,7 +736,6 @@ footer a:link, footer a:visited {
 #social-content-online {
     background-color:#00AAE3;
 }
-
 .admin_section li {
     background-image:url(images/bullet.gif);
 }
@@ -783,17 +744,15 @@ footer a:link, footer a:visited {
     background: transparent url('images/systemenouvelles.jpg') no-repeat top  left;
 }
 
-.topa {
-    background:transparent url('images/logoa4.gif') no-repeat;
+.user_login_icon{
+  background: url(images/user_icon.png) no-repeat 5px center;
 }
-.topb {
-    background:transparent url('images/logob4.gif') no-repeat;
+.user_password_icon{
+  background: url(images/user_password.png) no-repeat 5px center;
 }
-
-#bottomhellomindfactory {
-    background:transparent url('images/textologo.jpg') no-repeat;
+.form-vertical .controls input.span2{
+  padding-left: 25px;
 }
-
 /*including "login" image*/
 button.login {
     background-image:url(images/bg-button.gif);
@@ -804,22 +763,11 @@ button.login:hover {
 
 /*including "save" image*/
 button.save {
-    background:url(images/accept.png) 0 center no-repeat #F0F0F0;
-    color: #666;
-    padding-left: 30px;
-}
-button.save:hover {
-    background:url(images/accept.png) 0 center no-repeat #ffffff;
-    color: #666;
-    padding-left: 30px;
+    background-image:url(images/button_accept.png);
 }
 /*including "add" image*/
 .controls .btn.add {
-    background:url(images/add.png) 0 center no-repeat;
-    padding-left: 36px;
-}
-.controls .btn.add:hover {
-    background:url(images/add.png) 0 center no-repeat;
+    background-image:url(images/button_plus_green.png);
     padding-left: 36px;
 }
 /*including "cancel" image*/
@@ -828,22 +776,15 @@ button.cancel {
 }
 /*including "search" image*/
 button.search {
-    background:url(images/buttom.png) 0 center no-repeat #F0F0F0;
-    color: #666;
-    padding-left: 30px;
-}
-button.search:hover {
-    background:url(images/buttom.png) 0 center no-repeat #ffffff;
-    color: #666;
-    padding-left: 30px;
+    background-image:url(images/bg-button.png);
 }
 /*including "plus" image*/
 button.plus {
-    background-image:url(images/button_plus.gif);
+    background-image:url(images/button_plus_blue.png);
 }
 /*including "minus" image*/
 button.minus {
-    background-image:url(images/button_minus.gif);
+    background-image:url(images/button_minus.png);
 }
 /*including "next" image*/
 button.next {
@@ -1022,10 +963,11 @@ END INSTALL CHAMILO
         background: url("images/icon-chamilo.png") no-repeat 0 -618px;
         padding-left: 40px;
     }
-    .forum-btn{
-        background: url("images/icon-chamilo.png") no-repeat 0 -666px;
+    .myfiles-social{
+        background: url("images/icon-chamilo.png") no-repeat 0 -287px;
         padding-left: 40px;
     }
+    
 
 /*+++++++++++++++++++++++++++++++++
 RESPONSIVE CSS
@@ -1041,14 +983,7 @@ RESPONSIVE CSS
   color: #FFFFFF;
 }
 .navbar-inner{
-  background: #2bb8ef; /* Old browsers */
-  background: -moz-linear-gradient(top, #2bb8ef 0%, #0191c7 100%); /* FF3.6+ */
-  background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#2bb8ef), color-stop(100%,#0191c7)); /* Chrome,Safari4+ */
-  background: -webkit-linear-gradient(top, #2bb8ef 0%,#0191c7 100%); /* Chrome10+,Safari5.1+ */
-  background: -o-linear-gradient(top, #2bb8ef 0%,#0191c7 100%); /* Opera 11.10+ */
-  background: -ms-linear-gradient(top, #2bb8ef 0%,#0191c7 100%); /* IE10+ */
-  background: linear-gradient(to bottom, #2bb8ef 0%,#0191c7 100%); /* W3C */
-  filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#2bb8ef', endColorstr='#0191c7',GradientType=0 ); /* IE6-9 */
+  background: #00A9E0; /* Old browsers */
 }
 
 .dropdown-menu li > a:hover, .dropdown-menu .active > a, .dropdown-menu .active > a:hover {
@@ -1080,12 +1015,20 @@ RESPONSIVE CSS
         padding-top: 10px;
     }
     #profile_block .nav-list li, #course_block .nav-list li{
-        padding-bottom: 5px;
-        padding-top: 5px;
+        padding-bottom: 10px;
+        padding-top: 10px;
     }
     #top_main_content .menu-column #user_image_block{
       box-shadow: none;
     }
+    .navbar .nav > li > a {
+    float: none;
+    line-height: 20px;
+    padding-bottom: 7px;
+    padding-right: 10px;
+    padding-top: 7px;
+    color: #FFFFFF;
+}
 
 }
 @media (max-width: 600px) {
@@ -1155,11 +1098,11 @@ RESPONSIVE CSS
         padding-left: 30px;
         background-size: 25px auto;
     }
-    .forum-btn {
-      background: url("images/icon-chamilo.png") no-repeat scroll 0 -552px / 25px auto rgba(0, 0, 0, 0);
-      padding-left: 30px;
-}
-
+    .myfiles-social{
+        background: url("images/icon-chamilo.png") no-repeat 0 -240px;
+        padding-left: 30px;
+        background-size: 25px auto;
+    }
 }
 @media (min-width: 321px) and (max-width: 480px){
 footer {
@@ -1181,6 +1124,8 @@ footer {
 #announcements{
   display: none;
 }
+
+
 }
 /*+++++++++++++++++++++++++++++++++
 END RESPONSIVE CSS

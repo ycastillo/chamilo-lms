@@ -3,6 +3,9 @@
 for more information: see languages.txt in the lang folder.
 */
 $DeleteAllAttendances = "Eliminar todas las asistencias creadas";
+$AddForum = "Agregar un nuevo foro";
+$ReplyShort = "Re:";
+$NoTimeLimits = "Sin límite de tiempo";
 $Title = "Título";
 $UsersOnline = "Usuarios en línea";
 $Remove = "Eliminar";
@@ -374,6 +377,7 @@ $InCourse = "en curso";
 $UserOnlineListSession = "Lista de usuarios en línea - Sesión";
 $From = "de";
 $To = "para";
+$NextWeek = "Semana siguente";
 $GeneralDescription = "Descripción General";
 $GeneralDescriptionQuestions = "¿ Cuál es el papel y función del curso en el programa ? ¿ Se requieren actividades previas ? ¿ Qué relación tiene este curso con otros ?";
 $GeneralDescriptionInformation = "Describe el curso (número de horas, código, lugar donde se desarrolla...). Profesor (nombre, apellidos, despacho, teléfono, e-mail...).";
@@ -395,5 +399,6 @@ $HumanAndTechnicalResourcesInformation = "Breve descripción de las personas de 
 $Assessment = "Asignaciones";
 $AssessmentQuestions = "¿ Cómo van a ser evaluados los estudiantes ? ¿ Cuáles son las estrategias para que éstos acaben dominando la materia ?";
 $AssessmentInformation = "Ejemplos de las preguntas de examen. Criterios de evaluación. Pistas y trucos.";
+$UploadADocument = "Subir un documento";
 $LowerCaseUser = "usuario";
 ?>

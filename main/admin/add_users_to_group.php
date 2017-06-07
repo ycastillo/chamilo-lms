@@ -107,7 +107,6 @@ function search_users($needle, $type, $relation_type)
 
         // xajax send utf8 datas... datas in db can be non-utf8 datas
         $charset = api_get_system_encoding();
-        $needle = Database::escape_string($needle);
         $needle = api_convert_encoding($needle, $charset, 'utf-8');
         $user_anonymous = api_get_anonymous_id();
         $order_clause = api_sort_by_first_name() ? ' ORDER BY firstname, lastname, username' : ' ORDER BY lastname, firstname, username';
@@ -182,10 +181,6 @@ $htmlHeadXtra[] = $xajax->getJavascript('../inc/lib/xajax/');
 $htmlHeadXtra[] = '
 <script>
 function add_user (code, content) {
-
-	// document.getElementById("user_to_add").value = "";
-	//document.getElementById("ajax_list_users_single").innerHTML = "";
-
 	destination = document.getElementById("destination_users");
 	for (i=0;i<destination.length;i++) {
 		if (destination.options[i].text == content) {
@@ -384,6 +379,7 @@ if ($add_type == 'multiple') {
 <option value="<?php echo GROUP_USER_PERMISSION_ADMIN ?>" <?php echo ((isset($_POST['relation']) && $_POST['relation']==GROUP_USER_PERMISSION_ADMIN)?'selected=selected':'') ?> > <?php echo get_lang('Admin') ?></option>
 <option value="<?php echo GROUP_USER_PERMISSION_READER ?>" <?php echo ((isset($_POST['relation']) && $_POST['relation']==GROUP_USER_PERMISSION_READER)?'selected=selected':'') ?> > <?php echo get_lang('Reader') ?></option>
 <option value="<?php echo GROUP_USER_PERMISSION_PENDING_INVITATION ?>" <?php echo ((isset($_POST['relation']) && $_POST['relation']==GROUP_USER_PERMISSION_PENDING_INVITATION)?'selected=selected':'') ?> > <?php echo get_lang('PendingInvitation') ?></option>
+<option value="<?php echo GROUP_USER_PERMISSION_PENDING_INVITATION_SENT_BY_USER ?>" <?php echo ((isset($_POST['relation']) && $_POST['relation']==GROUP_USER_PERMISSION_PENDING_INVITATION_SENT_BY_USER)?'selected=selected':'') ?> > <?php echo get_lang('WaitingForAdminResponse') ?></option>
 <option value="<?php echo GROUP_USER_PERMISSION_MODERATOR ?>" <?php echo ((isset($_POST['relation']) && $_POST['relation']==GROUP_USER_PERMISSION_MODERATOR)?'selected=selected':'') ?> > <?php echo get_lang('Moderator') ?></option>
 <option value="<?php echo GROUP_USER_PERMISSION_HRM ?>" <?php echo ((isset($_POST['relation']) && $_POST['relation']==GROUP_USER_PERMISSION_HRM)?'selected=selected':'') ?> > <?php echo get_lang('Drh') ?></option>
 </select>

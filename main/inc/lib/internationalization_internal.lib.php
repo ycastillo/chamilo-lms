@@ -167,7 +167,6 @@ function _api_compare_n_grams(&$n_grams, $encoding, $max_delta = LANGUAGE_DETECT
     return $result;
 }
 
-
 /**
  * Appendix to "Date and time formats"
  */
@@ -197,18 +196,16 @@ function &_api_get_day_month_names($language = null) {
     return $date_parts[$language];
 }
 
-
-/**
- * Appendix to "Name order conventions"
- */
-
 /**
  * Returns returns person name convention for a given language.
  * @param string $language	The input language.
- * @param string $type		The type of the requested convention. It may be 'format' for name order convention or 'sort_by' for name sorting convention.
- * @return mixed			Depending of the requested type, the returned result may be string or boolean; null is returned on error;
+ * @param string $type		The type of the requested convention.
+ * It may be 'format' for name order convention or 'sort_by' for name sorting convention.
+ * @return mixed Depending of the requested type,
+ * the returned result may be string or boolean; null is returned on error;
  */
-function _api_get_person_name_convention($language, $type) {
+function _api_get_person_name_convention($language, $type)
+{
     static $conventions;
     $language = api_purify_language_id($language);
     if (!isset($conventions)) {
@@ -216,8 +213,22 @@ function _api_get_person_name_convention($language, $type) {
         if (file_exists($file)) {
             $conventions = include ($file);
         } else {
-            $conventions = array('english' => array('format' => 'title first_name last_name', 'sort_by' => 'first_name'));
+            $conventions = array(
+                'english' => array(
+                    'format' => 'title first_name last_name',
+                    'sort_by' => 'first_name'
+                )
+            );
         }
+        // Overwrite classic conventions
+        $customConventions = api_get_configuration_value('name_order_conventions');
+
+        if (!empty($customConventions)) {
+            foreach ($customConventions as $key => $data) {
+                $conventions[$key] = $data;
+            }
+        }
+
         $search1 = array('FIRST_NAME', 'LAST_NAME', 'TITLE');
         $replacement1 = array('%F', '%L', '%T');
         $search2 = array('first_name', 'last_name', 'title');
@@ -258,7 +269,6 @@ function _api_validate_person_name_format($format) {
 function _api_clean_person_name($person_name) {
     return preg_replace(array('/\s+/', '/, ,/', '/,+/', '/^[ ,]/', '/[ ,]$/'), array(' ', ', ', ',', '', ''), $person_name);
 }
-
 
 /**
  * Appendix to "Multibyte string conversion functions"
@@ -595,7 +605,6 @@ function _api_html_entity_from_unicode($codepoint) {
     return '&#'.$codepoint.';';
 }
 
-
 /**
  * Appendix to "Common multibyte string functions"
  */
@@ -681,7 +690,6 @@ function _api_utf8_ucwords_callback($matches) {
     return $matches[2] . api_ucfirst(ltrim($matches[0]), 'UTF-8');
 }
 
-
 /**
  * Appendix to "Common sting operations with arrays"
  */
@@ -701,7 +709,6 @@ function _api_array_utf8_decode($variable) {
     }
     return $variable;
 }
-
 
 /**
  * Appendix to "String comparison"
@@ -832,7 +839,6 @@ function _api_get_collator_sort_flag($sort_flag = SORT_REGULAR) {
     return Collator::SORT_REGULAR;
 }
 
-
 /**
  * ICU locales (accessible through intl extension).
  */
@@ -883,7 +889,6 @@ function _api_set_default_locale($locale = null) {
 function api_get_default_locale() {
     return _api_set_default_locale();
 }
-
 
 /**
  * Appendix to "Encoding management functions"
@@ -1035,7 +1040,7 @@ function _api_iconv_set_encoding($type, $encoding = null) {
 }
 
 /**
- * Ckecks whether a given encoding is known to define single-byte characters only.
+ * Checks whether a given encoding is known to define single-byte characters only.
  * The result might be not accurate for unknown by this library encodings. This is not fatal,
  * then the library picks up conversions plus Unicode related internal algorithms.
  * @param string $encoding		A given encoding identificator.
@@ -1130,86 +1135,4 @@ function _api_html_entity_supports($encoding) {
         $supports[$encoding] = api_equal_encodings($encoding, $html_entity_encodings);
     }
     return $supports[$encoding];
-}
-
-
-/**
- * Upgrading the PHP5 mbstring extension
- */
-
-// A multibyte replacement of strchr(). This function exists in PHP 5 >= 5.2.0
-// See http://php.net/manual/en/function.mb-strrchr
-if (MBSTRING_INSTALLED && !function_exists('mb_strchr')) {
-    function mb_strchr($haystack, $needle, $part = false, $encoding = null) {
-        if (empty($encoding)) {
-            $encoding = mb_internal_encoding();
-        }
-        return mb_strstr($haystack, $needle, $part, $encoding);
-    }
-}
-
-// A multibyte replacement of stripos(). This function exists in PHP 5 >= 5.2.0
-// See http://php.net/manual/en/function.mb-stripos
-if (MBSTRING_INSTALLED && !function_exists('mb_stripos')) {
-    function mb_stripos($haystack, $needle, $offset = 0, $encoding = null) {
-        if (empty($encoding)) {
-            $encoding = mb_internal_encoding();
-        }
-        return mb_strpos(mb_strtolower($haystack, $encoding), mb_strtolower($needle, $encoding), $offset, $encoding);
-    }
-}
-
-// A multibyte replacement of stristr(). This function exists in PHP 5 >= 5.2.0
-// See http://php.net/manual/en/function.mb-stristr
-if (MBSTRING_INSTALLED && !function_exists('mb_stristr')) {
-    function mb_stristr($haystack, $needle, $part = false, $encoding = null) {
-        if (empty($encoding)) {
-            $encoding = mb_internal_encoding();
-        }
-        $pos = mb_strpos(mb_strtolower($haystack, $encoding), mb_strtolower($needle, $encoding), 0, $encoding);
-        if ($pos === false) {
-            return false;
-        }
-        if ($part) {
-            return mb_substr($haystack, 0, $pos + 1, $encoding);
-        }
-        return mb_substr($haystack, $pos, mb_strlen($haystack, $encoding), $encoding);
-    }
-}
-
-// A multibyte replacement of strrchr(). This function exists in PHP 5 >= 5.2.0
-// See http://php.net/manual/en/function.mb-strrchr
-if (MBSTRING_INSTALLED && !function_exists('mb_strrchr')) {
-    function mb_strrchr($haystack, $needle, $part = false, $encoding = null) {
-        if (empty($encoding)) {
-            $encoding = mb_internal_encoding();
-        }
-        $needle = mb_substr($needle, 0, 1, $encoding);
-        $pos = mb_strrpos($haystack, $needle, mb_strlen($haystack, $encoding) - 1, $encoding);
-        if ($pos === false) {
-            return false;
-        }
-        if ($part) {
-            return mb_substr($haystack, 0, $pos + 1, $encoding);
-        }
-        return mb_substr($haystack, $pos, mb_strlen($haystack, $encoding), $encoding);
-    }
-}
-
-// A multibyte replacement of strstr(). This function exists in PHP 5 >= 5.2.0
-// See http://php.net/manual/en/function.mb-strstr
-if (MBSTRING_INSTALLED && !function_exists('mb_strstr')) {
-    function mb_strstr($haystack, $needle, $part = false, $encoding = null) {
-        if (empty($encoding)) {
-            $encoding = mb_internal_encoding();
-        }
-        $pos = mb_strpos($haystack, $needle, 0, $encoding);
-        if ($pos === false) {
-            return false;
-        }
-        if ($part) {
-            return mb_substr($haystack, 0, $pos + 1, $encoding);
-        }
-        return mb_substr($haystack, $pos, mb_strlen($haystack, $encoding), $encoding);
-    }
 }

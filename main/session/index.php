@@ -5,9 +5,6 @@
 *   @package chamilo.session
 *   @author Julio Montoya <gugli100@gmail.com>  Beeznest
 */
-/**
- * Code
- */
 
 use \ChamiloSession as Session;
 
@@ -40,13 +37,23 @@ if (isset($_SESSION['objExercise'])) {
     Session::erase('objExercise');
 }
 
-$session_info   = SessionManager::fetch($session_id);
-$session_list   = SessionManager::get_sessions_by_coach(api_get_user_id());
-$course_list    = SessionManager::get_course_list_by_session_id($session_id);
+$sessionTitleLink = api_get_configuration_value('courses_list_session_title_link');
 
-//Getting all sessions where I'm subscribed
+$session_info = SessionManager::fetch($session_id);
+
+if ($sessionTitleLink == 2 && $session_info['nbr_courses'] == 1) {
+    $courses = SessionManager::get_course_list_by_session_id($session_id);
+    $aloneCourse = array_shift($courses);
+
+    header('Location: ' . api_get_path(WEB_COURSE_PATH) . $aloneCourse['directory'] . '/?id_session=' . $session_id);
+    exit;
+}
+
+$session_list = SessionManager::get_sessions_by_coach(api_get_user_id());
+$course_list = SessionManager::get_course_list_by_session_id($session_id);
+
+// Getting all sessions where I'm subscribed
 $new_session_list = UserManager::get_personal_session_course_list(api_get_user_id());
-
 $user_course_list = array();
 foreach ($new_session_list as $session_item) {
     $user_course_list[] = $session_item['code'];
@@ -69,8 +76,15 @@ if (!empty($new_session_list)) {
 
                 $course_info   = api_get_course_info($my_course['code']);
 
-                //Getting all exercises from the current course
-                $exercise_list = get_all_exercises($course_info, $my_session_id, true);
+                // Getting all visible exercises from the current course
+                $exercise_list = get_all_exercises(
+                    $course_info,
+                    $my_session_id,
+                    true,
+                    null,
+                    false,
+                    1
+                );
 
                 $course['name'] = $course_info['name'];
                 $course['id']   = $course_info['real_id'];
@@ -99,6 +113,7 @@ if (!empty($new_session_list)) {
         $my_session_list[] =  $my_session_id;
     }
 }
+$new_course_list = array();
 
 if (!empty($course_list)) {
     foreach ($course_list as $course_data) {
@@ -118,11 +133,29 @@ if (!empty($course_list)) {
             'publicated_on ASC',
             true
         );
-        $lp_list        = $list->get_flat_list();
-        $lp_count       = count($lp_list);
-        $course_info    = api_get_course_info($course_data['code']);
-        $exercise_count = count(get_all_exercises($course_info, $session_id, true));
+        $lp_list = $list->get_flat_list();
 
+        $lp_count = 0;
+
+        if (!empty($lp_list)) {
+            foreach ($lp_list as $valLp) {
+                if ($valLp['lp_visibility']) {
+                    $lp_count++;
+                }
+            }
+        }
+
+        $course_info    = api_get_course_info($course_data['code']);
+        $exercise_count = count(
+            get_all_exercises(
+                $course_info,
+                $session_id,
+                true,
+                null,
+                false,
+                1
+            )
+        );
         $max_mutation_date = '';
 
         $last_date = Tracking::get_last_connection_date_on_the_course(
@@ -137,11 +170,11 @@ if (!empty($course_list)) {
             if ($item['modified_on'] == '0000-00-00 00:00:00' || empty($item['modified_on'])) {
                 $lp_date_original = $item['created_on'];
                 $image = 'new.gif';
-                $label      = get_lang('LearnpathAdded');
+                $label = get_lang('LearnpathAdded');
             } else {
                 $lp_date_original = $item['modified_on'];
-                $image      = 'moderator_star.png';
-                $label      = get_lang('LearnpathUpdated');
+                $image = 'moderator_star.png';
+                $label = get_lang('LearnpathUpdated');
             }
 
             $mutation_date = api_strtotime($item['publicated_on']) > api_strtotime($lp_date_original) ? $item['publicated_on'] : $lp_date_original;
@@ -152,7 +185,10 @@ if (!empty($course_list)) {
 
             if (strtotime($last_date) < strtotime($lp_date_original)) {
                 if (empty($icons)) {
-                    $icons .= ' '.Display::return_icon($image, get_lang('TitleNotification').': '.$label.' - '.$lp_date_original).' ';
+                    $icons .= ' '.Display::return_icon(
+                        $image,
+                        get_lang('TitleNotification').': '.$label.' - '.$lp_date_original
+                    ).' ';
                 }
             }
         }
@@ -196,9 +232,9 @@ if (count($session_select) > 1) {
 }
 
 if (empty($session_id)) {
-    $user_list  = UserManager::get_user_list();
+    $user_list = UserManager::get_user_list();
 } else {
-    $user_list  = SessionManager::get_users_by_session($session_id);
+    $user_list = SessionManager::get_users_by_session($session_id);
 }
 
 //Final data to be show
@@ -221,7 +257,7 @@ foreach ($final_array as $session_data) {
 
                     $best_score = '';
                     if (!empty($best_score_data)) {
-                        $best_score      = show_score($best_score_data['exe_result'], $best_score_data['exe_weighting']);
+                        $best_score = show_score($best_score_data['exe_result'], $best_score_data['exe_weighting']);
                     }
                     // Exercise results
                     $counter = 1;
@@ -241,12 +277,22 @@ foreach ($final_array as $session_data) {
                                 if(!empty($exercise_result['exe_weighting']) && intval($exercise_result['exe_weighting']) != 0) {
                                     $my_score = $exercise_result['exe_result']/$exercise_result['exe_weighting'];
                                 }
-                                $position       = get_exercise_result_ranking($my_score, $exercise_result['exe_id'], $my_exercise_id, $my_course_code, $session_id, $user_list);
-                                //$exercise_info->exercise = Display::url($exercise_info->exercise, api_get_path(WEB_CODE_PATH)."exercice/exercice.php?cidReq=$my_course_code&exerciseId={$exercise_info->id}&id_session=$session_id&show=result", array('target'=>SESSION_LINK_TARGET,'class'=>'exercise-result-link'));
-                                $exercise_info->exercise = Display::url($exercise_info->exercise, api_get_path(WEB_CODE_PATH)."exercice/result.php?cidReq=$my_course_code&id={$exercise_result['exe_id']}&id_session=$session_id&show_headers=1", array('target'=>SESSION_LINK_TARGET,'class'=>'exercise-result-link'));
+                                $position = get_exercise_result_ranking(
+                                    $my_score,
+                                    $exercise_result['exe_id'],
+                                    $my_exercise_id,
+                                    $my_course_code,
+                                    $session_id,
+                                    $user_list
+                                );
+
+                                $exercise_info->exercise = Display::url(
+                                    $exercise_info->exercise,
+                                    api_get_path(WEB_CODE_PATH)."exercice/result.php?cidReq=$my_course_code&id={$exercise_result['exe_id']}&id_session=$session_id&show_headers=1",
+                                    array('target'=>SESSION_LINK_TARGET,'class'=>'exercise-result-link')
+                                );
 
                                 $my_real_array[]= array(
-                                    //'date'        => api_get_local_time($exercise_result['exe_date']),
                                     'status'      => Display::return_icon('quiz.gif', get_lang('Attempted'),'', ICON_SIZE_SMALL),
                                     'date'        => $start_date,
                                     'course'      => $course_data['name'],
@@ -259,16 +305,20 @@ foreach ($final_array as $session_data) {
                                 $counter++;
                             }
                         } else {
-                            //We check the date validation of the exercise if the user can make it
+                            // We check the date validation of the exercise if the user can make it
                             if ($exercise_info->start_time != '0000-00-00 00:00:00') {
                                 $allowed_time = api_strtotime($exercise_info->start_time, 'UTC');
                                 if ($now < $allowed_time) {
                                       continue;
                                 }
                             }
-                            $exercise_info->exercise = Display::url($exercise_info->exercise, api_get_path(WEB_CODE_PATH)."exercice/overview.php?cidReq=$my_course_code&exerciseId={$exercise_info->id}&id_session=$session_id", array('target'=>SESSION_LINK_TARGET));
+                            $exercise_info->exercise = Display::url(
+                                $exercise_info->exercise,
+                                api_get_path(WEB_CODE_PATH)."exercice/overview.php?cidReq=$my_course_code&exerciseId={$exercise_info->id}&id_session=$session_id",
+                                array('target'=>SESSION_LINK_TARGET)
+                            );
+
                             $new_exercises[]= array(
-                                //'date'        => api_get_local_time($exercise_result['exe_date']),
                                 'status'      => Display::return_icon('star.png', get_lang('New'), array('width'=>ICON_SIZE_SMALL)),
                                 'date'        => $start_date,
                                 'course'      => $course_data['name'],
@@ -312,7 +362,7 @@ if (!empty($start) && !empty($end)) {
 echo Display::tag('h1', $session_info['name']);
 echo $dates.'<br />';
 
-//All Learnpaths grid settings (First tab, first subtab)
+// All Learnpaths grid settings (First tab, first subtab)
 
 $columns_courses = array(
     get_lang('Title'), get_lang('NumberOfPublishedExercises'), get_lang('NumberOfPublishedLps')
@@ -339,12 +389,21 @@ $extra_params_courses['pgbuttons'] = false;*/
 //$extra_params_courses['width'] = '50%';
 //$extra_params_courses['autowidth'] = 'true';
 
-$url            = api_get_path(WEB_AJAX_PATH).'course_home.ajax.php?a=session_courses_lp_default&session_id='.$session_id.'&course_id='.$course_id;
-$columns        = array(get_lang('PublicationDate'),get_lang('Course'), get_lang('LearningPaths'));
-$column_model   = array(array('name'=>'date',   'index'=>'date',   'width'=>'120', 'align'=>'left', 'sortable'=>'true'),
-                        array('name'=>'course', 'index'=>'course', 'width'=>'300', 'align'=>'left', 'sortable'=>'true', 'wrap_cell' => 'true'),
-                        array('name'=>'lp',     'index'=>'lp',     'width'=>'440', 'align'=>'left', 'sortable'=>'true'));
+$url = api_get_path(WEB_AJAX_PATH).'course_home.ajax.php?a=session_courses_lp_default&session_id='.$session_id.'&course_id='.$course_id;
+$columns = array(
+    get_lang('PublicationDate'),
+    get_lang('Course'),
+    get_lang('LearningPaths')
+);
+
+$column_model   = array(
+    array('name'=>'date',   'index'=>'date',   'width'=>'120', 'align'=>'left', 'sortable'=>'true'),
+    array('name'=>'course', 'index'=>'course', 'width'=>'300', 'align'=>'left', 'sortable'=>'true', 'wrap_cell' => 'true'),
+    array('name'=>'lp',     'index'=>'lp',     'width'=>'440', 'align'=>'left', 'sortable'=>'true')
+);
+
 $extra_params = array();
+
 /*
 $extra_params['sortname'] = 'date';
 $extra_params['sortorder'] = 'asc';
@@ -377,11 +436,15 @@ $extra_params_course['autowidth'] = 'true'; //use the width of the parent
 $extra_params_course['height'] = "100%";
 
 //Per Week grid
-$url_week           = api_get_path(WEB_AJAX_PATH).'course_home.ajax.php?a=session_courses_lp_by_week&session_id='.$session_id.'&course_id='.$course_id;
-$column_week        = array(
-    get_lang('PeriodWeek'), get_lang('PublicationDate'), get_lang('Course'), get_lang('LearningPaths')
+$url_week = api_get_path(WEB_AJAX_PATH).'course_home.ajax.php?a=session_courses_lp_by_week&session_id='.$session_id.'&course_id='.$course_id;
+$column_week = array(
+    get_lang('PeriodWeek'),
+    get_lang('PublicationDate'),
+    get_lang('Course'),
+    get_lang('LearningPaths')
 );
-$column_week_model  = array (
+
+$column_week_model  = array(
     array('name'=>'week',     'index'=>'week',    'width'=>'40',  'align'=>'left', 'sortable'=>'false'),
     array('name'=>'date',     'index'=>'date',    'width'=>'120', 'align'=>'left', 'sortable'=>'false'),
     array('name'=>'course',   'index'=>'course',  'width'=>'300', 'align'=>'left', 'sortable'=>'true', 'wrap_cell' => 'true'),
@@ -392,12 +455,12 @@ $extra_params_week = array();
 $extra_params_week['grouping'] = 'true';
 //For more details see http://www.trirand.com/jqgridwiki/doku.php?id=wiki:grouping
 $extra_params_week['groupingView'] = array(
-    'groupCollapse'     => false,
-    'groupDataSorted'   => false,
-    'groupField'        => array('week'),
-    'groupOrder'        => array('desc'),
-    'groupColumnShow'   => 'false',
-    'groupText'         => array('<b>'.get_lang('PeriodWeek').' {0}</b>')
+    'groupCollapse' => false,
+    'groupDataSorted' => false,
+    'groupField' => array('week'),
+    'groupOrder' => array('desc'),
+    'groupColumnShow' => 'false',
+    'groupText' => array('<b>' . get_lang('PeriodWeek') . ' {0}</b>')
 );
 $extra_params_week['autowidth'] = 'true'; //use the width of the parent
 $extra_params_week['height'] = '100%';
@@ -449,49 +512,118 @@ $(function() {
         width:550,
         modal: true
      });
+
     $(".opener").click(function() {
         var my_id = $(this).attr('id');
         var big_image = '#main_graph_' + my_id;
         $( big_image ).dialog("open");
         return false;
     });
-
-    /* Binds a tab id in the url */
-    $("#tabs").bind('tabsselect', function(event, ui) {
-		window.location.href=ui.tab;
-    });
 <?php
-     //Displays js code to use a jqgrid
+     // Displays js code to use a jqgrid
      echo Display::grid_js('courses',       '',             $columns_courses, $column_model_courses, $extra_params_courses, $new_course_list);
      echo Display::grid_js('list_default',  $url,           $columns,         $column_model,$extra_params,array(), '');
      echo Display::grid_js('list_course',   $url_by_course, $columns,         $column_model,$extra_params_course,array(),'');
      echo Display::grid_js('list_week',     $url_week,      $column_week,     $column_week_model, $extra_params_week,array(),'');
      echo Display::grid_js('exercises',      '',            $column_exercise, $column_exercise_model, $extra_params_exercise, $my_real_array);
 ?>
-    //Generate tabs with jquery-ui
-    $('#tabs').tabs();
-    $( "#sub_tab" ).tabs();
+    // Generate tabs with jquery-ui
+    $('#sub_tab').tabs();
 });
 </script>
 
 <?php
-$my_reporting = Tracking::show_user_progress(api_get_user_id(), $session_id, '#tabs-4', false);
-if (!empty($my_reporting))  {
-    $my_reporting  .= '<br />'.Tracking::show_course_detail(api_get_user_id(), $_GET['course'], $session_id);
-}
-if (empty($my_reporting)) {
-    $my_reporting  = Display::return_message(get_lang('NoDataAvailable'), 'warning');
-}
+
+$courseCode = isset($_GET['course']) ? $_GET['course'] : null;
 
 // Main headers
-$headers        = array(get_lang('Courses'), get_lang('LearningPaths'), get_lang('MyQCM'), get_lang('MyStatistics'));
-// Subheaders
-$sub_header     = array(get_lang('AllLearningPaths'), get_lang('PerWeek'), get_lang('ByCourse'));
+$headers = array(
+    Display::return_icon('moderator_star.png'),
+    get_lang('Courses'),
+    get_lang('LearningPaths'),
+    get_lang('MyQCM'),
+    get_lang('MyStatistics')
+);
+
+// Sub headers
+$sub_header = array(
+    get_lang('AllLearningPaths'),
+    get_lang('PerWeek'),
+    get_lang('ByCourse')
+);
 
 // Sub headers data
-$lp_tabs           =  Display::tabs($sub_header, array(Display::grid_html('list_default'), Display::grid_html('list_week'), Display::grid_html('list_course')), 'sub_tab');
-$courses_tab       =  Display::grid_html('courses');
-// Main headers data
-echo Display::tabs($headers, array($courses_tab, $lp_tabs, Display::grid_html('exercises'), $my_reporting));
+$lpTab = Display::tabs(
+    $sub_header,
+    array(
+        //Display::grid_html('list_default'),
+        Display::grid_html('list_week'),
+        //Display::grid_html('list_course')
+    ),
+    'sub_tab'
+);
+$coursesTab = Display::grid_html('courses');
+
+$starTab = Display::grid_html('list_default');
+
+$tabs = array(
+    $starTab,
+    $coursesTab,
+    Display::grid_html('list_course'),
+    Display::grid_html('exercises'),
+    null
+);
+
+$tabToHide = api_get_configuration_value('session_hide_tab_list');
+
+if (!empty($tabToHide)) {
+    foreach ($tabToHide as $columnId) {
+        unset($headers[$columnId]);
+        unset($tabs[$columnId]);
+    }
+}
+
+$defaultTab = 1;
+?>
+    <ul class="nav nav-tabs">
+        <?php foreach ($headers as $i => $tabHeader) { ?>
+            <li class="<?php echo $defaultTab === $i ? 'active' : '' ?>">
+                <a href="#tab_<?php echo $i ?>" data-toggle="tab"><?php echo $tabHeader ?></a>
+            </li>
+        <?php } ?>
+    </ul>
+    <div class="tab-content">
+        <?php foreach ($tabs as $i => $tabContent) { ?>
+            <div class="tab-pane <?php echo $defaultTab === $i ? 'active' : '' ?>" id="tab_<?php echo $i ?>">
+                <?php echo $tabContent ?>
+            </div>
+        <?php } ?>
+    </div>
+
+    <script>
+        $(document).on('ready', function () {
+            $('.nav.nav-tabs a:last').on('shown', function (e) {
+                var panel = $('#tab_4');
+
+                if ($.trim(panel.html()).length) {
+                    return;
+                }
+
+                panel.html('<div style="text-align: center;"><?php echo Display::return_icon('loading1.gif', get_lang('Loading')) ?></div>');
+
+                $.ajax('<?php echo api_get_path(WEB_AJAX_PATH) ?>session.ajax.php', {
+                    data: {
+                        course: '<?php echo $courseCode ?>',
+                        session_id: '<?php echo api_get_session_id() ?>',
+                        a: 'my_session_statistics'
+                    },
+                    success: function (response) {
+                        panel.html(response);
+                    }
+                });
+            });
+        });
+    </script>
+<?php
 
 Display::display_footer();

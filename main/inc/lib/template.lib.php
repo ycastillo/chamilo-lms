@@ -1,19 +1,35 @@
 <?php
 /* For licensing terms, see /license.txt */
+
+require_once api_get_path(LIBRARY_PATH).'banner.lib.php';
+require_once api_get_path(SYS_PATH).'vendor/twig/twig/lib/Twig/Autoloader.php';
+
 /**
+ * Class Template
+ *
  * @author Julio Montoya <gugli100@gmail.com>
  * @todo better organization of the class, methods and variables
  *
- * */
-
-require_once api_get_path(LIBRARY_PATH).'banner.lib.php';
-require_once api_get_path(LIBRARY_PATH).'symfony/Twig/Autoloader.php';
-
+ */
 class Template
 {
-    public $style = 'default'; //see the template folder
-    public $preview_theme = null;
-    public $theme; // the chamilo theme public_admin, chamilo, chamilo_red, etc
+    /**
+     * The Template folder name see main/template
+     * @var string
+     */
+    public $templateFolder = 'default';
+
+    /**
+     * The theme that will be used: chamilo, public_admin, chamilo_red, etc
+     * This variable is set from the database
+     * @var string
+     */
+    public $theme = '';
+
+    /**
+     * @var string
+     */
+    public $preview_theme = '';
     public $title = null;
     public $show_header;
     public $show_footer;
@@ -52,7 +68,7 @@ class Template
         $this->hide_global_chat = $hide_global_chat;
         $this->load_plugins     = $load_plugins;
 
-        //Twig settings
+        // Twig settings
         Twig_Autoloader::register();
 
         $template_paths = array(
@@ -91,6 +107,7 @@ class Template
 
         $this->twig = new Twig_Environment($loader, $options);
 
+        $this->twig->addFilter('get_plugin_lang', new Twig_Filter_Function('get_plugin_lang'));
         $this->twig->addFilter('get_lang', new Twig_Filter_Function('get_lang'));
         $this->twig->addFilter('get_path', new Twig_Filter_Function('api_get_path'));
         $this->twig->addFilter('get_setting', new Twig_Filter_Function('api_get_setting'));
@@ -130,11 +147,16 @@ class Template
         $this->set_header_parameters();
         $this->set_footer_parameters();
 
-        $this->assign('style', $this->style);
-        $this->assign('css_style', $this->theme);
-        $this->assign('template', $this->style);
+        $defaultStyle = api_get_configuration_value('default_template');
+        if (!empty($defaultStyle)) {
+            $this->templateFolder = $defaultStyle;
+        }
 
-        //Chamilo plugins
+        $this->assign('template', $this->templateFolder);
+        $this->assign('css_styles', $this->theme);
+        $this->assign('login_class', null);
+
+        // Chamilo plugins
         if ($this->show_header) {
             if ($this->load_plugins) {
 
@@ -195,7 +217,7 @@ class Template
     /**
      * @param string $helpInput
      */
-    function set_help($helpInput = null)
+    public function set_help($helpInput = null)
     {
         if (!empty($helpInput)) {
             $help = $helpInput;
@@ -217,12 +239,11 @@ class Template
         $this->assign('help_content', $content);
     }
 
-    /*
+    /**
      * Use template system to parse the actions menu
      * @todo finish it!
-     * */
-
-    function set_actions($actions)
+     **/
+    public function set_actions($actions)
     {
         $action_string = '';
         if (!empty($actions)) {
@@ -236,7 +257,7 @@ class Template
     /**
      * Shortcut to display a 1 col layout (index.php)
      * */
-    function display_one_col_template()
+    public function display_one_col_template()
     {
         $tpl = $this->get_template('layout/layout_1_col.tpl');
         $this->display($tpl);
@@ -244,8 +265,8 @@ class Template
 
     /**
      * Shortcut to display a 2 col layout (userportal.php)
-     * */
-    function display_two_col_template()
+     **/
+    public function display_two_col_template()
     {
         $tpl = $this->get_template('layout/layout_2_col.tpl');
         $this->display($tpl);
@@ -254,7 +275,7 @@ class Template
     /**
      * Displays an empty template
      */
-    function display_blank_template()
+    public function display_blank_template()
     {
         $tpl = $this->get_template('layout/blank.tpl');
         $this->display($tpl);
@@ -263,7 +284,7 @@ class Template
     /**
      * Displays an empty template
      */
-    function display_no_layout_template()
+    public function display_no_layout_template()
     {
         $tpl = $this->get_template('layout/no_layout.tpl');
         $this->display($tpl);
@@ -273,42 +294,57 @@ class Template
      * Sets the footer visibility
      * @param bool true if we show the footer
      */
-    function set_footer($status)
+    public function set_footer($status)
     {
         $this->show_footer = $status;
         $this->assign('show_footer', $status);
     }
 
     /**
-     * Sets the header visibility
-     * @param bool true if we show the header
+     * return true if toolbar has to be displayed for user
+     * @return bool
      */
-    function set_header($status)
+    public static function isToolBarDisplayedForUser()
     {
-        $this->show_header = $status;
-        $this->assign('show_header', $status);
-
         //Toolbar
         $show_admin_toolbar = api_get_setting('show_admin_toolbar');
-        $show_toolbar       = 0;
+        $show_toolbar = false;
 
         switch ($show_admin_toolbar) {
             case 'do_not_show':
                 break;
             case 'show_to_admin':
                 if (api_is_platform_admin()) {
-                    $show_toolbar = 1;
+                    $show_toolbar = true;
                 }
                 break;
             case 'show_to_admin_and_teachers':
                 if (api_is_platform_admin() || api_is_allowed_to_edit()) {
-                    $show_toolbar = 1;
+                    $show_toolbar = true;
                 }
                 break;
             case 'show_to_all':
-                $show_toolbar = 1;
+                $show_toolbar = true;
                 break;
         }
+        return $show_toolbar;
+    }
+
+    /**
+     * Sets the header visibility
+     * @param bool true if we show the header
+     */
+    public function set_header($status)
+    {
+        $this->show_header = $status;
+        $this->assign('show_header', $status);
+
+        $show_toolbar = 0;
+
+        if (self::isToolBarDisplayedForUser()) {
+            $show_toolbar = 1;
+        }
+
         $this->assign('show_toolbar', $show_toolbar);
 
         //Only if course is available
@@ -329,12 +365,19 @@ class Template
         $this->assign('show_course_navigation_menu', $show_course_navigation_menu);
     }
 
-    function get_template($name)
+    /**
+     * @param string $name
+     *
+     * @return string
+     */
+    public function get_template($name)
     {
-        return $this->style.'/'.$name;
+        return $this->templateFolder.'/'.$name;
     }
 
-    /** Set course parameters */
+    /**
+     * Set course parameters
+     */
     private function set_course_parameters()
     {
         //Setting course id
@@ -356,10 +399,13 @@ class Template
             'user_is_teacher' => api_is_course_admin(),
             'student_view' => (!empty($_GET['isStudentView']) && $_GET['isStudentView'] == 'true'),
         );
-        $this->assign('_c',$_c);
+        $this->assign('course_code', $course['code']);
+        $this->assign('_c', $_c);
     }
 
-    /** Set user parameters */
+    /**
+     * Set user parameters
+     */
     private function set_user_parameters()
     {
         $user_info               = array();
@@ -381,7 +427,9 @@ class Template
         $this->assign('_u', $user_info);
     }
 
-    /** Set system parameters */
+    /**
+     * Set system parameters
+     */
     private function set_system_parameters()
     {
         global $_configuration;
@@ -414,13 +462,13 @@ class Template
     }
 
     /**
-     * Set theme, include CSS files  */
-    function set_css_files()
+     * Set theme, include CSS files
+     */
+    public function set_css_files()
     {
         global $disable_js_and_css_files;
         $css = array();
 
-        //$platform_theme = api_get_setting('stylesheets');
         $this->theme = api_get_visual_theme();
 
         if (!empty($this->preview_theme)) {
@@ -500,10 +548,11 @@ class Template
      * Declare and define the template variable that will be used to load
      * javascript libraries in the header.
      */
-    function set_js_files()
+    public function set_js_files()
     {
         global $disable_js_and_css_files, $htmlHeadXtra;
 
+        //JS files
         //JS files
         $js_files = array(
             'modernizr.js',
@@ -511,12 +560,19 @@ class Template
             'chosen/chosen.jquery.min.js',
             'thickbox.js',
             'bootstrap/bootstrap.js',
-            'mediaelement/mediaelement-and-player.min.js'
+            'mediaelement/mediaelement-and-player.min.js',
+            'imagemap-resizer/imageMapResizer.min.js'
         );
 
-        if (api_is_global_chat_enabled()) {
-            //Do not include the global chat in LP
-            if ($this->show_learnpath == false && $this->show_footer == true && $this->hide_global_chat == false) {
+        // add chat.js for View by Session, we need the $.cookie library included in it
+        $viewBySession = api_get_configuration_value('my_courses_view_by_session');
+
+        if (api_is_global_chat_enabled() || $viewBySession) {
+            // Do not include the global chat in LP
+            if ($this->show_learnpath == false &&
+                $this->show_footer == true &&
+                $this->hide_global_chat == false
+            ) {
                 $js_files[] = 'chat/js/chat.js';
             }
         }
@@ -563,7 +619,7 @@ class Template
      * upset when a variable is used in a function (even if not used yet)
      * when this variable hasn't been defined yet.
      */
-    function set_js_files_post()
+    public function set_js_files_post()
     {
         global $disable_js_and_css_files, $htmlHeadXtra;
         $js_files = array();
@@ -640,7 +696,7 @@ class Template
         $this->set_js_files();
         //$this->set_js_files_post();
 
-        $browser = api_browser_support('check_browser'); 
+        $browser = api_browser_support('check_browser');
         if ($browser[0] == 'Internet Explorer' && $browser[1] >= '11') {
             $browser_head = '<meta http-equiv="X-UA-Compatible" content="IE=EmulateIE9" />';
             $this->assign('browser_specific_head', $browser_head);
@@ -703,7 +759,11 @@ class Template
         //Preparing values for the menu
 
         //Logout link
-        $this->assign('logout_link', api_get_path(WEB_PATH).'index.php?logout=logout&&uid='.api_get_user_id());
+        if (isset($_configuration['hide_logout_button']) && $_configuration['hide_logout_button'] == 'true') {
+            $this->assign('logout_link', null);
+        } else {
+            $this->assign('logout_link', api_get_path(WEB_PATH).'index.php?logout=logout&uid='.api_get_user_id());
+        }
 
         //Profile link
         if (api_get_setting('allow_social_tool') == 'true') {
@@ -787,7 +847,7 @@ class Template
     }
 
     /**
-     * Set footer parameteres
+     * Set footer parameters
      */
     private function set_footer_parameters()
     {
@@ -866,20 +926,31 @@ class Template
           $this->assign('execution_stats', $stats); */
     }
 
-    function show_header_template()
+    /**
+     * Show header template.
+     */
+    public function show_header_template()
     {
         $tpl = $this->get_template('layout/show_header.tpl');
+
         $this->display($tpl);
     }
 
-    function show_footer_template()
+    /**
+     * Show footer template.
+     */
+    public function show_footer_template()
     {
         $tpl = $this->get_template('layout/show_footer.tpl');
         $this->display($tpl);
     }
 
-    /* Sets the plugin content in a template variable */
-    function set_plugin_region($plugin_region)
+    /**
+     * Sets the plugin content in a template variable
+     * @param string $plugin_region
+     * @return null
+     */
+    public function set_plugin_region($plugin_region)
     {
         if (!empty($plugin_region)) {
             $region_content = $this->plugin->load_region($plugin_region, $this, $this->force_plugin_load);
@@ -892,19 +963,53 @@ class Template
         return null;
     }
 
+    /**
+     * @param string $template
+     * @return string
+     */
     public function fetch($template = null)
     {
         $template = $this->twig->loadTemplate($template);
         return $template->render($this->params);
     }
 
+    /**
+     * @param $tpl_var
+     * @param null $value
+     */
     public function assign($tpl_var, $value = null)
     {
         $this->params[$tpl_var] = $value;
     }
 
+    /**
+     * @param string $template
+     */
     public function display($template)
     {
+        $this->assign('flash_messages', Display::getFlashToString());
+        Display::cleanFlashMessages();
         echo $this->twig->render($template, $this->params);
+    }
+
+    /**
+     * Adds a body class for login pages
+     */
+    public function setLoginBodyClass()
+    {
+        $this->assign('login_class', 'section-login');
+    }
+
+    /**
+     * The theme that will be used if the database is not working.
+     * @return string
+     */
+    public static function getThemeFallback()
+    {
+        $theme = api_get_configuration_value('theme_fallback');
+        if (empty($theme)) {
+            $theme = 'chamilo';
+        }
+        return $theme;
     }
 }

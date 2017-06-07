@@ -5,12 +5,6 @@
  * @package chamilo.dashboard
  * @author Christian Fasanando
  */
-
-/**
- * required files for getting data
- */
-require_once api_get_path(LIBRARY_PATH) . 'thematic.lib.php';
-
 /**
  * This class is used like controller for this course block plugin,
  * the class name must be registered inside path.info file (e.g: controller = "BlockCourse"), so dashboard controller will be instantiate it
@@ -136,7 +130,7 @@ class BlockCourse extends Block
         }
         $content .= $data_table;
         if (!empty($course_data)) {
-            $content .= '<div style="text-align:right;margin-top:10px;"><a href="' . api_get_path(WEB_CODE_PATH) . 'mySpace/course.php">' . get_lang('SeeMore') . '</a></div>';
+            $content .= '<div style="text-align:right;margin-top:10px;"><a href="' . api_get_path(WEB_CODE_PATH) . 'mySpace/course.php?follow">' . get_lang('SeeMore') . '</a></div>';
         }
         $content .= '</div>';
 

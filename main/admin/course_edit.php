@@ -252,7 +252,30 @@ $form->setDefaults($course);
 if ($form->validate()) {
     $course = $form->getSubmitValues();
 
-    $dbName = $_POST['dbName'];
+    $visibility = $course['visibility'];
+
+    global $_configuration;
+    $urlId = api_get_current_access_url_id();
+    if (isset($_configuration[$urlId]) &&
+        isset($_configuration[$urlId]['hosting_limit_active_courses']) &&
+        $_configuration[$urlId]['hosting_limit_active_courses'] > 0
+    ) {
+        // Check if
+        if ($course_info['visibility'] == COURSE_VISIBILITY_HIDDEN &&
+            $visibility != $course_info['visibility']
+        ) {
+            $num = CourseManager::countActiveCourses($urlId);
+            if ($num >= $_configuration[$urlId]['hosting_limit_active_courses']) {
+                api_warn_hosting_contact('hosting_limit_active_courses');
+
+                api_set_failure(get_lang('PortalActiveCoursesLimitReached'));
+
+                header('Location: course_list.php?action=show_msg&warn=' . urlencode(get_lang('PortalActiveCoursesLimitReached')));
+                exit;
+            }
+        }
+    }
+
     $course_code = $course['code'];
     $visual_code = $course['visual_code'];
     $visual_code = generate_course_code($visual_code);
@@ -286,8 +309,8 @@ if ($form->validate()) {
         }
     }
 
-	$tutor_id = $course['tutor_name'];
-	$tutor_name = $platform_teachers[$tutor_id];
+	$tutor_id = isset($course['tutor_name']) ? $course['tutor_name'] : null;
+	$tutor_name = isset($platform_teachers[$tutor_id]) ? $platform_teachers[$tutor_id] : null;
 	$teachers = $course['group']['course_teachers'];
 
 	$title = $course['title'];
@@ -297,7 +320,6 @@ if ($form->validate()) {
 	$course_language = $course['course_language'];
     $course['disk_quota'] = $course['disk_quota']*1024*1024;
 	$disk_quota = $course['disk_quota'];
-	$visibility = $course['visibility'];
 	$subscribe = $course['subscribe'];
 	$unsubscribe = $course['unsubscribe'];
 
@@ -341,7 +363,7 @@ if ($form->validate()) {
             }
         }
 
-        CourseManager::updateTeachers($course_code, $teachers, false, true, false);
+        CourseManager::updateTeachers($course_code, $teachers, true, true, false);
     } else {
         // Normal behaviour
         CourseManager::updateTeachers($course_code, $teachers, true, false);
@@ -350,9 +372,15 @@ if ($form->validate()) {
         $sessionCoaches = $course['session_coaches'];
         if (!empty($sessionCoaches)) {
             foreach ($sessionCoaches as $sessionId => $teacherInfo) {
-                $coachesToSubscribe = $teacherInfo['coaches_by_session'];
-                SessionManager::updateCoaches($sessionId, $course['code'], $coachesToSubscribe, true);
-
+                $coachesToSubscribe = isset($teacherInfo['coaches_by_session']) ? $teacherInfo['coaches_by_session'] : null;
+                if (!empty($coachesToSubscribe)) {
+                    SessionManager::updateCoaches(
+                        $sessionId,
+                        $course['code'],
+                        $coachesToSubscribe,
+                        true
+                    );
+                }
             }
         }
     }
@@ -366,7 +394,6 @@ if ($form->validate()) {
 				sort='0',
 				user_course_cat='0'";
 	Database::query($sql);
-
 
     if (array_key_exists('add_teachers_to_sessions_courses', $course_info)) {
         $sql = "UPDATE $course_table SET add_teachers_to_sessions_courses = '$addTeacherToSessionCourses'

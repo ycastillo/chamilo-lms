@@ -14,7 +14,8 @@ require_once api_get_path(LIBRARY_PATH).'fckeditor/editor/plugins/ajaxfilemanage
 sleep(3);
 echo "{";
 $error = "";
-$info  = "";
+$info = "";
+$fullPath = '';
 
 include_once CLASS_UPLOAD;
 $upload = new Upload();
@@ -70,6 +71,7 @@ if (CONFIG_SYS_VIEW_ONLY || !CONFIG_OPTIONS_UPLOAD) {
                 //get	ajaxmanager. Sample ../../../../../../../courses/TEST/document/Grupo_1_groupdocs/
                 $mainPath        = getParentFolderPath($folderInfo['path']);
                 $chamiloFolder   = substr($fullPath, strlen($mainPath) - strlen($fullPath) - 1);
+
                 $chamiloFile     = $tem['name']; //get	ajaxmanager
                 $chamiloFileSize = filesize($fullPath); //get ajaxmanager
                 //get Chamilo
@@ -100,7 +102,7 @@ if (CONFIG_SYS_VIEW_ONLY || !CONFIG_OPTIONS_UPLOAD) {
                     $doc_id,
                     'DocumentAdded',
                     api_get_user_id(),
-                    $to_group_id,
+                    api_get_group_id(),
                     null,
                     null,
                     null,
@@ -115,12 +117,13 @@ if (CONFIG_SYS_VIEW_ONLY || !CONFIG_OPTIONS_UPLOAD) {
             }
             $info .= sprintf(", url:'%s'", getFileUrl($path));
             $info .= sprintf(", tipedit:'%s'", TIP_DOC_RENAME);
+            // Log to TRACK_E_DEFAULT
+            event_system(LOG_MY_FOLDER_UPLOAD, LOG_MY_FOLDER_PATH, $fullPath);
         } else {
             $error = ERR_FILE_NOT_AVAILABLE;
         }
     }
 }
-
 echo "error:'".$error."'";
 echo $info;
 echo "}";

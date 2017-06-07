@@ -111,8 +111,8 @@ $form->addRule('url', '', 'maxlength',254);
 $form->addElement('textarea','description',get_lang('Description'));
 
 //the first url with id = 1 will be always active
-if ($_GET['url_id'] != 1) {
-	$form->addElement('checkbox','active', null, get_lang('Active'));
+if (isset($_GET['url_id']) && $_GET['url_id'] != 1) {
+    $form->addElement('checkbox','active', null, get_lang('Active'));
 }
 
 $defaults['url']='http://';
@@ -120,7 +120,7 @@ $form->setDefaults($defaults);
 
 $submit_name = get_lang('AddUrl');
 if (isset($_GET['url_id'])) {
-	$url_id = Database::escape_string($_GET['url_id']);
+	$url_id = intval($_GET['url_id']);
 	$num_url_id = UrlManager::url_id_exist($url_id);
 	if($num_url_id != 1) {
 		header('Location: access_urls.php');
@@ -132,14 +132,15 @@ if (isset($_GET['url_id'])) {
 	$submit_name = get_lang('AddUrl');
 }
 
-if (!$_configuration['multiple_access_urls']) {
-	header('Location: index.php');
+if (!api_is_multiple_url_enabled()) {
+    header('Location: index.php');
     exit;
 }
 
 $tool_name = get_lang('AddUrl');
 $interbreadcrumb[] = array ("url" => 'index.php', "name" => get_lang('PlatformAdmin'));
 $interbreadcrumb[] = array ("url" => 'access_urls.php', "name" => get_lang('MultipleAccessURLs'));
+
 Display :: display_header($tool_name);
 
 if (isset ($_GET['action'])) {
@@ -158,3 +159,5 @@ $form->addElement('file','url_image_3','URL Image 3 (PNG)');
 // Submit button
 $form->addElement('style_submit_button', 'submit', $submit_name, 'class="add"');
 $form->display();
+
+Display::display_footer();

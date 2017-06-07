@@ -14,8 +14,6 @@
  * @package chamilo.course_info
  */
 
-/*	   INIT SECTION */
-
 // Language files that need to be included
 $language_file = array('create_course', 'course_info', 'admin', 'gradebook', 'document');
 require_once '../inc/global.inc.php';
@@ -32,20 +30,21 @@ require_once api_get_path(LIBRARY_PATH).'course_category.lib.php';
 
 api_protect_course_script(true);
 api_block_anonymous_users();
+$_course = api_get_course_info();
 
 /*	Constants and variables */
 define('MODULE_HELP_NAME', 'Settings');
 define('COURSE_CHANGE_PROPERTIES', 'COURSE_CHANGE_PROPERTIES');
 
-$currentCourseRepository    = $_course['path'];
-$is_allowedToEdit 			= $is_courseAdmin || $is_platformAdmin;
+$currentCourseRepository = $_course['path'];
+$is_allowedToEdit = $is_courseAdmin || $is_platformAdmin;
 
-$course_code 				= api_get_course_id();
-$course_access_settings 	= CourseManager :: get_access_settings($course_code);
+$course_code = api_get_course_id();
+$course_access_settings = CourseManager:: get_access_settings($course_code);
 
 //LOGIC FUNCTIONS
 function is_settings_editable() {
-	return isset($GLOBALS['course_info_is_editable']) && $GLOBALS['course_info_is_editable'];
+    return isset($GLOBALS['course_info_is_editable']) && $GLOBALS['course_info_is_editable'];
 }
 
 /* MAIN CODE */
@@ -60,10 +59,10 @@ if (api_get_setting('pdf_export_watermark_by_course') == 'true') {
         $show_delete_watermark_text_message = true;
     }
 }
-$tbl_user              = Database :: get_main_table(TABLE_MAIN_USER);
-$tbl_admin             = Database :: get_main_table(TABLE_MAIN_ADMIN);
-$tbl_course_user       = Database :: get_main_table(TABLE_MAIN_COURSE_USER);
-$tbl_course            = Database :: get_main_table(TABLE_MAIN_COURSE);
+$tbl_user = Database:: get_main_table(TABLE_MAIN_USER);
+$tbl_admin = Database:: get_main_table(TABLE_MAIN_ADMIN);
+$tbl_course_user = Database:: get_main_table(TABLE_MAIN_COURSE_USER);
+$tbl_course = Database:: get_main_table(TABLE_MAIN_COURSE);
 
 $s_select_course_tutor_name = "SELECT tutor_name FROM $tbl_course WHERE code='$course_code'";
 $q_tutor = Database::query($s_select_course_tutor_name);
@@ -79,7 +78,7 @@ $q_result_titulars = Database::query($s_sql_course_titular);
 if (Database::num_rows($q_result_titulars) == 0) {
     $sql = "SELECT username, lastname, firstname FROM $tbl_user as user, $tbl_admin as admin
             WHERE admin.user_id=user.user_id ORDER BY ".$target_name." ASC";
-	$q_result_titulars = Database::query($sql);
+    $q_result_titulars = Database::query($sql);
 }
 
 $a_profs[0] = '-- '.get_lang('NoManager').' --';
@@ -92,7 +91,7 @@ while ($a_titulars = Database::fetch_array($q_result_titulars)) {
         $s_selected_tutor = api_get_person_name($s_firstname, $s_lastname);
     }
     $s_disabled_select_titular = '';
-    if (!$is_courseAdmin) {
+    if (!api_is_course_admin()) {
         $s_disabled_select_titular = 'disabled=disabled';
     }
     $a_profs[api_get_person_name($s_firstname, $s_lastname)] = api_get_person_name($s_lastname, $s_firstname).' ('.$s_username.')';
@@ -103,7 +102,7 @@ $categories = getCategoriesCanBeAddedInCourse($_course['categoryCode']);
 $linebreak = '<div class="row"><div class="label"></div><div class="formw" style="border-bottom:1px dashed grey"></div></div>';
 
 // Build the form
-$form = new FormValidator('update_course');
+$form = new FormValidator('update_course', 'post', api_get_self().'?'.api_get_cidreq());
 
 // COURSE SETTINGS
 $form->addElement('html', '<div><h3>'.Display::return_icon('settings.png', Security::remove_XSS(get_lang('CourseSettings')),'',ICON_SIZE_SMALL).' '.Security::remove_XSS(get_lang('CourseSettings')).'</h3><div>');
@@ -115,7 +114,11 @@ if ($form->validate() && is_settings_editable()) {
     // update course picture
     $picture = $_FILES['picture'];
     if (!empty($picture['name'])) {
-        $picture_uri = CourseManager::update_course_picture($course_code, $picture['name'], $picture['tmp_name']);
+        $picture_uri = CourseManager::update_course_picture(
+            $course_code,
+            $picture['name'],
+            $picture['tmp_name']
+        );
     }
 }
 
@@ -146,6 +149,8 @@ $form->applyFilter('department_url', 'html_filter');
 $form->addElement('file', 'picture', get_lang('AddPicture'));
 $allowed_picture_types = array ('jpg', 'jpeg', 'png', 'gif');
 $form->addRule('picture', get_lang('OnlyImagesAllowed').' ('.implode(',', $allowed_picture_types).')', 'filetype', $allowed_picture_types);
+
+$form->addElement('checkbox', 'delete_picture', null, get_lang('DeletePicture'));
 
 if (api_get_setting('pdf_export_watermark_by_course') == 'true') {
     $url =  PDF::get_watermark($course_code);
@@ -234,6 +239,8 @@ $group[]=$form->createElement('radio', 'email_alert_students_on_new_homework', n
 $form->addGroup($group, '', array(get_lang("NewHomeworkEmailAlert")), '');
 
 $group = array();
+$group[]=$form->createElement('radio', 'email_alert_manager_on_new_doc', null, get_lang('WorkEmailAlertActivateOnlyForTeachers'), 3);
+$group[]=$form->createElement('radio', 'email_alert_manager_on_new_doc', null, get_lang('WorkEmailAlertActivateOnlyForStudents'), 2);
 $group[]=$form->createElement('radio', 'email_alert_manager_on_new_doc', get_lang('WorkEmailAlert'), get_lang('WorkEmailAlertActivate'), 1);
 $group[]=$form->createElement('radio', 'email_alert_manager_on_new_doc', null, get_lang('WorkEmailAlertDeactivate'), 0);
 $form->addGroup($group, '', array(get_lang("WorkEmailAlert")), '');
@@ -291,7 +298,7 @@ $form->addElement('html', '</div></div>');
 // LEARNING PATH
 $form->addElement('html', '<div><h3>'.Display::return_icon('scorms.png', get_lang('ConfigLearnpath'),'',ICON_SIZE_SMALL).' '.Security::remove_XSS(get_lang('ConfigLearnpath')).'</h3><div>');
 
-//Auto launch LP
+// Auto launch LP
 $group = array();
 $group[]=$form->createElement('radio', 'enable_lp_auto_launch', get_lang('LPAutoLaunch'), get_lang('RedirectToALearningPath'), 1);
 $group[]=$form->createElement('radio', 'enable_lp_auto_launch', get_lang('LPAutoLaunch'), get_lang('RedirectToTheLearningPathList'), 2);
@@ -304,6 +311,27 @@ if (api_get_setting('allow_course_theme') == 'true') {
     $group[]=$form->createElement('radio', 'allow_learning_path_theme', get_lang('AllowLearningPathTheme'), get_lang('AllowLearningPathThemeAllow'), 1);
     $group[]=$form->createElement('radio', 'allow_learning_path_theme', null, get_lang('AllowLearningPathThemeDisallow'), 0);
     $form->addGroup($group, '', array(get_lang("AllowLearningPathTheme")), '');
+}
+
+global $_configuration;
+if (isset($_configuration['allow_lp_return_link']) && $_configuration['allow_lp_return_link']) {
+    $group = array(
+        $form->createElement(
+            'radio',
+            'lp_return_link',
+            get_lang('LpReturnLink'),
+            get_lang('RedirectToTheLearningPathList'),
+            1
+        ),
+        $form->createElement(
+            'radio',
+            'lp_return_link',
+            null,
+            get_lang('RedirectToCourseHome'),
+            0
+        )
+    );
+    $form->addGroup($group, '', array(get_lang("LpReturnLink")), '');
 }
 
 if (is_settings_editable()) {
@@ -367,9 +395,7 @@ $all_course_information = CourseManager::get_course_information($_course['sysCod
 $values = array();
 
 $values['title']                        = $_course['name'];
-//$values['visual_code']                  = $_course['official_code'];
 $values['category_code']                = $_course['categoryCode'];
-//$values['tutor_name']                 = $_course['titular'];
 $values['course_language']              = $_course['language'];
 $values['department_name']              = $_course['extLink']['name'];
 $values['department_url']               = $_course['extLink']['url'];
@@ -393,6 +419,38 @@ $form->setDefaults($values);
 // Validate form
 if ($form->validate() && is_settings_editable()) {
     $updateValues = $form->exportValues();
+
+    $visibility = $updateValues['visibility'];
+    $deletePicture = $updateValues['delete_picture'];
+
+    if ($deletePicture) {
+        CourseManager::deleteCoursePicture($course_code);
+    }
+
+    global $_configuration;
+    $urlId = api_get_current_access_url_id();
+    if (isset($_configuration[$urlId]) &&
+        isset($_configuration[$urlId]['hosting_limit_active_courses']) &&
+        $_configuration[$urlId]['hosting_limit_active_courses'] > 0
+    ) {
+        $courseInfo = api_get_course_info($course_code);
+
+        // Check if
+        if ($courseInfo['visibility'] == COURSE_VISIBILITY_HIDDEN &&
+            $visibility != $courseInfo['visibility']
+        ) {
+            $num = CourseManager::countActiveCourses($urlId);
+            if ($num >= $_configuration[$urlId]['hosting_limit_active_courses']) {
+                api_warn_hosting_contact('hosting_limit_active_courses');
+
+                api_set_failure(get_lang('PortalActiveCoursesLimitReached'));
+
+                $url = api_get_path(WEB_CODE_PATH).'course_info/infocours.php?action=course_active_warning&cidReq='.$course_code;
+                header("Location: $url");
+                exit;
+            }
+        }
+    }
 
     $pdf_export_watermark_path = isset($_FILES['pdf_export_watermark_path']) ? $_FILES['pdf_export_watermark_path'] : null;
 
@@ -420,6 +478,7 @@ if ($form->validate() && is_settings_editable()) {
         'legal',
         'activate_legal'
     );
+
     foreach ($updateValues as $index =>$value) {
         $updateValues[$index] = Database::escape_string($value);
     }
@@ -451,11 +510,12 @@ if ($form->validate() && is_settings_editable()) {
         );
     }
 
-    $appPlugin->saveCourseSettingsHook($update_values);
+    $appPlugin->saveCourseSettingsHook($updateValues);
     $cidReset = true;
     $cidReq = $course_code;
     require '../inc/local.inc.php';
-    header('Location: infocours.php?action=show_message&cidReq='.$course_code);
+    $url = api_get_path(WEB_CODE_PATH).'course_info/infocours.php?action=show_message&cidReq='.$course_code;
+    header("Location: $url");
     exit;
 }
 
@@ -465,9 +525,12 @@ Display :: display_header($nameTools, MODULE_HELP_NAME);
 if ($show_delete_watermark_text_message) {
     Display :: display_normal_message(get_lang('FileDeleted'));
 }
-//api_display_tool_title($nameTools);
+
 if (isset($_GET['action']) && $_GET['action'] == 'show_message') {
     Display :: display_normal_message(get_lang('ModifDone'));
+}
+if (isset($_GET['action']) && $_GET['action'] == 'course_active_warning') {
+    Display :: display_warning_message(get_lang('PortalActiveCoursesLimitReached'));
 }
 
 echo '<script>

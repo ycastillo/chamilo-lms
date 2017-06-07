@@ -1,18 +1,13 @@
 <?php
 /* For licensing terms, see /license.txt */
+
 /**
-*	This class allows to instantiate an object of type Answer
-*	5 arrays are created to receive the attributes of each answer belonging to a specified question
-* 	@package chamilo.exercise
-* 	@author Olivier Brouckaert
-* 	@version $Id: answer.class.php 21172 2009-06-01 20:58:05Z darkvela $
-*/
-/**
- * Code
- */
-/**
- * Answer class
-* @package chamilo.exercise
+ * Class Answer
+ * Allows to instantiate an object of type Answer
+ * 5 arrays are created to receive the attributes of each answer belonging to a specified question
+ * @package chamilo.exercise
+ * @author Olivier Brouckaert
+ * @package chamilo.exercise
  */
 class Answer
 {
@@ -273,8 +268,8 @@ class Answer
 	 * @return string - answer title
 	 */
 	function selectAnswer($id)
-    {
-        return isset($this->answer[$id]) ? $this->answer[$id] : null;
+        {
+            return isset($this->answer[$id]) ? $this->answer[$id] : null;
 	}
 
 	/**
@@ -500,7 +495,7 @@ class Answer
 				hotspot_coordinates = '".Database::escape_string($hotspot_coordinates)."',
         hotspot_type = '".Database::escape_string($hotspot_type)."'
 				WHERE c_id = {$this->course_id} AND id = '$id'
-				AND question_id = '".Database::escape_string($questionId)."'";
+				AND question_id = ".intval($questionId)."";
         Database::query($sql);
 	}
 

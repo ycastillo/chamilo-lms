@@ -12,8 +12,8 @@
 /**
  * Variables used from the main/install/index.php
  */
-$new_version            = '1.9.8';
-$new_version_status     = 'dev';
+$new_version            = '1.9.10.4';
+$new_version_status     = 'stable';
 $new_version_last_id	= 0;
 $new_version_stable 	= true;
 $new_version_major      = false;

@@ -2,6 +2,9 @@
 /*
 for more information: see languages.txt in the lang folder.
 */
+$AddForum = "Új fórum hozzáadása";
+$ReplyShort = "Vá:";
+$NoTimeLimits = "Nincs időkorlát";
 $Title = "Cím";
 $By = "Szerző";
 $UsersOnline = "Jelenlévő felhasználó";
@@ -630,6 +633,7 @@ $Menu = "Menü";
 $BackToUserList = "Vissza a felhasználói listához";
 $GraphicNotAvailable = "Kép nem található";
 $Parent = "Szülő";
+$NextWeek = "Következő hét";
 $GeneralDescription = "Általános meghatározás";
 $GeneralDescriptionQuestions = "Hol van a kurzus helye a képzési programban? Hogyan kapcsolódik a kurzus más kurzusokhoz?";
 $GeneralDescriptionInformation = "A kurzus meghatározása (órák száma, hivatalos kód, osztályterem helye, stb.) és az oktató bemutatása (név, fogadóóra ideje, helye, telefonszáma, e-mail címe)";
@@ -651,4 +655,5 @@ $HumanAndTechnicalResourcesInformation = "A különböző kapcsolattartó szemé
 $Assessment = "Értékelés";
 $AssessmentQuestions = "Hogyan lesznek értékelve a résztvevők?";
 $AssessmentInformation = "Példa teszt kérdések. A sikeres teljesítés feltétele. Tippek és trükkök.";
+$UploadADocument = "Dokumentum feltöltése";
 ?>

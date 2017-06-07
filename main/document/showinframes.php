@@ -1,5 +1,6 @@
 <?php
 /* For licensing terms, see /license.txt */
+
 /**
  *	This file will show documents in a separate frame.
  *	We don't like frames, but it was the best of two bad things.
@@ -21,9 +22,7 @@
  *	@author Roan Embrechts (roan.embrechts@vub.ac.be)
  *	@package chamilo.document
  */
-/**
- * INITIALIZATION
- */
+
 $language_file[] = 'document';
 require_once '../inc/global.inc.php';
 
@@ -33,23 +32,34 @@ $noPHP_SELF = true;
 $header_file = isset($_GET['file']) ? Security::remove_XSS($_GET['file']) : null;
 $document_id = intval($_GET['id']);
 
-$course_info = api_get_course_info();
+$courseInfo = api_get_course_info();
 $course_code = api_get_course_id();
 $session_id = api_get_session_id();
 
-if (empty($course_info)) {
+if (empty($courseInfo)) {
     api_not_allowed(true);
 }
 
 $show_web_odf = false;
 
-//Generate path
+// Generate path
 if (!$document_id) {
-    $document_id = DocumentManager::get_document_id($course_info, $header_file);
+    $document_id = DocumentManager::get_document_id($courseInfo, $header_file);
 }
-$document_data = DocumentManager::get_document_data_by_id($document_id, $course_code, true, $session_id);
+$document_data = DocumentManager::get_document_data_by_id(
+    $document_id,
+    $course_code,
+    true,
+    $session_id
+);
+
 if ($session_id != 0 and !$document_data) {
-    $document_data = DocumentManager::get_document_data_by_id($document_id, $course_code, true, 0);
+    $document_data = DocumentManager::get_document_data_by_id(
+        $document_id,
+        $course_code,
+        true,
+        0
+    );
 }
 
 if (empty($document_data)) {
@@ -64,8 +74,7 @@ $path_array = array_map('urldecode', $path_array);
 $header_file = implode('/', $path_array);
 
 $file = Security::remove_XSS(urldecode($document_data['path']));
-
-$file_root = $course_info['path'].'/document'.str_replace('%2F', '/', $file);
+$file_root = $courseInfo['path'].'/document'.str_replace('%2F', '/', $file);
 $file_url_sys = api_get_path(SYS_COURSE_PATH).$file_root;
 $file_url_web = api_get_path(WEB_COURSE_PATH).$file_root;
 
@@ -84,7 +93,6 @@ if ($is_allowed_in_course == false) {
 }
 
 // Check user visibility.
-//$is_visible = DocumentManager::is_visible_by_id($document_id, $course_info, api_get_session_id(), api_get_user_id());
 $is_visible = DocumentManager::check_visibility_tree(
     $document_id,
     api_get_course_id(),
@@ -98,7 +106,6 @@ if (!api_is_allowed_to_edit() && !$is_visible) {
 }
 
 $pathinfo = pathinfo($header_file);
-
 $jplayer_supported_files = array('mp4', 'ogv','flv');
 $jplayer_supported = false;
 
@@ -108,7 +115,7 @@ if (in_array(strtolower($pathinfo['extension']), $jplayer_supported_files)) {
 
 $group_id = api_get_group_id();
 $current_group = GroupManager::get_group_properties($group_id);
-$current_group_name=$current_group['name'];
+$current_group_name = $current_group['name'];
 
 if (isset($group_id) && $group_id != '') {
     $req_gid = '&amp;gidReq='.$group_id;
@@ -122,18 +129,18 @@ if (isset($group_id) && $group_id != '') {
 $interbreadcrumb[] = array('url' => './document.php?curdirpath='.dirname($header_file).'&'.api_get_cidreq(), 'name' => get_lang('Documents'));
 
 if (empty($document_data['parents'])) {
-	if (isset($_GET['createdir'])) {
-		$interbreadcrumb[] = array('url' => $document_data['document_url'], 'name' => $document_data['title']);
-	} else {
-		$interbreadcrumb[] = array('url' => '#', 'name' => $document_data['title']);
-	}
+    if (isset($_GET['createdir'])) {
+        $interbreadcrumb[] = array('url' => $document_data['document_url'], 'name' => $document_data['title']);
+    } else {
+        $interbreadcrumb[] = array('url' => '#', 'name' => $document_data['title']);
+    }
 } else {
-	foreach($document_data['parents'] as $document_sub_data) {
-		if (!isset($_GET['createdir']) && $document_sub_data['id'] ==  $document_data['id']) {
-			$document_sub_data['document_url'] = '#';
-		}
-		$interbreadcrumb[] = array('url' => $document_sub_data['document_url'], 'name' => $document_sub_data['title']);
-	}
+    foreach($document_data['parents'] as $document_sub_data) {
+        if (!isset($_GET['createdir']) && $document_sub_data['id'] ==  $document_data['id']) {
+            $document_sub_data['document_url'] = '#';
+        }
+        $interbreadcrumb[] = array('url' => $document_sub_data['document_url'], 'name' => $document_sub_data['title']);
+    }
 }
 
 $this_section = SECTION_COURSES;
@@ -155,6 +162,7 @@ if ($is_courseAdmin) {
     $frameheight = 165;
 }
 $js_glossary_in_documents = '';
+
 if (api_get_setting('show_glossary_in_documents') == 'ismanual') {
     $js_glossary_in_documents = '	//	    $(document).ready(function() {
                                     $.frameReady(function() {
@@ -188,10 +196,12 @@ if (api_get_setting('show_glossary_in_documents') == 'ismanual') {
                                 //   });';
 }
 
-
 $web_odf_supported_files = DocumentManager::get_web_odf_extension_list();
+// PDF should be displayed with viewerJS
+$web_odf_supported_files[] = 'pdf';
 if (in_array(strtolower($pathinfo['extension']), $web_odf_supported_files)) {
     $show_web_odf  = true;
+    /*
     $htmlHeadXtra[] = api_get_js('webodf/webodf.js');
     $htmlHeadXtra[] = api_get_css(api_get_path(WEB_LIBRARY_PATH).'javascript/webodf/webodf.css');
     $htmlHeadXtra[] = '
@@ -205,15 +215,47 @@ if (in_array(strtolower($pathinfo['extension']), $web_odf_supported_files)) {
             window.setTimeout(init, 0);
         });
   </script>';
+    */
+    $htmlHeadXtra[] = '
+    <script>
+        resizeIframe = function() {
+            var bodyHeight = $("body").height();
+            var topbarHeight = $("#topbar").height();
+            $("#viewerJSContent").height((bodyHeight - topbarHeight));
+        }
+        $(document).ready(function() {
+            $(window).resize(resizeIframe());
+        });
+    </script>'
+    ;
+}
+
+// Activate code highlight.
+$isChatFolder = false;
+if (isset($document_data['parents']) && isset($document_data['parents'][0])) {
+    $chatFolder = $document_data['parents'][0];
+    if (isset($chatFolder['path']) && $chatFolder['path'] == '/chat_files') {
+        $isChatFolder = true;
+    }
+}
+
+if ($isChatFolder) {
+    $htmlHeadXtra[] = api_get_js('highlight/highlight.pack.js');
+    $htmlHeadXtra[] = api_get_css(api_get_path(WEB_CSS_PATH).'chat.css');
+    $htmlHeadXtra[] = api_get_css(
+        api_get_path(WEB_LIBRARY_PATH) . 'javascript/highlight/styles/github.css'
+    );
+    $htmlHeadXtra[] = '
+    <script>
+        hljs.initHighlightingOnLoad();
+    </script>';
 }
 
 $execute_iframe = true;
 
 if ($jplayer_supported) {
-
     $extension = api_strtolower($pathinfo['extension']);
-
-    $js_path 		= api_get_path(WEB_LIBRARY_PATH).'javascript/';
+    $js_path = api_get_path(WEB_LIBRARY_PATH).'javascript/';
     $htmlHeadXtra[] = '<link rel="stylesheet" href="'.$js_path.'jquery-jplayer/skins/blue/jplayer.blue.monday.css" type="text/css">';
     $htmlHeadXtra[] = '<script type="text/javascript" src="'.$js_path.'jquery-jplayer/jquery.jplayer.min.js"></script>';
 
@@ -242,17 +284,18 @@ if ($jplayer_supported) {
     </script>';
     $execute_iframe = false;
 }
+
 if ($show_web_odf) {
     $execute_iframe = false;
 }
 
 $is_freemind_available = $pathinfo['extension']=='mm' && api_get_setting('enable_freemind') == 'true';
-if ($is_freemind_available){
+if ($is_freemind_available) {
     $execute_iframe = false;
 }
 
 $is_nanogong_available = $pathinfo['extension']=='wav' && preg_match('/_chnano_.wav/i', $file_url_web) && api_get_setting('enable_nanogong') == 'true';
-if ($is_nanogong_available){
+if ($is_nanogong_available) {
     $execute_iframe = false;
 }
 
@@ -265,20 +308,21 @@ if (!$jplayer_supported && $execute_iframe) {
     </script>';
     $htmlHeadXtra[] = '<script type="text/javascript" src="'.api_get_path(WEB_LIBRARY_PATH).'javascript/jquery.frameready.js"></script>';
     $htmlHeadXtra[] = '<script>
-    <!--
         var updateContentHeight = function() {
             my_iframe = document.getElementById("mainFrame");
-            //this doesnt seem to work in IE 7,8,9
-            new_height = my_iframe.contentWindow.document.body.scrollHeight;
-            my_iframe.height = my_iframe.contentWindow.document.body.scrollHeight + "px";
+            if (my_iframe) {
+                //this doesnt seem to work in IE 7,8,9
+                new_height = my_iframe.contentWindow.document.body.scrollHeight;
+                my_iframe.height = my_iframe.contentWindow.document.body.scrollHeight + "px";
+            }
         };
 
         // Fixes the content height of the frame
         window.onload = function() {
             updateContentHeight();
             '.$js_glossary_in_documents.'
+
         }
-    -->
     </script>';
 }
 
@@ -286,19 +330,29 @@ Display::display_header('');
 
 echo '<div align="center">';
 
-$file_url_web = api_get_path(WEB_COURSE_PATH).$_course['path'].'/document'.$header_file.'?'.api_get_cidreq();
+$file_url = api_get_path(WEB_COURSE_PATH).$courseInfo['path'].'/document'.$header_file;
+$file_url_web = $file_url.'?'.api_get_cidreq();
 
 if (!$is_nanogong_available) {
     if (in_array(strtolower($pathinfo['extension']) , array('html', "htm"))) {
         echo '<a class="btn" href="'.$file_url_web.'" target="_blank">'.get_lang('CutPasteLink').'</a>';
-    } else {
-        echo '<a class="btn" href="'.$file_url_web.'" target="_blank">'.get_lang('Download').'</a>';
     }
 }
 
 if ($show_web_odf) {
-    //echo Display::url(get_lang('Show'), api_get_path(WEB_CODE_PATH).'document/edit_odf.php?id='.$document_data['id'], array('class' => 'btn'));
-    echo '<div id="odf"></div>';
+    $browser = api_get_navigator();
+    $pdfUrl = api_get_path(WEB_LIBRARY_PATH) . 'javascript/ViewerJS/index.html#' . $file_url;
+    if ($browser['name'] == 'Mozilla' && preg_match('|.*\.pdf|i', $header_file)) {
+        $pdfUrl = $file_url;
+    }
+    echo '<div id="viewerJS">';
+    echo '<iframe id="viewerJSContent" frameborder="0" allowfullscreen="allowfullscreen" webkitallowfullscreen style="width:100%;"
+            src="' . $pdfUrl. '">
+        </iframe>';
+    echo '</div>';
+} else {
+    // ViewerJS already have download button
+    echo '<a class="btn" href="'.$file_url_web.'" target="_blank">'.get_lang('Download').'</a>';
 }
 
 echo '</div>';
@@ -310,120 +364,87 @@ if ($jplayer_supported) {
 }
 
 if ($is_freemind_available) {
-	?>
-	<script type="text/javascript" src="<?php echo api_get_path(WEB_LIBRARY_PATH) ?>swfobject/swfobject.js"></script>
-	<style type="text/css">
-		#flashcontent {
-			height: 500px;
-			padding-top:10px;
-		}
-	</style>
-	<div id="flashcontent" onmouseover="giveFocus();">
-		 Flash plugin or Javascript are turned off.
-		 Activate both  and reload to view the mindmap
-	</div>
-	<script>
+    ?>
+    <script type="text/javascript" src="<?php echo api_get_path(WEB_LIBRARY_PATH) ?>swfobject/swfobject.js"></script>
+    <style type="text/css">
+        #flashcontent {
+            height: 500px;
+            padding-top:10px;
+        }
+    </style>
+    <div id="flashcontent" onmouseover="giveFocus();">
+        Flash plugin or Javascript are turned off.
+        Activate both  and reload to view the mindmap
+    </div>
+    <script>
         function giveFocus() {
-		  document.visorFreeMind.focus();
-		}
+            document.visorFreeMind.focus();
+        }
 
-		document.onload=giveFocus;
-		// <![CDATA[
-		// for allowing using http://.....?mindmap.mm mode
-		function getMap(map){
-		  var result=map;
-		  var loc=document.location+'';
-		  if(loc.indexOf(".mm")>0 && loc.indexOf("?")>0){
-			result=loc.substring(loc.indexOf("?")+1);
-		  }
-		  return result;
-		}
-		var fo = new FlashObject("<?php echo api_get_path(WEB_LIBRARY_PATH); ?>freeMindFlashBrowser/visorFreemind.swf", "visorFreeMind", "100%", "100%", 6, "#ffffff");
-		fo.addParam("quality", "high");
-		//fo.addParam("bgcolor", "#a0a0f0");
-		fo.addVariable("openUrl", "_blank");//Default value "_self"
-		fo.addVariable("startCollapsedToLevel","3");//Default value = "-1", meaning do nothing, the mindmap will open as it was saved. The root node, or central node, of your mindmap is level zero. You could force the browser to open (unfold) your mind map to an expanded level using this variable.
-		fo.addVariable("maxNodeWidth","200");
-		//
-		fo.addVariable("mainNodeShape","elipse");//"rectangle", "elipse", "none". None hide the main node. Default is "elipse"
-		fo.addVariable("justMap","false");
-		fo.addVariable("initLoadFile",getMap("<?php echo $file_url_web; ?>"));
-		fo.addVariable("defaultToolTipWordWrap",200);//max width for tooltips. Default "600" pixels
-		fo.addVariable("offsetX","left");//for the center of the mindmap. Admit also "left" and "right"
-		fo.addVariable("offsetY","top");//for the center of the mindmap. Admit also "top" and "bottom"
-		fo.addVariable("buttonsPos","top");//"top" or "bottom"
-		fo.addVariable("min_alpha_buttons",20);//for dynamic view of buttons
-		fo.addVariable("max_alpha_buttons",100);//for dynamic view of buttons
-		fo.addVariable("scaleTooltips","false");
-		//
-		//extra
-		//fo.addVariable("CSSFile","<?php // echo api_get_path(WEB_LIBRARY_PATH); ?>freeMindFlashBrowser/flashfreemind.css");//
-		//fo.addVariable("baseImagePath","<?php // echo api_get_path(WEB_LIBRARY_PATH); ?>freeMindFlashBrowser/");//
-		//fo.addVariable("justMap","false");//Hides all the upper control options. Default value "false"
-		//fo.addVariable("noElipseMode","anyvalue");//for changing to old elipseNode edges. Default = not set
-		//fo.addVariable("ShotsWidth","200");//The width of snapshots, in pixels.
-		//fo.addVariable("genAllShots","true");//Preview shots (like the samples on the Shots Width page) will be generated for all linked maps when your main map loads. If you have a lot of linked maps, this could take some time to complete
-		//fo.addVariable("unfoldAll","true"); //For each mindmap loaded start the display with all nodes unfolded. Another variable to be wary of!
-		//fo.addVariable("toolTipsBgColor","0xaaeeaa");: bgcolor for tooltips ej;"0xaaeeaa"
-		//fo.addVariable("defaultWordWrap","300"); //default 600
-		//
+        document.onload=giveFocus;
+        // <![CDATA[
+        // for allowing using http://.....?mindmap.mm mode
+        function getMap(map){
+            var result=map;
+            var loc=document.location+'';
+            if(loc.indexOf(".mm")>0 && loc.indexOf("?")>0){
+                result=loc.substring(loc.indexOf("?")+1);
+            }
+            return result;
+        }
+        var fo = new FlashObject("<?php echo api_get_path(WEB_LIBRARY_PATH); ?>freeMindFlashBrowser/visorFreemind.swf", "visorFreeMind", "100%", "100%", 6, "#ffffff");
+        fo.addParam("quality", "high");
+        //fo.addParam("bgcolor", "#a0a0f0");
+        fo.addVariable("openUrl", "_blank");//Default value "_self"
+        fo.addVariable("startCollapsedToLevel","3");//Default value = "-1", meaning do nothing, the mindmap will open as it was saved. The root node, or central node, of your mindmap is level zero. You could force the browser to open (unfold) your mind map to an expanded level using this variable.
+        fo.addVariable("maxNodeWidth","200");
+        //
+        fo.addVariable("mainNodeShape","elipse");//"rectangle", "elipse", "none". None hide the main node. Default is "elipse"
+        fo.addVariable("justMap","false");
+        fo.addVariable("initLoadFile",getMap("<?php echo $file_url_web; ?>"));
+        fo.addVariable("defaultToolTipWordWrap",200);//max width for tooltips. Default "600" pixels
+        fo.addVariable("offsetX","left");//for the center of the mindmap. Admit also "left" and "right"
+        fo.addVariable("offsetY","top");//for the center of the mindmap. Admit also "top" and "bottom"
+        fo.addVariable("buttonsPos","top");//"top" or "bottom"
+        fo.addVariable("min_alpha_buttons",20);//for dynamic view of buttons
+        fo.addVariable("max_alpha_buttons",100);//for dynamic view of buttons
+        fo.addVariable("scaleTooltips","false");
+        //
+        //extra
+        //fo.addVariable("CSSFile","<?php // echo api_get_path(WEB_LIBRARY_PATH); ?>freeMindFlashBrowser/flashfreemind.css");//
+        //fo.addVariable("baseImagePath","<?php // echo api_get_path(WEB_LIBRARY_PATH); ?>freeMindFlashBrowser/");//
+        //fo.addVariable("justMap","false");//Hides all the upper control options. Default value "false"
+        //fo.addVariable("noElipseMode","anyvalue");//for changing to old elipseNode edges. Default = not set
+        //fo.addVariable("ShotsWidth","200");//The width of snapshots, in pixels.
+        //fo.addVariable("genAllShots","true");//Preview shots (like the samples on the Shots Width page) will be generated for all linked maps when your main map loads. If you have a lot of linked maps, this could take some time to complete
+        //fo.addVariable("unfoldAll","true"); //For each mindmap loaded start the display with all nodes unfolded. Another variable to be wary of!
+        //fo.addVariable("toolTipsBgColor","0xaaeeaa");: bgcolor for tooltips ej;"0xaaeeaa"
+        //fo.addVariable("defaultWordWrap","300"); //default 600
+        //
 
-		fo.write("flashcontent");
-		// ]]>
-	</script>
-	<?php
+        fo.write("flashcontent");
+        // ]]>
+    </script>
+<?php
 }
 
-
 if ($is_nanogong_available) {
-
-		//make temp audio
-        $temp_folder=api_get_path(SYS_ARCHIVE_PATH).'temp/audio';
-        if (!file_exists($temp_folder)) {
-            @mkdir($temp_folder, api_get_permissions_for_new_directories(), true);
-        }
-
-		//make htaccess with allow from all, and file index.html into temp/audio
-		$htaccess = api_get_path(SYS_ARCHIVE_PATH).'temp/audio/.htaccess';
-		if (!file_exists($htaccess)) {
-			$htaccess_content="order deny,allow\r\nallow from all\r\nOptions -Indexes";
-			$fp = @ fopen(api_get_path(SYS_ARCHIVE_PATH).'temp/audio/.htaccess', 'w');
-			if ($fp) {
-				fwrite($fp, $htaccess_content);
-				fclose($fp);
-			}
-		}
-
-		//encript temp name file
-		$name_crip = sha1(uniqid());//encript
-		$findext= explode(".", $file);
-		$extension= $findext[count($findext)-1];
-		$file_crip=$name_crip.'.'.$extension;
-
-		//copy file to temp/audio directory
-		$from_sys=$file_url_sys;
-		$to_sys=api_get_path(SYS_ARCHIVE_PATH).'temp/audio/'.$file_crip;
-
-        if (file_exists($from_sys)) {
-            copy($from_sys, $to_sys);
-        }
-
-		//get file from tmp directory
-		$to_url = api_get_path(WEB_ARCHIVE_PATH).'temp/audio/'.$file_crip;
-
-        echo '<div align="center">';
-        echo '<a class="btn" href="'.$file_url_web.'" target="_blank">'.get_lang('Download').'</a>';
-        echo '<br/>';
-        echo '<br/>';
-
-        echo DocumentManager::readNanogongFile($to_url);
-
-		//erase temp file in tmp directory when return to documents
-		$_SESSION['temp_audio_nanogong']=$to_sys;
+    $file_url_web = DocumentManager::generateAudioTempFolder($file_url_sys);
+    echo '<div align="center">';
+    echo '<a class="btn" href="'.$file_url_web.'" target="_blank">'.get_lang('Download').'</a>';
+    echo '<br/>';
+    echo '<br/>';
+    echo DocumentManager::readNanogongFile($to_url);
+    // Erase temp file in tmp directory when return to documents
     echo '</div>';
 }
 
 if ($execute_iframe) {
-    echo '<iframe id="mainFrame" name="mainFrame" border="0" frameborder="0" scrolling="no" style="width:100%;" height="600" src="'.$file_url_web.'&amp;rand='.mt_rand(1, 10000).'" height="500"></iframe>';
+    if ($isChatFolder) {
+        $content = Security::remove_XSS(file_get_contents($file_url_sys));
+        echo $content;
+    } else {
+        echo '<iframe id="mainFrame" name="mainFrame" border="0" frameborder="0" scrolling="no" style="width:100%;" height="600" src="'.$file_url_web.'&amp;rand='.mt_rand(1, 10000).'" height="500" allowfullscreen="true" webkitallowfullscreen="true" mozallowfullscreen="true"></iframe>';
+    }
 }
 Display::display_footer();

@@ -709,7 +709,7 @@ function get_personal_agenda_items($user_id, $agendaitems, $day = "", $month = "
  */
 function get_personal_agenda_item($id) {
 	$tbl_personal_agenda = Database :: get_user_personal_table(TABLE_PERSONAL_AGENDA);
-	$id = Database::escape_string($id);
+	$id = intval($id);
 	// make sure events of the personal agenda can only be seen by the user himself
 	$user = api_get_user_id();
 	$sql = " SELECT * FROM ".$tbl_personal_agenda." WHERE id=".$id." AND user = ".$user;
@@ -869,27 +869,15 @@ function show_simple_personal_agenda($user_id) {
 				$style = "datanow";
 				$text_style = "text";
 			}
-			/*--------------------------------------------------
-			 			display: date and time
-			  --------------------------------------------------*/
+
 			// adding an internal anchor
 			$content.= date("d", strtotime($myrow["date"]))." ".$MonthsLong[date("n", strtotime($myrow["date"])) - 1]." ".date("Y", strtotime($myrow["date"]))."&nbsp;";
 			$content.= strftime(get_lang("timeNoSecFormat"), strtotime($myrow["date"]));
 
-			/*--------------------------------------------------
-			 			display: the title
-			  --------------------------------------------------*/
 			$content.= '<br />';
 			$content.= $myrow['title'];
 			$content.= '<br />';
 
-			/*--------------------------------------------------
-			 			display: the content
-			  --------------------------------------------------*/
-			  /*
-			$content = $myrow['title'];
-			$content = make_clickable($content);
-			*/
 			return $content;
 		}
 	} else {
@@ -941,8 +929,7 @@ function get_personal_agenda_items_between_dates($user_id, $date_start='', $date
 	// get agenda-items for every course
 	$courses = api_get_user_courses($user_id,false);
     require_once(api_get_path(LIBRARY_PATH).'groupmanager.lib.php');
-	foreach ($courses as $id => $course)
-	{
+	foreach ($courses as $id => $course) {
 		$c = api_get_course_info($course['code']);
 		//databases of the courses
 		$t_a = Database :: get_course_table(TABLE_AGENDA, $course['db']);
@@ -996,6 +983,8 @@ function get_personal_agenda_items_between_dates($user_id, $date_start='', $date
 		$result = Database::query($sqlquery);
 		while ($item = Database::fetch_array($result)) {
 			$agendaday = date("j",strtotime($item['start_date']));
+			$month = date("n",strtotime($item['start_date']));
+			$year = date("Y",strtotime($item['start_date']));
 			$URL = api_get_path(WEB_PATH)."main/calendar/agenda.php?cidReq=".urlencode($course["code"])."&amp;day=$agendaday&amp;month=$month&amp;year=$year#$agendaday";
 			list($year,$month,$day,$hour,$min,$sec) = split('[-: ]',$item['start_date']);
 			$start_date = $year.$month.$day.$hour.$min;

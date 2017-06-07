@@ -3,6 +3,9 @@
 for more information: see languages.txt in the lang folder.
 */
 $DeleteAllAttendances = "删除全部的出勤记录";
+$AddForum = "添加新论坛";
+$ReplyShort = "回复主题";
+$NoTimeLimits = "无时间限制";
 $Title = "标题";
 $By = "By";
 $UsersOnline = "在线用户";
@@ -548,6 +551,7 @@ $ImportantActivities = "重要活动";
 $SearchActivities = "查找活动";
 $DisplayTrainingList = "显示培训列表";
 $HistoryTrainingSession = "培训历史记录";
+$NextWeek = "下周";
 $ThereAreNoRegisteredDatetimeYet = "暂时没有注册的日期";
 $CalendarList = "出勤日历表";
 $AttendanceCalendarDescription = "出勤日历允许你注册考勤表。添加新的考勤表。";
@@ -580,6 +584,7 @@ $HumanAndTechnicalResourcesInformation = "简要描述利用不同联系之间�
 $Assessment = "评估";
 $AssessmentQuestions = "用户将如何评价? 用什么样的方法才使用户抓住主题?";
 $AssessmentInformation = "举例测试问题. 正确标准. 提示以及窍门.";
+$UploadADocument = "上传文档";
 $Metadata = "元数据";
 $langAddMetadata = "查看/编辑 元数据";
 $TabsDashboard = "资料卡";

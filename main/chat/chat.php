@@ -1,18 +1,14 @@
 <?php
 /* For licensing terms, see /license.txt */
+
 /**
  * Chat tool
  * @package chamilo.chat
- */
-/**
- * Code
  */
 
 $language_file = array('chat');
 require_once '../inc/global.inc.php';
 $current_course_tool  = TOOL_CHAT;
-
-require_once api_get_path(LIBRARY_PATH).'groupmanager.lib.php';
 $this_section = SECTION_COURSES;
 $nameTools = get_lang('ToolChat');
 
@@ -43,13 +39,14 @@ if (!empty($mycourseid) && $mycourseid != -1) {
 	$open_chat_window = api_get_course_setting('allow_open_chat_window');
 }
 
-$cidreq = Security::remove_XSS($_GET['cidReq']);
+$courseCode = Security::remove_XSS($_GET['cidReq']);
 
 ?>
 <!DOCTYPE html>
 <html>
 <head>
 <meta charset="<?php echo api_get_system_encoding(); ?>" />
+<link rel="stylesheet" type="text/css" href="<?php echo api_get_path(WEB_CSS_PATH); ?>chat.css">
 <?php
 echo'<title>'.get_lang('Chat').' - '.$mycourseid.' - '.api_get_setting('siteName').'</title>';
 
@@ -58,9 +55,12 @@ $groupId = api_get_group_id();
 // If it is a group chat then the breadcrumbs.
 if (!empty($groupId)) {
 	$group_properties  = GroupManager :: get_group_properties($groupId);
-	$interbreadcrumb[] = array('url' => '../group/group.php', 'name' => get_lang('Groups'));
+    $interbreadcrumb[] = array(
+        'url' => api_get_path(WEB_CODE_PATH).'group/group.php?'.api_get_cidreq(),
+        'name' => get_lang('Groups')
+    );
 	$interbreadcrumb[] = array(
-        'url' => '../group/group_space.php?gidReq='.api_get_group_id(),
+        'url' => api_get_path(WEB_CODE_PATH).'group/group_space.php?'.api_get_cidreq(),
         'name' => get_lang('GroupSpace').' '.$group_properties['name']
     );
 	$noPHP_SELF = true;
@@ -75,10 +75,15 @@ if (empty($open_chat_window)) {
     Display::display_header($tool_name, 'Chat');
 }
 
-echo '<iframe src="chat_whoisonline.php?cidReq='.$cidreq.'" name="chat_whoisonline" scrolling="auto" style="height:320px; width:19%; border: 0px none; float:left"></iframe>';
-echo '<iframe src="chat_chat.php?origin='.$origin.'&target='.$target.'&amp;cidReq='.$cidreq.'" name="chat_chat" scrolling="auto" height="240" style="width:80%; border: 0px none; float:right"></iframe>';
-echo '<iframe src="chat_message.php?cidReq='.$cidreq.'" name="chat_message" scrolling="no" height="80" style="width:80%; border: 0px none; float:right"></iframe>';
-echo '<iframe src="chat_hidden.php?cidReq='.$cidreq.'" name="chat_hidden" height="0" style="border: 0px none"></iframe>';
+$url = api_get_path(WEB_CODE_PATH).'chat/';
+$params = "cidReq=".$courseCode.'&id_session='.api_get_session_id();
+
+echo '<div class="page-chat">';
+echo '<iframe src="'.$url.'chat_whoisonline.php?'.$params.'" name="chat_whoisonline" scrolling="no" style="height:550px; width:35%; border: 0px none; float:left"></iframe>';
+echo '<iframe src="'.$url.'chat_chat.php?origin='.$origin.'&target='.$target.'&'.$params.'" name="chat_chat" id="chat_chat" scrolling="auto" height="380" style="width:65%; border: 0px none; float:right"></iframe>';
+echo '<iframe src="'.$url.'chat_message.php?'.$params.'" name="chat_message" scrolling="no" height="182px" style="width:65%; border: 0px none; float:right"></iframe>';
+echo '<iframe src="'.$url.'chat_hidden.php?'.$params.'" name="chat_hidden" height="0" style="border: 0px none"></iframe>';
+echo '</div>';
 
 if (empty($open_chat_window)) {
     Display::display_footer();

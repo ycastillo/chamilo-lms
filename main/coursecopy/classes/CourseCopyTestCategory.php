@@ -1,17 +1,10 @@
 <?php
-
 /* For licensing terms, see /license.txt */
-/**
- * Exercises questions backup script
- * @package chamilo.backup
- */
-/**
- * Code
- */
+
 require_once 'Resource.class.php';
 
 /**
- * An QuizQuestion
+ * Class CourseCopyTestcategory
  * @author Hubert Borderiou <hubert.borderiou@grenet.fr>
  * @package chamilo.backup
  */
@@ -41,7 +34,8 @@ class CourseCopyTestcategory extends Resource
     /**
      * Show the test_category title, used in the partial recycle_course.php form
      */
-    function show() {
+    function show()
+    {
         parent::show();
         echo $this->title;
     }

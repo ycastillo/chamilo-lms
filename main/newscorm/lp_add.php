@@ -11,9 +11,7 @@
  *
  * @package chamilo.learnpath
  */
-/**
- * Code
- */
+
 $this_section = SECTION_COURSES;
 api_protect_course_script();
 
@@ -76,7 +74,7 @@ $learnpath_id   = isset($_REQUEST['lp_id']) ? $_REQUEST['lp_id'] : null;
 
 // Using the resource linker as a tool for adding resources to the learning path.
 if ($action == 'add' && $type == 'learnpathitem') {
-     $htmlHeadXtra[] = "<script language='JavaScript' type='text/javascript'> window.location=\"../resourcelinker/resourcelinker.php?source_id=5&action=$action&learnpath_id=$learnpath_id&chapter_id=$chapter_id&originalresource=no\"; </script>";
+    $htmlHeadXtra[] = "<script language='JavaScript' type='text/javascript'> window.location=\"../resourcelinker/resourcelinker.php?source_id=5&action=$action&learnpath_id=$learnpath_id&chapter_id=$chapter_id&originalresource=no\"; </script>";
 }
 
 if ((!$is_allowed_to_edit) || ($isStudentView)) {
@@ -95,9 +93,9 @@ if (isset($_SESSION['gradebook'])){
 
 if (!empty($gradebook) && $gradebook=='view') {
     $interbreadcrumb[]= array (
-            'url' => '../gradebook/'.$_SESSION['gradebook_dest'],
-            'name' => get_lang('ToolGradebook')
-        );
+        'url' => '../gradebook/'.$_SESSION['gradebook_dest'],
+        'name' => get_lang('ToolGradebook')
+    );
 }
 
 $interbreadcrumb[] = array('url' => 'lp_controller.php?action=list', 'name' => get_lang('LearningPaths'));
@@ -114,7 +112,11 @@ if ($_POST AND empty($_REQUEST['lp_name'])) {
     Display::display_error_message(get_lang('FormHasErrorsPleaseComplete'), false);
 }
 
-$form = new FormValidator('lp_add', 'post', 'lp_controller.php');
+$form = new FormValidator(
+    'lp_add',
+    'post',
+    api_get_path(WEB_CODE_PATH).'newscorm/lp_controller.php?'.api_get_cidreq()
+);
 
 // Form title
 $form->addElement('header', null, get_lang('AddLpToStart'));
@@ -148,7 +150,7 @@ $form->addElement('html','</div>');
 $defaults['activate_start_date_check']  = 1;
 
 $defaults['publicated_on']  = date('Y-m-d 08:00:00');
-$defaults['expired_on']     = date('Y-m-d 08:00:00',time()+84600);
+$defaults['expired_on']     = date('Y-m-d 08:00:00',time()+86400);
 
 $form->setDefaults($defaults);
 $form->addElement('style_submit_button', 'Submit',get_lang('CreateLearningPath'),'class="save"');

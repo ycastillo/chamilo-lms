@@ -28,6 +28,9 @@ class AppPlugin
     public $installedPluginListName = array();
     public $installedPluginListObject = array();
 
+    /**
+     *
+     */
     public function __construct()
     {
     }
@@ -136,7 +139,7 @@ class AppPlugin
 
     /**
      * @param string $pluginName
-     * @param int $urlId
+     * @param int    $urlId
      */
     public function install($pluginName, $urlId = null)
     {
@@ -170,9 +173,9 @@ class AppPlugin
     }
 
     /**
-     * @param string $pluginName
-     * @param int $urlId
-     */
+    * @param string $pluginName
+    * @param int    $urlId
+    */
     public function uninstall($pluginName, $urlId = null)
     {
         if (empty($urlId)) {
@@ -180,15 +183,17 @@ class AppPlugin
         } else {
             $urlId = intval($urlId);
         }
-        api_delete_settings_params(
-            array('category = ? AND access_url = ? AND subkey = ? ' => array('Plugins', $urlId, $pluginName))
-        );
+        // First call the custom uninstall to allow full access to global settings
         $pluginPath = api_get_path(SYS_PLUGIN_PATH).$pluginName.'/uninstall.php';
         if (is_file($pluginPath) && is_readable($pluginPath)) {
             // Execute the uninstall procedure.
 
             require $pluginPath;
         }
+        // Second remove all remaining global settings
+        api_delete_settings_params(
+            array('category = ? AND access_url = ? AND subkey = ? ' => array('Plugins', $urlId, $pluginName))
+        );
     }
 
     /**
@@ -246,12 +251,12 @@ class AppPlugin
     }
 
     /**
-     * @param string $region
-     * @param string $template
-     * @param bool $forced
-     *
-     * @return null|string
-     */
+    * @param string $region
+    * @param string $template
+    * @param bool   $forced
+    *
+    * @return null|string
+    */
     public function load_region($region, $template, $forced = false)
     {
         if ($region == 'course_tool_plugin') {
@@ -268,8 +273,9 @@ class AppPlugin
     /**
      * Loads the translation files inside a plugin if exists. It loads by default english see the hello world plugin
      *
-     * @todo add caching
      * @param string $plugin_name
+     *
+     * @todo add caching
      */
     public function load_plugin_lang_variables($plugin_name)
     {
@@ -303,9 +309,12 @@ class AppPlugin
     }
 
     /**
+     * @param string    $region
+     * @param Template  $template
+     * @param bool      $forced
      *
-     * @param string $block
-     * @param Template $template
+     * @return bool
+     *
      * @todo improve this function
      */
     public function get_all_plugin_contents_by_region($region, $template, $forced = false)
@@ -367,21 +376,25 @@ class AppPlugin
     }
 
     /**
-     * @param $plugin_name
-     * @param bool $forced
+     * @param string    $plugin_name
+     * @param bool      $forced
+     *
      * @deprecated
      */
-    public function get_plugin_info($plugin_name, $forced = false) {
+    public function get_plugin_info($plugin_name, $forced = false)
+    {
         return $this->getPluginInfo($plugin_name, $forced);
     }
 
     /**
      * Loads plugin info
+     *
      * @staticvar array $plugin_data
-     * @param string plugin name
-     * @param bool load from DB or from the static array
-     * @todo filter setting_form
+     * @param string    $plugin_name
+     * @param bool      $forced load from DB or from the static array
+     *
      * @return array
+     * @todo filter setting_form
      */
     public function getPluginInfo($plugin_name, $forced = false)
     {
@@ -466,9 +479,10 @@ class AppPlugin
             foreach ($pluginList as $obj) {
                 $pluginName = $obj->get_name();
                 $plugin_path = api_get_path(SYS_PLUGIN_PATH).$pluginName.'/plugin.php';
+
                 if (file_exists($plugin_path)) {
-                    require_once $plugin_path;
-                    if (isset($plugin_info) && isset($plugin_info['plugin_class'])) {
+                    require $plugin_path;
+                    if (isset($plugin_info) && isset($plugin_info['plugin_class']) && $obj->isCoursePlugin) {
                         $obj->course_install($courseId);
                     }
                 }
@@ -487,7 +501,21 @@ class AppPlugin
             $plugin_name = $obj->get_name();
             $pluginTitle = $obj->get_title();
             if (!empty($obj->course_settings)) {
-                $icon = Display::return_icon($plugin_name.'.png', Security::remove_XSS($pluginTitle),'', ICON_SIZE_SMALL);
+                if (is_file(api_get_path(SYS_CODE_PATH).'img/icons/'.ICON_SIZE_SMALL.'/'.$plugin_name.'.png')) {
+                    $icon = Display::return_icon(
+                        $plugin_name . '.png',
+                        Security::remove_XSS($pluginTitle),
+                        '',
+                        ICON_SIZE_SMALL
+                    );
+                } else {
+                    $icon = Display::return_icon(
+                        'plugins.png',
+                        Security::remove_XSS($pluginTitle),
+                        '',
+                        ICON_SIZE_SMALL
+                    );
+                }
                 //$icon = null;
                 $form->addElement('html', '<div><h3>'.$icon.' '.Security::remove_XSS($pluginTitle).'</h3><div>');
 
@@ -533,7 +561,7 @@ class AppPlugin
     /**
      * When saving the plugin values in the course settings, check whether
      * a callback method should be called and send it the updated settings
-     * @param array The new settings the user just saved
+     * @param array $values The new settings the user just saved
      * @return void
      */
     public function saveCourseSettingsHook($values)
@@ -557,5 +585,19 @@ class AppPlugin
                 $obj->course_settings_updated($subValues);
             }
         }
+    }
+
+    /**
+    * Get first SMS plugin name
+    * @return string|boolean
+    */
+    public function getSMSPluginName() {
+        $installedPluginsList = $this->getInstalledPluginListObject();
+        foreach ($installedPluginsList as $installedPlugin) {
+            if ($installedPlugin->isMailPlugin) {
+                return get_class($installedPlugin);
+            }
+        }
+        return false;
     }
 }

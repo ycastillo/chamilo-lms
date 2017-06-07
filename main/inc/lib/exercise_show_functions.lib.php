@@ -17,39 +17,78 @@
  */
 class ExerciseShowFunctions
 {
+    /**
+     * Shows the answer to a fill-in-the-blanks question, as HTML
+     * Display in the student result page, with score and comm
+     * @param string    Answer text
+     * @param int       Exercise ID
+     * @param int       Question ID
+     * @return void
+     */
+    static function display_fill_in_blanks_answer($feedbackType, $answer, $id, $questionId, $inResultsDisabled, $originalStudentAnswer = '')
+    {
+        $answerHTML = FillBlanks::getHtmlDisplayForAsnwer($answer, $inResultsDisabled);
 
-	/**
-	 * Shows the answer to a fill-in-the-blanks question, as HTML
-	 * @param string    Answer text
-	 * @param int       Exercise ID
-	 * @param int       Question ID
-	 * @return void
-	 */
-	static function display_fill_in_blanks_answer($feedback_type, $answer, $id, $questionId)
+        if (strpos($originalStudentAnswer, 'font color') !== false) {
+            $answerHTML = $originalStudentAnswer;
+        }
+
+        if (empty($id)) {
+            echo '<tr><td>';
+            echo Security::remove_XSS($answerHTML, COURSEMANAGERLOWSECURITY);
+            echo '</td></tr>';
+        } else {
+            ?>
+            <tr>
+                <td>
+                    <?php echo nl2br(Security::remove_XSS($answerHTML, COURSEMANAGERLOWSECURITY)); ?>
+                </td>
+
+                <?php
+                if (!api_is_allowed_to_edit(null,true) && $feedbackType != EXERCISE_FEEDBACK_TYPE_EXAM) { ?>
+                    <td>
+                        <?php
+                        $comm = get_comments($id,$questionId);
+                        ?>
+                    </td>
+                <?php } ?>
+            </tr>
+        <?php
+        }
+    }
+
+    /**
+     * Shows the answer to a calculated question, as HTML
+     * @param string    Answer text
+     * @param int       Exercise ID
+     * @param int       Question ID
+     * @return void
+     */
+    static function display_calculated_answer($feedback_type, $answer, $id, $questionId)
     {
         if (empty($id)) {
             echo '<tr><td>'. (Security::remove_XSS($answer)).'</td></tr>';
         } else {
-		?>
-			<tr>
+        ?>
+            <tr>
                 <td>
                     <?php
                     echo (Security::remove_XSS($answer));
                     ?>
                 </td>
 
-			<?php
-			if (!api_is_allowed_to_edit(null,true) && $feedback_type != EXERCISE_FEEDBACK_TYPE_EXAM) { ?>
-				<td>
+            <?php
+            if (!api_is_allowed_to_edit(null,true) && $feedback_type != EXERCISE_FEEDBACK_TYPE_EXAM) { ?>
+                <td>
                     <?php
                     $comm = get_comments($id,$questionId);
                     ?>
-				</td>
-			<?php } ?>
+                </td>
+            <?php } ?>
             </tr>
-		<?php
+        <?php
         }
-	}
+    }
 
 	/**
 	 * Shows the answer to a free-answer question, as HTML
@@ -166,10 +205,7 @@ class ExerciseShowFunctions
 				<?php
                 if ($studentChoice) {
                     echo '<span style="font-weight: bold; color: #008000;">'.nl2br($answerComment).'</span>';
-                } else {
-                    //echo '<span style="font-weight: bold; color: #FF0000;">'.nl2br($answerComment).'</span>';
                 }
-
 				?>
 			</td>
 			<?php } else { ?>
@@ -178,7 +214,6 @@ class ExerciseShowFunctions
 		</tr>
 		<?php
 	}
-
 
 	/**
 	 * Display the answers to a multiple choice question
@@ -193,7 +228,18 @@ class ExerciseShowFunctions
 	 * @param boolean Whether to show the answer comment or not
 	 * @return void
 	 */
-	static function display_unique_or_multiple_answer($feedback_type, $answerType, $studentChoice, $answer, $answerComment, $answerCorrect, $id, $questionId, $ans, $in_results_disabled) {
+	static function display_unique_or_multiple_answer(
+        $feedback_type,
+        $answerType,
+        $studentChoice,
+        $answer,
+        $answerComment,
+        $answerCorrect,
+        $id,
+        $questionId,
+        $ans,
+        $in_results_disabled
+    ) {
         $hide_expected_answer = false;
         if ($feedback_type == 0 && $in_results_disabled == 2) {
             $hide_expected_answer = true;
@@ -265,7 +311,18 @@ class ExerciseShowFunctions
      * @param boolean Whether to show the answer comment or not
      * @return void
      */
-    static function display_multiple_answer_true_false($feedback_type, $answerType, $studentChoice, $answer, $answerComment, $answerCorrect, $id, $questionId, $ans, $in_results_disabled) {
+    static function display_multiple_answer_true_false(
+        $feedback_type,
+        $answerType,
+        $studentChoice,
+        $answer,
+        $answerComment,
+        $answerCorrect,
+        $id,
+        $questionId,
+        $ans,
+        $in_results_disabled
+    ) {
         $hide_expected_answer = false;
         if ($feedback_type == 0 && $in_results_disabled == 2) {
             $hide_expected_answer = true;
@@ -285,10 +342,12 @@ class ExerciseShowFunctions
         } else {
         	echo '-';
         }
+
         ?>
         </td>
         <td width="5%">
         <?php
+
 		//Expected choice
         if (!$hide_expected_answer) {
             if (isset($new_options[$answerCorrect])) {
@@ -296,8 +355,7 @@ class ExerciseShowFunctions
             } else {
                 echo '-';
             }
-        }
-        else {
+        } else {
             echo '-';
         }
         ?>
@@ -343,7 +401,18 @@ class ExerciseShowFunctions
      * @param boolean Whether to show the answer comment or not
      * @return void
      */
-    static function display_multiple_answer_combination_true_false($feedback_type, $answerType, $studentChoice, $answer, $answerComment, $answerCorrect, $id, $questionId, $ans, $in_results_disabled) {
+    static function display_multiple_answer_combination_true_false(
+        $feedback_type,
+        $answerType,
+        $studentChoice,
+        $answer,
+        $answerComment,
+        $answerCorrect,
+        $id,
+        $questionId,
+        $ans,
+        $in_results_disabled
+    ) {
         $hide_expected_answer = false;
         if ($feedback_type == 0 && $in_results_disabled == 2) {
             $hide_expected_answer = true;

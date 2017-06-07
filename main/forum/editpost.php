@@ -21,7 +21,6 @@
  *
  *  @package chamilo.forum
  */
-/* INIT SECTION */
 
 // Language files that need to be included.
 $language_file = array('forum', 'group', 'gradebook');
@@ -57,7 +56,6 @@ $htmlHeadXtra[] = '<script>
         if(document.getElementById(\'id_qualify\').style.display == \'none\') {
             document.getElementById(\'id_qualify\').style.display = \'block\';
             document.getElementById(\'img_plus_and_minus\').innerHTML=\'&nbsp;'.Display::return_icon('div_hide.gif', get_lang('Hide'), array('style' => 'vertical-align:middle')).'&nbsp;'.get_lang('AdvancedParameters').'\';
-
         } else {
             document.getElementById(\'id_qualify\').style.display = \'none\';
             document.getElementById(\'img_plus_and_minus\').innerHTML=\'&nbsp;'.Display::return_icon('div_show.gif', get_lang('Show'), array('style' => 'vertical-align:middle')).'&nbsp;'.get_lang('AdvancedParameters').'\';
@@ -72,8 +70,8 @@ $htmlHeadXtra[] = '<script>
 // We are getting all the information about the current forum and forum category.
 // Note pcool: I tried to use only one sql statement (and function) for this,
 // but the problem is that the visibility of the forum AND forum cateogory are stored in the item_property table.
-$current_thread = get_thread_information($_GET['thread']); // Note: This has to be validated that it is an existing thread.
-$current_forum = get_forum_information($_GET['forum']); // Note: This has to be validated that it is an existing forum.
+$current_thread = get_thread_information($_GET['thread']);
+$current_forum = get_forum_information($_GET['forum']);
 $current_forum_category = get_forumcategory_information($current_forum['forum_category']);
 $current_post = get_post_information($_GET['post']);
 
@@ -100,10 +98,10 @@ if ($origin == 'group') {
     $interbreadcrumb[] = array('url' => 'viewforum.php?origin='.$origin.'&amp;gidReq='.$_SESSION['toolgroup'].'&amp;forum='.Security::remove_XSS($_GET['forum']), 'name' => prepare4display($current_forum['forum_title']));
     $interbreadcrumb[] = array('url' => 'javascript: void (0);', 'name' => get_lang('EditPost'));
 } else {
-    $interbreadcrumb[] = array('url' => 'index.php?gradebook='.$gradebook, 'name' => $nameTools);
+    $interbreadcrumb[] = array('url' => 'index.php?'.api_get_cidreq(), 'name' => $nameTools);
     $interbreadcrumb[] = array('url' => 'viewforumcategory.php?forumcategory='.$current_forum_category['cat_id'], 'name' => prepare4display($current_forum_category['cat_title']));
     $interbreadcrumb[] = array('url' => 'viewforum.php?origin='.$origin.'&amp;forum='.Security::remove_XSS($_GET['forum']), 'name' => prepare4display($current_forum['forum_title']));
-    $interbreadcrumb[] = array('url' => 'viewthread.php?gradebook='.$gradebook.'&amp;origin='.$origin.'&amp;forum='.Security::remove_XSS($_GET['forum']).'&amp;thread='.Security::remove_XSS($_GET['thread']), 'name' => prepare4display($current_thread['thread_title']));
+    $interbreadcrumb[] = array('url' => 'viewthread.php?'.api_get_cidreq().'&amp;origin='.$origin.'&amp;forum='.Security::remove_XSS($_GET['forum']).'&amp;thread='.Security::remove_XSS($_GET['thread']), 'name' => prepare4display($current_thread['thread_title']));
     $interbreadcrumb[] = array('url' => 'javascript: void (0);', 'name' => get_lang('EditPost'));
 }
 
@@ -130,7 +128,6 @@ if ($origin == 'learnpath') {
 } else {
     Display :: display_header(null);
 }
-
 /* Is the user allowed here? */
 
 // The user is not allowed here if
@@ -141,14 +138,23 @@ if ($origin == 'learnpath') {
 // The only exception is the course manager
 // I have split this is several pieces for clarity.
 //if (!api_is_allowed_to_edit() AND (($current_forum_category['visibility'] == 0 OR $current_forum['visibility'] == 0) OR ($current_forum_category['locked'] <> 0 OR $current_forum['locked'] <> 0 OR $current_thread['locked'] <> 0))) {
-if (!api_is_allowed_to_edit(null, true) AND (($current_forum_category && $current_forum_category['visibility'] == 0) OR $current_forum['visibility'] == 0)) {
+if (!api_is_allowed_to_edit(null, true) AND
+    (($current_forum_category && $current_forum_category['visibility'] == 0) OR
+        $current_forum['visibility'] == 0)
+) {
     $forum_allow = forum_not_allowed_here();
     if ($forum_allow === false) {
         exit;
     }
 }
 
-if (!api_is_allowed_to_edit(null, true) AND (($current_forum_category && $current_forum_category['locked'] <> 0 ) OR $current_forum['locked'] <> 0 OR $current_thread['locked'] <> 0)) {
+if (!api_is_allowed_to_edit(null, true) AND
+    (
+        ($current_forum_category && $current_forum_category['locked'] <> 0 ) OR
+        $current_forum['locked'] <> 0 OR
+        $current_thread['locked'] <> 0
+    )
+) {
     $forum_allow = forum_not_allowed_here();
     if ($forum_allow === false) {
         exit;
@@ -175,9 +181,9 @@ if ($origin != 'learnpath') {
     echo '<div class="actions">';
     echo '<span style="float:right;">'.search_link().'</span>';
     if ($origin == 'group') {
-        echo '<a href="../group/group_space.php?'.api_get_cidreq().'&amp;gidReq='.Security::remove_XSS($_GET['gidReq']).'&amp;gradebook='.$gradebook.'">'.Display::return_icon('back.png', get_lang('BackTo').' '.get_lang('Groups'), '', ICON_SIZE_MEDIUM).'</a>';
+        echo '<a href="../group/group_space.php?'.api_get_cidreq().'">'.Display::return_icon('back.png', get_lang('BackTo').' '.get_lang('Groups'), '', ICON_SIZE_MEDIUM).'</a>';
     } else {
-        echo '<a href="index.php?gradebook='.$gradebook.'">'.Display::return_icon('back.png', get_lang('BackToForumOverview'), '', ICON_SIZE_MEDIUM).'</a>';
+        echo '<a href="index.php?'.api_get_cidreq().'">'.Display::return_icon('back.png', get_lang('BackToForumOverview'), '', ICON_SIZE_MEDIUM).'</a>';
     }
     echo '<a href="viewforum.php?forum='.Security::remove_XSS($_GET['forum']).'&amp;gidReq='.Security::remove_XSS($_GET['gidReq']).'&amp;origin='.$origin.'">'.Display::return_icon('forum.png', get_lang('BackToForum'), '', ICON_SIZE_MEDIUM).'</a>';
     echo '</div>';
@@ -185,17 +191,32 @@ if ($origin != 'learnpath') {
 
 /* Display Forum Category and the Forum information */
 
-echo "<table class=\"forum_table\" width=\"100%\">";
-// The forum category
-echo "<tr><th class=\"forum_head\" colspan=\"2\">";
-echo '<a href="viewforum.php?&amp;origin='.$origin.'&amp;forum='.$current_forum['forum_id'].'" '.class_visible_invisible($current_forum['visibility']).'>'.prepare4display($current_forum['forum_title']).'</a><br />';
-echo '<span class="forum_description">'.prepare4display($current_forum['forum_comment']).'</span>';
-echo "</th>";
-echo "</tr>";
-echo '</table>';
+/*New display forum div*/
+echo '<div class="row">';
+echo '<div class="span12">';
+echo '<div class="forum_title">';
+echo '<h1><a href="viewforum.php?&amp;origin='.$origin.'&amp;forum='.$current_forum['forum_id'].'" '.class_visible_invisible($current_forum['visibility']).'>'.prepare4display($current_forum['forum_title']).'</a></h1>';
+echo '<p class="forum_description">'.prepare4display($current_forum['forum_comment']).'</p>';
+echo '</div></div></div>';
+/* End new display forum */
 
+// Set forum attachment data into $_SESSION
+getAttachedFiles(
+    $current_forum['forum_id'],
+    $current_thread['thread_id'],
+    $current_post['post_id']
+);
 // The form for the reply
-$values = show_edit_post_form($current_post, $current_thread, $current_forum, isset($_SESSION['formelements']) ? $_SESSION['formelements'] : '');
+echo '<div class="row">';
+echo '<div class="span12">';
+$values = show_edit_post_form(
+    $forum_setting,
+    $current_post,
+    $current_thread,
+    $current_forum,
+    isset($_SESSION['formelements']) ? $_SESSION['formelements'] : ''
+);
+echo '</div></div>';
 
 if (!empty($values) and isset($_POST['SubmitPost'])) {
     store_edit_post($values);
@@ -211,11 +232,32 @@ if (!empty($values) and isset($_POST['SubmitPost'])) {
         $link_info = is_resource_in_course_gradebook(api_get_course_id(), 5, $id, $session_id);
         $link_id = $link_info['id'];
         if (!$link_info) {
-            add_resource_to_course_gradebook($values['category_id'], api_get_course_id(), 5, $id, $title_gradebook, $weight_calification, $value_calification, $description, 1, api_get_session_id());
+            add_resource_to_course_gradebook(
+                $values['category_id'],
+                api_get_course_id(),
+                5,
+                $id,
+                $title_gradebook,
+                $weight_calification,
+                $value_calification,
+                $description,
+                1,
+                api_get_session_id()
+            );
         } else {
             Database::query('UPDATE '.$table_link.' SET weight='.$weight_calification.' WHERE id='.$link_id.'');
         }
     }
+} else {
+    // Only show Forum attachment ajax form when do not pass form submit
+    echo '<div class="row"><div class="span12">';
+    $attachmentAjaxForm = getAttachmentAjaxForm(
+        $current_forum['forum_id'],
+        $current_thread['thread_id'],
+        $current_post['post_id']
+    );
+    echo $attachmentAjaxForm;
+    echo '</div></div>';
 }
 
 // Footer

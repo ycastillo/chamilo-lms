@@ -2,6 +2,7 @@
 /*
 for more information: see languages.txt in the lang folder.
 */
+$AssignedCourses = "Assigned courses";
 $SleepingStudents = "Students with no activity during the last few days";
 $SleepingTeachers = "Teachers with no activity in the last few days";
 $InactiveUsers = "Users who's account has been disabled";
@@ -136,7 +137,6 @@ $langPeriodMonth = "Month";
 $langPeriodYear = "Year";
 $langNextDay = "Next Day";
 $langPreviousDay = "Previous Day";
-$langNextWeek = "Next Week";
 $langPreviousWeek = "Previous Week";
 $langNextMonth = "Next Month";
 $langPreviousMonth = "Previous Month";

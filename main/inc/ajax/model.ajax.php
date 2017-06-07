@@ -12,10 +12,10 @@ $libpath = api_get_path(LIBRARY_PATH);
 // 1. Setting variables needed by jqgrid
 
 $action = $_GET['a'];
-$page   = intval($_REQUEST['page']); //page
-$limit  = intval($_REQUEST['rows']); //quantity of rows
-$sidx   = $_REQUEST['sidx'];         //index (field) to filter
-$sord   = $_REQUEST['sord'];         //asc or desc
+$page = intval($_REQUEST['page']); //page
+$limit = intval($_REQUEST['rows']); //quantity of rows
+$sidx = $_REQUEST['sidx'];         //index (field) to filter
+$sord = $_REQUEST['sord'];         //asc or desc
 
 if (strpos(strtolower($sidx), 'asc') !== false) {
     $sidx = str_replace(array('asc', ','), '', $sidx);
@@ -48,10 +48,15 @@ if (!in_array(
         'get_usergroups_teacher',
         'get_user_course_report_resumed',
         'get_user_course_report',
-        'get_sessions_tracking'
+        'get_sessions_tracking',
+        'get_course_announcements'
     )
-)) {
+) && !isset($_REQUEST['from_course_session'])) {
     api_protect_admin_script(true);
+} elseif (isset($_REQUEST['from_course_session']) &&
+    $_REQUEST['from_course_session'] == 1
+) {
+    api_protect_teacher_script(true);
 }
 
 // Search features
@@ -76,7 +81,6 @@ function getWhereClause($col, $oper, $val)
         'cn' => 'LIKE',     //contains
         'nc' => 'NOT LIKE'  //doesn't contain
     );
-
 
     if (empty($col)) {
         return '';
@@ -140,6 +144,9 @@ if (!$sidx) {
 //@todo rework this
 
 switch ($action) {
+    case 'get_course_announcements':
+        $count = AnnouncementManager::getAnnouncements(null, null, true);
+        break;
     case 'get_user_course_report':
     case 'get_user_course_report_resumed':
         if (!(api_is_platform_admin(false, true))) {
@@ -210,7 +217,6 @@ switch ($action) {
     case 'get_work_student':
         require_once api_get_path(SYS_CODE_PATH).'work/work.lib.php';
         $count = getWorkListStudent(0, $limit, $sidx, $sord, $whereCondition, true);
-
         break;
     case 'get_work_user_list_all':
         require_once api_get_path(SYS_CODE_PATH).'work/work.lib.php';
@@ -254,7 +260,7 @@ switch ($action) {
         }
         break;
     case 'get_work_student_list_overview':
-        if (!api_is_allowed_to_edit()) {
+        if (!(api_is_allowed_to_edit() || api_is_coach())) {
             return 0;
         }
         require_once api_get_path(SYS_CODE_PATH).'work/work.lib.php';
@@ -287,7 +293,14 @@ switch ($action) {
         $count = get_count_exam_hotpotatoes_results($hotpot_path);
         break;
     case 'get_sessions_tracking':
-        $keyword = isset($_REQUEST['keyword']) ? $_REQUEST['keyword'] : null;
+        $keyword = isset($_REQUEST['keyword']) ? $_REQUEST['keyword'] : '';
+
+        $description = '';
+        $setting = api_get_configuration_value('show_session_description');
+        if ($setting) {
+            $description = $keyword;
+        }
+
         if (api_is_drh()) {
             $count = SessionManager::get_sessions_followed_by_drh(
                 api_get_user_id(),
@@ -297,7 +310,8 @@ switch ($action) {
                 false,
                 false,
                 null,
-                $keyword
+                $keyword,
+                $description
             );
         } else {
             // Sessions for the coach
@@ -306,12 +320,14 @@ switch ($action) {
                 null,
                 null,
                 true,
-                $keyword
+                $keyword,
+                $description
             );
         }
         break;
     case 'get_sessions':
         $courseId = isset($_GET['course_id']) && !empty($_GET['course_id']) ? intval($_GET['course_id']) : null;
+        $whereCondition = str_replace('category_name', 'sc.name', $whereCondition);
         if (!empty($courseId)) {
             $whereCondition .= " AND c.id = $courseId";
         }
@@ -320,26 +336,33 @@ switch ($action) {
     case 'get_session_lp_progress':
     case 'get_session_progress':
         //@TODO replace this for a more efficient function (not retrieving the whole data)
-        $course = api_get_course_info_by_id($courseId);
-        $users = CourseManager::get_student_list_from_course_code($course['code'], true, intval($_GET['session_id']));
+        $course = api_get_course_info_by_id($_GET['course_id']);
+        $users = CourseManager::get_student_list_from_course_code($course['code'], true, $_GET['session_id'], $_GET['date_from'], $_GET['date_to']);
         $count = count($users);
         break;
     case 'get_exercise_progress':
         //@TODO replace this for a more efficient function (not retrieving the whole data)
-        $records = SessionManager::get_exercise_progress(intval($_GET['session_id']), intval($_GET['course_id']), intval($_GET['exercise_id']));
+        $records = Tracking::get_exercise_progress($_GET['session_id'], $_GET['course_id'], $_GET['exercise_id'], $_GET['date_from'], $_GET['date_to']);
         $count = count($records);
         break;
     case 'get_session_access_overview':
         //@TODO replace this for a more efficient function (not retrieving the whole data)
-        $records = SessionManager::get_user_data_access_tracking_overview($_GET['session_id'], $_GET['course_id'], $_GET['student_id'], $_GET['profile'], $_GET['date_to'], $_GET['date_from'], $options);
+        $records = SessionManager::get_user_data_access_tracking_overview($_GET['session_id'], $_GET['course_id'], $_GET['student_id'], $_GET['profile'], $_GET['date_from'], $_GET['date_to'], $options);
         $count = count($records);
         break;
     case 'get_survey_overview':
         //@TODO replace this for a more efficient function (not retrieving the whole data)
-        $records = SessionManager::get_survey_overview(intval($_GET['session_id']), intval($_GET['course_id']), intval($_GET['survey_id']), $options);
+        $records = SessionManager::get_survey_overview($_GET['session_id'], $_GET['course_id'], $_GET['survey_id'], $_GET['date_from'], $_GET['date_to'], $options);
         $count = count($records);
         break;
-    /*case 'get_extra_fields':
+    case 'get_exercise_grade':
+        //@TODO replace this for a more efficient function (not retrieving the whole data)
+        $course = api_get_course_info_by_id($_GET['course_id']);
+        $users = CourseManager::get_student_list_from_course_code($course['code'], true, $_GET['session_id']);
+
+        $count = count($users);
+        break;
+    case 'get_extra_fields':
         $type = $_REQUEST['type'];
         $obj = new ExtraField($type);
         $count = $obj->get_count();
@@ -349,7 +372,7 @@ switch ($action) {
         $field_id = $_REQUEST['field_id'];
         $obj = new ExtraFieldOption($type);
         $count = $obj->get_count_by_field_id($field_id);
-        break;*/
+        break;
     case 'get_timelines':
         require_once $libpath.'timeline.lib.php';
         $obj        = new Timeline();
@@ -456,11 +479,15 @@ switch ($action) {
             }
         }
 
+        if (!in_array($sidx, array('training_hours'))) {
+            //$sidx = 'training_hours';
+        }
+
         $result = CourseManager::get_user_list_from_course_code(
             null,
             null,
             "LIMIT $start, $limit",
-            " $sidx $sord",
+            null, //" $sidx $sord",
             null,
             null,
             true,
@@ -498,7 +525,9 @@ switch ($action) {
                 $column_names[] = $extra['3'];
             }
         }
-
+        if (!in_array($sidx, array('title'))) {
+            $sidx = 'title';
+        }
         $result = CourseManager::get_user_list_from_course_code(
             null,
             null,
@@ -538,23 +567,90 @@ switch ($action) {
             }
         }
         break;
+    case 'get_course_announcements':
+        $columns = array(
+            'title',
+            'username',
+            'insert_date',
+            'actions'
+        );
+
+        $titleToSearch = isset($_REQUEST['title_to_search']) ? $_REQUEST['title_to_search'] : '';
+        $userIdToSearch = isset($_REQUEST['user_id_to_search']) ? $_REQUEST['user_id_to_search'] : 0;
+
+        $result = AnnouncementManager::getAnnouncements(
+            null,
+            null,
+            false,
+            $start,
+            $limit,
+            $sidx,
+            $sord,
+            $titleToSearch,
+            $userIdToSearch
+        );
+
+
+        break;
     case 'get_work_teacher':
-        //$columns = array('type', 'title', 'sent_date', 'expires_on', 'ends_on', 'actions');
-        $columns = array('type', 'title', 'sent_date', 'expires_on', 'amount', 'actions');
+        $columns = array(
+            'type',
+            'title',
+            'sent_date',
+            'expires_on',
+            'amount',
+            'actions'
+        );
         $result = getWorkListTeacher($start, $limit, $sidx, $sord, $whereCondition);
         break;
     case 'get_work_student':
-        $columns = array('type', 'title', 'expires_on', 'others', 'actions');
+        $columns = array('type', 'title', 'expires_on', 'others');
+        if (ALLOW_USER_COMMENTS) {
+            $columns = array(
+                'type',
+                'title',
+                'expires_on',
+                'feedback',
+                'last_upload',
+                'others'
+            );
+        }
         $result = getWorkListStudent($start, $limit, $sidx, $sord, $whereCondition);
         break;
     case 'get_work_user_list_all':
         if (isset($_GET['type'])  && $_GET['type'] == 'simple') {
             $columns = array(
-                'type', 'firstname', 'lastname', 'title', 'qualification', 'sent_date', 'qualificator_id', 'actions'
+                'type',
+                'firstname',
+                'lastname',
+                'title',
+                'qualification',
+                'sent_date',
+                'qualificator_id',
+                'actions'
             );
         } else {
-            $columns = array('type', 'firstname', 'lastname', 'title', 'sent_date', 'actions');
+            $columns = array(
+                'type',
+                'firstname',
+                'lastname',
+                'title',
+                'sent_date',
+                'actions'
+            );
+            if (ALLOW_USER_COMMENTS) {
+                $columns = array(
+                    'type',
+                    'firstname',
+                    'lastname',
+                    'title',
+                    'qualification',
+                    'sent_date',
+                    'actions'
+                );
+            }
         }
+
         $result = get_work_user_list($start, $limit, $sidx, $sord, $work_id, $whereCondition);
         break;
     case 'get_work_user_list_others':
@@ -575,6 +671,9 @@ switch ($action) {
             );
         } else {
             $columns = array('type', 'title', 'sent_date', 'actions');
+            if (ALLOW_USER_COMMENTS) {
+                $columns = array('type', 'title', 'qualification', 'sent_date', 'actions');
+            }
         }
 
         $documents = getAllDocumentToWork($work_id, api_get_course_int_id());
@@ -602,6 +701,10 @@ switch ($action) {
             $columns = array(
                 'firstname', 'lastname', 'username', 'group_name', 'exe_duration', 'start_date', 'exe_date', 'score', 'status', 'lp', 'actions'
             );
+            $officialCodeInList = api_get_configuration_value('show_official_code_exercise_result_list');
+            if ($officialCodeInList == true) {
+                $columns = array_merge(array('official_code'), $columns);
+            }
         }
         $result = get_exam_results_data($start, $limit, $sidx, $sord, $exercise_id, $whereCondition);
         break;
@@ -613,16 +716,17 @@ switch ($action) {
         } else {
             $columns = array('exe_date',  'score', 'actions');
         }
-        $result = get_exam_results_hotpotatoes_data($start, $limit, $sidx, $sord, $hotpot_path, $whereCondition); //get_exam_results_data($start, $limit, $sidx, $sord, $exercise_id, $where_condition);
+        $result = get_exam_results_hotpotatoes_data($start, $limit, $sidx, $sord, $hotpot_path, $whereCondition);
         break;
     case 'get_work_student_list_overview':
-        if (!api_is_allowed_to_edit()) {
+        if (!(api_is_allowed_to_edit() || api_is_coach())) {
             return array();
         }
         require_once api_get_path(SYS_CODE_PATH).'work/work.lib.php';
         $columns = array(
             'student', 'works'
         );
+
         $result = getWorkUserListData(
             $workId,
             api_get_course_id(),
@@ -655,7 +759,8 @@ switch ($action) {
                 false,
                 false,
                 null,
-                $keyword
+                $keyword,
+                $description
             );
         } else {
             // Sessions for the coach
@@ -664,7 +769,8 @@ switch ($action) {
                 $start,
                 $limit,
                 false,
-                $keyword
+                $keyword,
+                $description
             );
         }
 
@@ -713,8 +819,19 @@ switch ($action) {
         break;
     case 'get_sessions':
         $columns = array(
-            'name', 'nbr_courses', 'nbr_users', 'category_name', 'date_start','date_end', 'coach_name', 'session_active', 'visibility'
+            'name',
+            'nbr_courses',
+            'nbr_users',
+            'category_name',
+            'date_start',
+            'date_end',
+            'coach_name',
+            'session_active',
+            'visibility'
         );
+
+        // Rename Category_name
+        $whereCondition = str_replace('category_name', 'sc.name', $whereCondition);
 
         $result = SessionManager::get_sessions_admin(
             array(
@@ -725,14 +842,11 @@ switch ($action) {
         );
         break;
     case 'get_exercise_progress':
-        $sessionId = 0;
-        if (!empty($_GET['course_id']) && !empty($_GET['exercise_id']))
-        {
-            $sessionId  = intval($_GET['session_id']);
-            $courseId   = intval($_GET['course_id']);
-            $exerciseId = intval($_GET['exercise_id']);
-            $answer     = intval($_GET['answer']);
-        }
+        $sessionId  = intval($_GET['session_id']);
+        $courseId   = intval($_GET['course_id']);
+        $exerciseId = intval($_GET['exercise_id']);
+        $date_from  = $_GET['date_from'];
+        $date_to    = $_GET['date_to'];
 
         $columns = array(
             'session',
@@ -744,11 +858,17 @@ switch ($action) {
             'time',
             'question_id',
             'question',
+            'description',
             'answer',
-            'correct'
+            'correct',
         );
 
-        $result = SessionManager::get_exercise_progress($sessionId, $courseId, $exerciseId, $answer,
+        $result = Tracking::get_exercise_progress(
+            $sessionId,
+            $courseId,
+            $exerciseId,
+            $date_from,
+            $date_to,
             array(
                 'where' => $whereCondition,
                 'order' => "$sidx $sord",
@@ -763,6 +883,7 @@ switch ($action) {
             $courseId = intval($_GET['course_id']);
             $course = api_get_course_info_by_id($courseId);
         }
+
         /**
          * Add lessons of course
          *
@@ -774,13 +895,12 @@ switch ($action) {
         );
         require_once api_get_path(SYS_CODE_PATH).'newscorm/learnpathList.class.php';
         $lessons = LearnpathList::get_course_lessons($course['code'], $sessionId);
-        foreach ($lessons as $lesson_id => $lesson)
-        {
+        foreach ($lessons as $lesson_id => $lesson) {
             $columns[] = $lesson_id;
         }
         $columns[] = 'total';
 
-        $result = SessionManager::get_session_lp_progress($sessionId, $courseId,
+        $result = SessionManager::get_session_lp_progress($sessionId, $courseId, $date_from, $date_to,
             array(
                 'where' => $whereCondition,
                 'order' => "$sidx $sord",
@@ -797,6 +917,8 @@ switch ($action) {
             $sessionId = intval($_GET['session_id']);
             $courseId  = intval($_GET['course_id']);
             $surveyId  = intval($_GET['survey_id']);
+            $date_from  = $_GET['date_from'];
+            $date_to    = $_GET['date_to'];
             //$course    = api_get_course_info_by_id($courseId);
         }
         /**
@@ -815,7 +937,7 @@ switch ($action) {
             $columns[] = $question_id;
         }
 
-        $result = SessionManager::get_survey_overview($sessionId, $courseId, $surveyId,
+        $result = SessionManager::get_survey_overview($sessionId, $courseId, $surveyId, $date_from, $date_to,
             array(
                 'where' => $whereCondition,
                 'order' => "$sidx $sord",
@@ -837,8 +959,6 @@ switch ($action) {
             'homeworks',
             'wikis',
             'surveys',
-            //course description
-            'course_description_progress',
             //exercises
             'lessons_total' ,
             'lessons_done' ,
@@ -893,6 +1013,7 @@ switch ($action) {
             'clicks',
             'ip',
             'timeLoggedIn',
+            'session'
         );
         $sessionId = 0;
         if (!empty($_GET['course_id']) && !empty($_GET['session_id'])) {
@@ -1070,6 +1191,95 @@ switch ($action) {
             $result = $new_result;
         }
         break;
+    case 'get_exercise_grade':
+        $objExercise = new Exercise();
+        $exercises = $objExercise->getExercisesByCouseSession($_GET['course_id'], $_GET['session_id']);
+        $cntExer = 4;
+        if (!empty($exercises)) {
+            $cntExer += count($exercises);
+        }
+
+        $columns = array();
+        //Get dynamic column names
+        $i = 1;
+        $column_names = array();
+        foreach (range(1, $cntExer) as $cnt) {
+            switch ($cnt) {
+                case 1:
+                    $columns[] = 'session';
+                    $column_names[] = get_lang('Section');
+                    break;
+                case 2:
+                    $columns[] = 'username';
+                    $column_names[] = get_lang('Username');
+                    break;
+                case 3:
+                    $columns[] = 'name';
+                    $column_names[] = get_lang('Name');
+                    break;
+                case $cntExer:
+                    $columns[] = 'finalScore';
+                    $column_names[] = get_lang('FinalScore');
+                    break;
+                default:
+                    $title = "";
+                    if (!empty($exercises[$cnt - 4]['title'])) {
+                        $title = ucwords(strtolower(trim($exercises[$cnt - 4]['title'])));
+                    }
+                    $columns[] = 'exer' . $i;
+                    $column_names[] = $title;
+                    $i++;
+                    break;
+            }
+        }
+
+        $quizIds = array();
+        if (!empty($exercises)) {
+            foreach($exercises as $exercise) {
+                $quizIds[] = $exercise['id'];
+            }
+        }
+
+        $course = api_get_course_info_by_id($_GET['course_id']);
+        $listUserSess = CourseManager::get_student_list_from_course_code($course['code'], true, $_GET['session_id']);
+
+        $usersId = array_keys($listUserSess);
+
+        $users = UserManager::get_user_list_by_ids($usersId, null, "lastname, firstname",  "$start , $limit");
+        $exeResults = $objExercise->getExerciseAndResult($_GET['course_id'], $_GET['session_id'], $quizIds);
+
+        $arrGrade = array();
+        foreach ($exeResults as $exeResult) {
+            $arrGrade[$exeResult['exe_user_id']][$exeResult['exe_exo_id']] = $exeResult['exe_result'];
+        }
+
+        $result = array();
+        $i = 0;
+        foreach ($users as $user) {
+            $sessionInfo = SessionManager::fetch($listUserSess[$user['user_id']]['id_session']);
+            $result[$i]['session'] = $sessionInfo['name'];
+            $result[$i]['username'] = $user['username'];
+            $result[$i]['name'] = $user['lastname'] . " " . $user['firstname'];
+            $j = 1;
+            $finalScore = 0;
+            foreach ($quizIds as $quizID) {
+                $grade = "";
+                if (!empty($arrGrade [$user['user_id']][$quizID]) || $arrGrade [$user['user_id']][$quizID] == 0) {
+                    $finalScore += $grade = $arrGrade [$user['user_id']][$quizID];
+                }
+                $result[$i]['exer' . $j] = $grade;
+                $j++;
+            }
+
+            if ($finalScore > 20) {
+                $finalScore = 20;
+            }
+
+            $result[$i]['finalScore'] = number_format($finalScore, 2);
+
+            $i++;
+        }
+        break;
     case 'get_extra_field_options':
         $obj = new ExtraFieldOption($type);
         $columns = array('option_display_text', 'option_value', 'option_order');
@@ -1142,11 +1352,13 @@ $allowed_actions = array(
     'get_grade_models',
     'get_event_email_template',
     'get_user_skill_ranking',
-    //'get_extra_fields',
-    //'get_extra_field_options',
+    'get_extra_fields',
+    'get_extra_field_options',
     //'get_course_exercise_medias',
     'get_user_course_report',
-    'get_user_course_report_resumed'
+    'get_user_course_report_resumed',
+    'get_exercise_grade',
+    'get_course_announcements'
 );
 
 //5. Creating an obj to return a json
@@ -1179,7 +1391,13 @@ if (in_array($action, $allowed_actions)) {
             case 'xls':
                 //TODO add date if exists
                 $file_name = (!empty($action)) ? $action : 'company_report';
-                Export::export_table_xls($array, $file_name);
+                require_once api_get_path(LIBRARY_PATH).'browser/Browser.php';
+                $browser = new Browser();
+                if ($browser->getPlatform() == Browser::PLATFORM_WINDOWS) {
+                    Export::export_table_xls_html($array, $file_name, 'ISO-8859-15');
+                } else {
+                    Export::export_table_xls_html($array, $file_name);
+                }
                 break;
             case 'csv':
             default:
@@ -1195,21 +1413,22 @@ if (in_array($action, $allowed_actions)) {
 
     if (!empty($result)) {
         foreach ($result as $row) {
-            //print_r($row);
             // if results tab give not id, set id to $i otherwise id="null" for all <tr> of the jqgrid - ref #4235
             if (!isset($row['id']) || isset($row['id']) && $row['id'] == '') {
-                $response->rows[$i]['id']= $i;
+                $response->rows[$i]['id'] = $i;
             } else {
-                $response->rows[$i]['id']= $row['id'];
+                $response->rows[$i]['id'] = $row['id'];
             }
             $array = array();
             foreach ($columns as $col) {
-                $array[] = isset($row[$col]) ? $row[$col] : null;
+                $array[] = isset($row[$col]) ? Security::remove_XSS($row[$col]) : null;
             }
-            $response->rows[$i]['cell']=$array;
+            $response->rows[$i]['cell'] = $array;
             $i++;
         }
     }
+
+    header('Content-Type: application/json;charset=utf-8');
     echo json_encode($response);
 }
 exit;

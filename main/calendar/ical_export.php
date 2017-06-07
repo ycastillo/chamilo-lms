@@ -3,10 +3,6 @@
 /**
  * This file exclusively export calendar items to iCal or similar formats
  * @author Yannick Warnier <yannick.warnier@dokeos.com>
- * See copyright information in the Dokeos root directory, dokeos_license.txt
- */
-/**
- * Initialisation
  */
 // name of the language file that needs to be included
 $language_file = 'agenda';
@@ -53,7 +49,7 @@ $event = $agenda->get_event($id);
 
 if (!empty($event)) {
 	define('ICAL_LANG',api_get_language_isocode());
-	
+
     $ical = new vcalendar();
     $ical->setConfig('unique_id',api_get_path(WEB_PATH));
     $ical->setProperty( 'method', 'PUBLISH' );
@@ -74,14 +70,12 @@ if (!empty($event)) {
             $vevent->setClass('PRIVATE');
             break;
     }
-    
+
     $event['start_date'] = api_get_local_time($event['start_date']);
     $event['end_date'] = api_get_local_time($event['end_date']);
-    
-    
-    
+
     switch($type) {
-        case 'personal':        
+        case 'personal':
         case 'platform':
             $vevent->setProperty( 'summary', api_convert_encoding($event['title'],'UTF-8', $charset));
             if(empty($event['start_date'])){header('location:'.Security::remove_XSS($_SERVER['HTTP_REFERER']));}
@@ -105,7 +99,7 @@ if (!empty($event)) {
             $ical->setComponent ($vevent); // add event to calendar
             $ical->returnCalendar();
             break;
-        case 'course':            
+        case 'course':
             $vevent->setProperty( 'summary', api_convert_encoding($event['title'],'UTF-8',$charset));
             if(empty($event['start_date'])){header('location:'.Security::remove_XSS($_SERVER['HTTP_REFERER']));}
             list($y,$m,$d,$h,$M,$s) = preg_split('/[\s:-]/',$event['start_date']);
@@ -138,7 +132,7 @@ if (!empty($event)) {
         default:
             header('location:'.Security::remove_XSS($_SERVER['HTTP_REFERER']));
             die();
-    }	
+    }
 } else {
 	header('location:'.Security::remove_XSS($_SERVER['HTTP_REFERER']));
 	die();

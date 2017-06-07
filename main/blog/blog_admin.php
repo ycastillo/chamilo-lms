@@ -49,8 +49,8 @@ if (api_is_allowed_to_edit()) {
 		'name' => $current_section
 		);
 		Display::display_header('');
-	} else {		
-	}	
+	} else {
+	}
 	echo '<div class="actions">';
 	echo "<a href='".api_get_self()."?".api_get_cidreq()."&action=add'>",Display::return_icon('new_blog.png',get_lang('AddBlog'),'',ICON_SIZE_MEDIUM)."</a>";
 	echo '</div>';
@@ -75,15 +75,15 @@ if (api_is_allowed_to_edit()) {
 		}
 	}
 	if (isset($_GET['action']) && $_GET['action'] == 'visibility') {
-		Blog::change_blog_visibility(Database::escape_string((int)$_GET['blog_id']));
+		Blog::change_blog_visibility(intval($_GET['blog_id']));
 		Display::display_confirmation_message(get_lang('VisibilityChanged'));
 	}
 	if (isset($_GET['action']) && $_GET['action'] == 'delete') {
-		Blog::delete_blog(Database::escape_string((int)$_GET['blog_id']));
+		Blog::delete_blog(intval($_GET['blog_id']));
 		Display::display_confirmation_message(get_lang('BlogDeleted'));
 	}
 
-	/*	
+	/*
 		DISPLAY
 	*/
 	//api_display_tool_title($nameTools);
@@ -115,7 +115,7 @@ if (api_is_allowed_to_edit()) {
 			if ($_POST) {
 				Display::display_error_message(get_lang('FormHasErrorsPleaseComplete'));
 			}
-            Blog::display_edit_blog_form(Database::escape_string((int)$_GET['blog_id']));
+            Blog::display_edit_blog_form(intval($_GET['blog_id']));
 		}
 	}
 	Blog::display_blog_list();

@@ -2,6 +2,8 @@
 /*
 for more information: see languages.txt in the lang folder.
 */
+$AddForum = "เพิ่มรายการอภิปรายใหม่";
+$ReplyShort = "ตอบ";
 $By = "โดย";
 $UsersOnline = "สมาชิกที่กำลังใช้งาน";
 $Remove = "เอาออก";
@@ -314,6 +316,7 @@ $Other = "อื่นๆ";
 $AddRight = "สิทธิ์เพิ่ม";
 $CampusHomepage = "โฮมเพจของระบบอีเลิร์นนิ่ง";
 $InCourse = "ในวิชา";
+$NextWeek = "สัปดาห์หน้า";
 $GeneralDescription = "คำอธิบายทั่วไป";
 $GeneralDescriptionQuestions = "What is the place of the course in the program? Are there pre-requisites? How is the course connected with other courses?";
 $GeneralDescriptionInformation = "แนะนำรายละเอียดต่างๆที่เกี่ยวข้องกับรายวิชา";
@@ -335,4 +338,5 @@ $HumanAndTechnicalResourcesInformation = "Short description of the identitiy of 
 $Assessment = "การประเมิน";
 $AssessmentQuestions = "How will users be evaluated? Are there starategies to develop in order to master the topic?";
 $AssessmentInformation = "Example exam questions. Criteria of success. Tips and tricks.";
+$UploadADocument = "โอนย้ายไฟล์เอกสารขึ้นสู่ระบบ";
 ?>

@@ -2,6 +2,28 @@
 /*
 for more information: see languages.txt in the lang folder.
 */
+$HumanResourcesManagerShouldNotBeRegisteredToCourses = "HR-Manager sollten nicht in Kursen registriert sein. Die gewählten Benutzer sind daher nicht zugewiesen worden.";
+$CleanAndUpdateCourseCoaches = "Bereinige und aktualisiere Kursleiter";
+$NoPDFFoundAtRoot = "Kein PDF im Wurzelverzeichnis gefunden: bitte stellen Sie scher, daß die PDF im Hauptverzeichnis liegen (keine Unterverzeichnisse)";
+$PDFsMustLookLike = "PDFs sollten so aussehen:";
+$ImportZipFileLocation = "Pfad zur ZIP-Datei";
+$YouMustImportAZipFile = "Es muß eine ZIP-Datei angegeben werden";
+$ImportPDFIntroToCourses = "PDF-Einleitungen in Kurse importieren";
+$SubscribeTeachersToSession = "Lehrer in Sessions aufnehmen";
+$SubscribeStudentsToSession = "Lernende zu Sessions hinzufügen";
+$ManageCourseCategories = "Kurskategorien verwalten";
+$CourseCategoryListInX = "Kurs-Kategorien auf Seite %s:";
+$CourseCategoryInPlatform = "Verfügbare Kurs-Kategorien";
+$UserGroupBelongURL = "Die Gruppe gehört nun zur gewählten Seite";
+$AtLeastOneUserGroupAndOneURL = "Es muß mindestens eine Gruppe und eine Seite gewählt werden";
+$ClassIdDoesntExists = "Klassen-ID existiert nicht";
+$DeleteUsersNotInList = "Teilnehmer abmelden, die nicht in der importierten Liste stehen";
+$IfSessionExistsUpdate = "Wenn eine Session existiert, diese aktualisieren";
+$SearchCourseBySession = "Suche Kurs nach Session";
+$GlobalLinkUseDoubleColumnPrivateToShowPrivately = "Am Ende des Links ::private anhängen, um nur für angemeldete Benutzer verfügbar zu machen";
+$CourseVisibilityHidden = "Versteckt - nur für Administratoren sichtbar";
+$ApplyAllLanguages = "Änderungen auf alle Sprachen anwenden";
+$CareerUpdated = "Kompetenz erfolgreich aktualisiert";
 $CasMainActivateComment = "Das einschalten der CAS-Authentifizierung ermöglicht den Nutzern die Authentifizierung mit ihren CAS-Berechtigungen.";
 $UsersRegisteredInAnyGroup = "Benutzer in beliebiger Gruppe registriert";
 $ShowHotCoursesComment = "Die Liste der meistbesuchten Kurse wird auf der Startseite hinzugefügt";
@@ -10,11 +32,14 @@ $EnableIframeInclusionComment = "Mit Aktivierung dieser Option wird ein großes 
 $EnableIframeInclusionTitle = "Iframes im HTML-Editor erlauben";
 $MailTemplateRegistrationMessage = "Sehr geehrte/r ((firstname)) ((lastname)),\n\nDu bist auf ((sitename)) mit den folgenden Daten registriert:\n\nBenutzername: ((username))\nKennwort: ((password))\n\nDie URL zum Einloggen auf ((sitename)) ist: ((url))\n\n\nMit freundlichen Grüßen \n((admin_name)) ((admin_surname)).";
 $MailTemplateRegistrationTitle = "Neue Benutzer auf ((sitename))";
+$AllowTeachersToCreateSessionsComment = "Kursleiter können eigene Sessions erstellen, bearbeiten und löschen.";
+$AllowTeachersToCreateSessionsTitle = "Kursleitern das Erstellen von Sessions erlauben";
+$MailSubjectReplyShort = "AW:";
 $AdminBy = "Administrator/in:";
 $AdministrationTools = "Administration";
 $State = "System-Status";
 $Statistiques = "Statistiken";
-$VisioHostLocal = "Host für Videokonferenz";
+$VisioHostLocal = "Videokonferenz-Server";
 $VisioRTMPIsWeb = "Videokonferenz ist web-basierend (Häufige Unterbrechungen!)";
 $ShowBackLinkOnTopOfCourseTreeComment = "Link anzeigen, um zur Kursübersicht zurückzukehren. Ein Link ist ebenfalls am Ende der Liste vorhanden";
 $langUsed = "verwendet";
@@ -172,7 +197,6 @@ $langTechnicalTools = "Technische Verwaltung";
 $langConfig = "Ssystem konfigurieren";
 $langLogIdentLogoutComplete = "Anmeldeliste (erweitert)";
 $langLimitUsersListDefaultMax = "Maximum Anzahl Benutzer in Scroll-Liste";
-$NoTimeLimits = "Keine Zeitbeschränkung";
 $GeneralCoach = "Haupt-Kursleiter";
 $GeneralProperties = "Allgemeine Einstellungen";
 $CourseCoach = "Kursleiter";
@@ -1068,6 +1092,7 @@ $EditTabs = "Menüreiter bearbeiten";
 $YourGradebookFirstNeedsACertificateInOrderToBeLinkedToASkill = "Die Bewertungsmappe benötigt ein Zertifikat um mit einer Fähigkeit verlinkt werden zu können";
 $PlatformUnsubscribeTitle = "Erlaube das Abmelden von der Plattform";
 $PlatformUnsubscribeComment = "Mit Aktivierung dieser Option können sich alle Benutzer nachhaltig von der Plattform abmelden und all ihre Daten löschen. Dies ist zwar eine sehr radikale Möglichkeit, jedoch aus Gründen des Datenschutzes auf öffentlichen Portalen notwendig.";
+$PromotionUpdated = "Qualifikation erfolgreich aktualisiert";
 $BabyOrange = "Baby Orange";
 $BlueLagoon = "Blue lagoon";
 $CoolBlue = "Cool blue";
@@ -1207,6 +1232,10 @@ $ServerPortInfo = "Server Port";
 $ServerUserAgentInfo = " wie er auf dem  Server ermpfangen wurde";
 $ServerSoftwareInfo = "Software die als Webserver läuft";
 $UnameInfo = "Informationen zum Betriebssystem unter dem der Server läuft";
+$AdminsCanChangeUsersPassComment = "Diese Funktion erleichtert die Administration in MUlti-URL Umgebungen bei Unterschieden zwischen globalem und normalem Admin. In diesem Fall wird mit \"Nein\" den normalen Administratoren keine Möglichkeit zum Ändern gegeben, jedoch steht die Funktion per Email zur Verfügung. Der globale Admin kann jedoch weiterhin Kennwörter ändern.";
+$AdminsCanChangeUsersPassTitle = "Administratoren können Benutzer-Kennwörter ändern";
+$AdminLoginAsAllowedComment = "Ermögliche Benutzern mit den entsprechenden Privilegien die \"Login als\"-Funktion zu benutzen. Diese Einstellung ist meistens dann sinnvoll, wenn man die Multi-URL-Funktion nutzt, aber nicht möchte, daß ein Admin einer zweiten Instanz diese Fähigkeit auch besitzt. Eine weitere Einstellung hierzu gibt es in der globalen Konfigurationsdatei, um diese Funktion ganz zu deaktivieren.";
+$AdminLoginAsAllowedTitle = "\"Login als\"-Funktion";
 $AssignSessionsToX = "Ordne Kurs-Session zu zu  %s";
 $AssignCoursesToSessionsAdministrator = "Kurse zu Kurs-Session-Leiter zuorden";
 $AssignCoursesToPlatformAdministrator = "Kurse zu Administratoren zuorden";
@@ -1223,6 +1252,14 @@ $TheSubLanguageForThisLanguageHasBeenAdded = "Die Unter-Sprache wurde zu dieser 
 $ReturnToLanguagesList = "Zurück zur Sprachen-Liste";
 $ActivityCoach = "Der Kurs-Session-Leiter soll in allen zur Kurs-Session zugeordneten Kurse alle Rechte und Privilegien erhalten.";
 $CategoriesNumber = "Kategorien";
+$FileImportedJustSkillsThatAreNotRegistered = "Nur Fähigkeiten, die noch nicht registriert waren, wurden importiert";
+$SkillImportNoName = "Die Fähigkeit hat keinen Namen";
+$SkillImportNoParent = "Die Eltern-Fähigkeit wurde nicht gesetzt";
+$SkillImportNoID = "Die Skill-ID wurde nicht gesetzt";
+$PortalSessionsLimitReached = "Bedauerlicherweise hat diese Installation ein Session-Limit, welches soeben erreicht wurde. Um dieses Limit zu erhöhen, kontaktieren Sie bitte Ihren Hosting-Anbieter oder buchen Sie ein Upgrade Ihres Hostings.";
+$PortalCoursesLimitReached = "Bedauerlicherweise hat diese Installation ein Kurs-Limit, welches soeben erreicht wurde. Um dieses Limit zu erhöhen, kontaktieren Sie bitte Ihren Hosting-Anbieter oder buchen Sie ein Upgrade Ihres Hostings.";
+$PortalTeachersLimitReached = "Bedauerlicherweise hat diese Installation ein Lehrer-Limit, welches soeben erreicht wurde. Um dieses Limit zu erhöhen, kontaktieren Sie bitte Ihren Hosting-Anbieter oder buchen Sie ein Upgrade Ihres Hostings.";
+$PortalUsersLimitReached = "Bedauerlicherweise hat diese Installation ein Benutzer-Limit, welches soeben erreicht wurde. Um dieses Limit zu erhöhen, kontaktieren Sie bitte Ihren Hosting-Anbieter oder buchen Sie ein Upgrade Ihres Hostings.";
 $CourseProgress = "Kurs-Fortschritt";
 $ExportAllCoursesList = "Alle Kurse exportieren";
 $ExportSelectedCoursesFromCoursesList = "Alle ausgewhälten Kurse der folgenden Liste exportieren";
@@ -1239,6 +1276,27 @@ $AllowUserCourseSubscriptionByCourseAdminTitle = "Kursbelegung durch Kursleiter"
 $AllowUserCourseSubscriptionByCourseAdminComment = "Wenn Sie diese Funktion aktivieren, kann ein Kursleiter Benutzer in den Kurs einschreiben und sie so zu Kurs-Teilnehmern machen.";
 $ConfigureDashboardPlugin = "Plugins des Kontroll-Zentrum konfigurieren";
 $EditBlocks = "Kontrollanzeigen bearbeiten";
+$SessionFields = "Session-Felder";
+$SessionCoachEndDateComment = "Datum ab dem die Session für Lehrer geschlossen ist. Die zusätzliche Verzögerung erlaubt den Export von relevanten Auswertungen";
+$SessionCoachStartDateComment = "Datum ab dem die Session für Lehrer verfügbar ist um sich vorzubereiten, bevor die Lernenden sich anmelden können";
+$SessionEndDateComment = "Datum, ab dem die Session beendet ist";
+$SessionStartDateComment = "Datum, ab dem die Session für alle verfügbar ist";
+$SessionDisplayEndDateComment = "Angezeigtes End-Datum in den Session-Informationen";
+$SessionDisplayStartDateComment = "Angezeigtes Start-Datum in den Session-Informationen";
+$SessionCoachEndDate = "Zugriffs-Ende für Lehrer";
+$SessionCoachStartDate = "Zugriffs-Beginn für Lehrer";
+$SessionEndDate = "End-Datum der Verfügbarkeit";
+$SessionStartDate = "Startdatum für Verfügbarkeit";
+$SessionDisplayEndDate = "End-Datum (der Sichtbarkeit)";
+$SessionDisplayStartDate = "Start-Datum (der Sichtbarkeit)";
+$UserHasNoCourse = "Dieser Benutzer ist in keinem Kurs eingeschrieben";
+$SessionPageEnabledComment = "Mit Aktivierung dieser Option wird der Session-Titel auf eine spezielle Session-Seite verlinkt. Wenn deaktiviert, wird der Titel lediglich als Text dargestellt. Meistens ist es für die Benutzer verwirrend, nach Klick auf der Session-Seite zu landen, daher empfiehlt es sich üblicherweise, diese Funktion nicht zu aktivieren.";
+$SessionPageEnabledTitle = "Session-Links in Kursliste aktivieren";
+$ThisValueIsUsedInTheCourseURL = "Dieser Wert wird in der Kurs-URL verwendet";
+$ThereAreUsersUsingThisLanguageYouWantToDisableThisLanguageAndSetUsersWithTheDefaultPortalLanguage = "Es sind Benutzer mit dieser Sprache vorhanden. Dennoch diese Sprache deaktivieren und die Standard-Sprache der Installation setzen?";
+$SessionTutorsCanSeeExpiredSessionsResultsComment = "Können Session-Tutoren die Reports nach Ablauf der eigenen Sessions sehen?";
+$SessionTutorsCanSeeExpiredSessionsResultsTitle = "Session Tutoren Report-Sichtbarkeit";
+$TheXMLImportLetYouAddMoreInfoAndCreateResources = "Mit dem XML-Import können mehr Informationen und Ressourcen (Benutzer, Kurse) hinzugefügt werden. Der CSV-Import legt lediglich sessions an, denen dann bestehende ressourcen zugewiesen werden können.";
 $ShowLinkBugNotificationTitle = "'Fehler melden' - Link";
 $ShowLinkBugNotificationComment = "Einen Link (http://support.chamilo.org) im Kopfbereich der Seite anzeigen, um einen Fehler der Plattform an die Entwickler zu melden. Wenn man auf den Link klickt, wird man in den Chamilo-Support-Bereich geleitet und auf einer Wiki-Seite wird der 'Fehler melden'-Prozess beschrieben.";
 $DataFiller = "Filter";
@@ -1246,6 +1304,8 @@ $GradebookActivateScoreDisplayCustom = "Bewertungsmappe: Die Kompetenz-Level Bez
 $GradebookScoreDisplayCustomValues = "Individuelle Kompetenz-Level Werte";
 $GradebookNumberDecimals = "Bewertungsmappe: Dezimalstellen";
 $GradebookNumberDecimalsComment = "Die Anzahl der erlaubten Dezimalstellen in der Punktevergabe festlegen.";
+$EditExtraFieldOptions = "Zusatzfeld-Optionen bearbeiten";
+$ManageSessionFields = "Session-Felder verwalten";
 $EditSessionsToURL = "Kurs-Session für eine URL bearbeiten";
 $AddSessionsToURL = "Kurs-Session zur einer URL hinzufügen";
 $SessionListIn = "Liste von Kurs-Sessions in";
@@ -1546,6 +1606,66 @@ $TeachersCanChangeScoreSettingsTitle = "Kursleiter können Kriterien der Bewertu
 $TeachersCanChangeScoreSettingsComment = "Kursleiter können so individuell Einstellungen an der Bewertungsmappe vornehmen";
 $GradebookEnableLockingTitle = "Kursleitern das Sperren von Bewertungen erlauben";
 $GradebookEnableLockingComment = "Wenn diese Funktion aktiviert wird, können Kursleiter keinerlei Änderungen an Bewertungen mehr vornehmen (Übungen, Lernpfade, Aufgaben, etc.). Diese Sperre kann nur durch einen Administrator aufgehoben werden. Der Kursleiter wird explizit darauf hingewiesen, und eine Eintragung im Systemprotokoll verzeichnet";
+$LdapDescriptionComment = "<div class='normal-message'>
+<br />
+<ul>
+<li>
+LDAP Authentifizierung:
+<br />
+Unter I. wie LDAP konfiguriert wird
+<br />
+Unter II. wie LDAP aktiviert wird
+</li>
+<br />
+<br />
+<li>
+Update user attributes, with LDAP data, after CAS authentication(see <a href='settings.php?category=CAS'>CAS configuration </a>) :
+<br />
+See I. below to configure LDAP
+<br />
+CAS manage user authentication, LDAP activation isn't required.
+</li>
+<br />
+</ul>
+</div>
+<br />
+<h4>I. LDAP configuration</h4>
+<h5>Edit file main/inc/conf/auth.conf.php </h5>
+-&gt; Edit values of array <code>&#36;extldap_config</code>
+<br />
+<br />
+Parameter:
+<br />
+<ul>
+<li>base domain string (z.B. 'base_dn' =&gt; 'DC=example,DC=org')</li>
+<li>Admin distinguished name (z.B. 'admin_dn' =&gt;'CN=admin,dc=cblue,dc=be')</li>
+<li>Admin Kennwort (z.B. 'admin_password' =&gt; '123456')</li>
+<li>LDAP Server (z.B. 'host' =&gt; array('1.2.3.4', '2.3.4.5', '3.4.5.6'))</li>
+<li>Filter (z.B. 'filter' =&gt; '')</li>
+<li>Port (z.B. 'port' =&gt; 389)</li>
+<li>Protokoll-Version (2 oder 3) (z.B. 'protocol_version' =&gt; 3)</li>
+<li>user_search (z.B. 'user_search' =&gt; 'sAMAccountName=%username%')</li>
+<li>Zeichensatz (z.B. 'encoding' =&gt; 'UTF-8')</li>
+<li>update_userinfo (z.B. 'update_userinfo' =&gt; true)</li>
+</ul>-&gt; Um die Verkn&uuml;pfung zwischen Usern und LDAP-Attributen herzustellen, bitte das Array <code>&#36;extldap_user_correspondance</code> verwenden.
+<br />
+Array-Werte sind &lt;chamilo_field&gt; =&gt; &gt;ldap_field&gt;
+<br />
+Die Array-Struktur wird in Datei main/auth/external_login/ldap.conf.php erkl&auml;rt.
+<br />
+<br />
+<br />
+<h4>II. LDAP-Authentifizierung aktivieren</h4>
+<h5>In der Datei main/inc/conf/configuration.php</h5>-&gt; folgende Zeilen auskommentieren
+<br />
+&#36;extAuthSource[&quot;extldap&quot;][&quot;login&quot;] =&#36;_configuration['root_sys'].&#36;_configuration['code_append'].&quot;auth/external_login/login.ldap.php&quot;;
+<br />
+&#36;extAuthSource[&quot;extldap&quot;][&quot;newUser&quot;] =&#36;_configuration['root_sys'].&#36;_configuration['code_append'].&quot;auth/external_login/newUser.ldap.php&quot;;
+<br />
+<br />
+N.B. : LDAP users use same fields than platform users to login.
+<br />
+N.B. : LDAP activation adds a menu External authentication [LDAP] in &quot;add or modify&quot; user pages.";
 $ShibbolethMainActivateTitle = "Authentifizierung über Shibboleth";
 $ShibbolethMainActivateComment = "Zuerst muß Shibboleth für die Nutzung mit Ihrem Webserver konfiguriert sein.
 <br />
@@ -1553,21 +1673,21 @@ Anschließend muß für die Nutzung mit Chamilo die Datei:
 <br /><br />
 <strong>main/auth/shibboleth/config/aai.class.php</strong>
 <br /><br />
-geändert werden. Hierzu werden die folgenden Werte für object $result mit den eigenen Werten ergänzt.
+geändert werden. Hierzu werden die folgenden Werte für object \$result mit den eigenen Werten ergänzt.
 <br />
 <ul>
-<li>$result->unique_id = 'mail';</li>
-<li>$result->firstname = 'cn';</li>
-<li>$result->lastname = 'uid';</li>
-<li>$result->email = 'mail';</li>
-<li>$result->language = '-';</li>
-<li>$result->gender = '-';</li>
-<li>$result->address = '-';</li>
-<li>$result->staff_category = '-';</li>
-<li>$result->home_organization_type = '-';</li>
-<li>$result->home_organization = '-';</li>
-<li>$result->affiliation = '-';</li>
-<li>$result->persistent_id = '-';</li>
+<li>\$result->unique_id = 'mail';</li>
+<li>\$result->firstname = 'cn';</li>
+<li>\$result->lastname = 'uid';</li>
+<li>\$result->email = 'mail';</li>
+<li>\$result->language = '-';</li>
+<li>\$result->gender = '-';</li>
+<li>\$result->address = '-';</li>
+<li>\$result->staff_category = '-';</li>
+<li>\$result->home_organization_type = '-';</li>
+<li>\$result->home_organization = '-';</li>
+<li>\$result->affiliation = '-';</li>
+<li>\$result->persistent_id = '-';</li>
 <li>...</li>
 </ul>
 
@@ -1578,9 +1698,9 @@ $FacebookMainActivateComment = "Zuerst muß eine Facebook Anwendung erstellt wer
 <br /><br />
 Danach die Datei
 <br /><br />
-<strong>main/auth/external_login/facebook.conf.php</strong>
+<strong>main/inc/conf/auth.conf.php</strong>
 <br /><br />
-öffnen und 'appId' und 'secret' für $facebook_config aus der FB-Anwendung einfügen.
+öffnen und 'appId' und 'secret' für \$facebook_config aus der FB-Anwendung einfügen.
 Anschließend zu den <a href=\"/settings.php?category=Facebook\">Plugins</a> wechseln und 'Facebook Login' Button für die Plattform aktivieren.";
 $LanguagePriority1Title = "Priorität der Sprachwahl";
 $LanguagePriority2Title = "Sprachpriorität 2";
@@ -1635,5 +1755,32 @@ $TeacherPageAfterLoginTitle = "Seite für Kursleiter nach Anmeldung";
 $TeacherPageAfterLoginComment = "Diese Seite wird Kursleitern nach dem Anmelden angezeigt";
 $DRHPageAfterLoginTitle = "Seite für HR-Manager nach Anmeldung";
 $DRHPageAfterLoginComment = "Diese Seite wird dem HR-Manager nach dem Anmelden angezeigt";
+$StudentAutosubscribeTitle = "Automatisches Abonnement";
+$StudentAutosubscribeComment = "Automatisches Abonnement - noch nicht verfügbar";
+$TeacherAutosubscribeTitle = "Automatische Zuweisung von Kursleitern";
+$TeacherAutosubscribeComment = "Automatische Zuweisung von Kursleitern - noch nicht verfügbar";
+$DRHAutosubscribeTitle = "Automatische Zuweisung von HR-Managern";
+$DRHAutosubscribeComment = "Automatische Zuweisung von HR-Managern - noch nicht verfügbar";
 $ScormCumulativeSessionTimeTitle = "Session-Timer bei SCORM-Kursen kumulieren";
+$ScormCumulativeSessionTimeComment = "Bei Aktivierung wird die Sessionzeit in SCORM-Lernpfaden kummuliert, ansonsten wird vom zuletzt verfügbaren Zeitstempel ausgegangen.";
+$SessionAdminPageAfterLoginTitle = "Zielseite für Session-Admin nach Login";
+$SessionAdminPageAfterLoginComment = "Seite, die nach dem Login für Session-Admins angezeigt wird";
+$SessionadminAutosubscribeTitle = "SessionadminAutosubscribeTitle";
+$SessionadminAutosubscribeComment = "SessionadminAutosubscribeComment";
+$ToolVisibleByDefaultAtCreationTitle = "sichtbare Werkzeuge bei Kurserstellung";
+$ToolVisibleByDefaultAtCreationComment = "Werkzeuge wählen, welche standardmäßig bei der Kurserstellung aktiviert sind";
+$casAddUserActivatePlatform = "CAS - füge User der aktiven Plattform hinzu";
+$casAddUserActivateLDAP = "casAddUserActivateLDAP";
+$UpdateUserInfoCasWithLdapTitle = "Aktualisiere Benutzerinfos mit LDAP";
+$UpdateUserInfoCasWithLdapComment = "UpdateUserInfoCasWithLdapComment";
+$ShowAllUsers = "Zeige alle Benutzer";
+$ShowUsersNotAddedInTheURL = "Zeige Benutzer, die der URL noch nicht hinzugefügt wurden";
+$UserNotAddedInURL = "Benutzer wurden der URL nicht hinzugefügt";
+$UsersRegisteredInNoSession = "Benutzer, die keiner Session zugeordnet sind";
+$CommandLineInterpreter = "Kommandozeile (CLI)";
+$PleaseVisitOurWebsite = "Bitte besuchen Sie: http://www.chamilo.org";
+$SpaceUsedOnSystemCannotBeMeasuredOnWindows = "Die Speicherplatzbelegung kann auf windows-basierenden Systemen leider nicht korrekt berechnet werden.";
+$XOldTablesDeleted = "%d alte Tabellen gelöscht";
+$XOldDatabasesDeleted = "%d alte Datenbanken gelöscht";
+$ExtensionShouldBeLoaded = "Diese Erweiterung sollte geladen werden.";
 ?>

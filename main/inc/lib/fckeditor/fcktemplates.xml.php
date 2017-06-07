@@ -147,8 +147,15 @@ function load_platform_templates() {
     $sql = "SELECT title, image, comment, content FROM $table_template";
     $result = Database::query($sql);
 
-    $search = array('{CSS}', '{IMG_DIR}', '{REL_PATH}', '{COURSE_DIR}');
-    $replace = array($css.$js, $img_dir, api_get_path(REL_PATH), $default_course_dir);
+    $search = array('{CSS}', '{IMG_DIR}', '{REL_PATH}', '{COURSE_DIR}', '{WEB_PATH}', '{REL_CODE_PATH}');
+    $replace = array(
+        $css.$js,
+        $img_dir,
+        api_get_path(REL_PATH),
+        $default_course_dir,
+        api_get_path(WEB_PATH),
+        api_get_path(REL_CODE_PATH)
+    );
     $template_thumb = api_get_path(WEB_PATH).'home/default_platform_document/template_thumb/';
 
     while ($row = Database::fetch_array($result)) {
@@ -165,6 +172,19 @@ function load_platform_templates() {
                     </Html>
                 </Template>';
     }
+
+    $certificateTemplateThumb = api_get_path(WEB_PATH) . 'main/gradebook/certificate_template/certificate_template.png';
+    $certificateTemplateContent = file_get_contents(api_get_path(SYS_PATH) . 'main/gradebook/certificate_template/template.html');
+    $certificateTemplateHTML = str_replace($search, $replace, $certificateTemplateContent);
+
+    echo '<Template title="'.get_lang('TemplateCertificateTitle').'" image="' . "$certificateTemplateThumb" . '">'
+    . '<Description>'. get_lang('TemplateCertificateComment') . '</Description>'
+    . '<Html>'
+    . '<![CDATA['
+    . $certificateTemplateHTML
+    . ']]>'
+    . '</Html>'
+    . '</Template>';
 }
 
 /**
@@ -199,7 +219,7 @@ function load_personal_templates($user_id = 0) {
     $sql = "SELECT template.id, template.title, template.description, template.image, template.ref_doc, document.path
             FROM ".$table_template." template, ".$table_document." document
             WHERE
-                user_id='".Database::escape_string($user_id)."' AND
+                user_id='".intval($user_id)."' AND
                 course_code='".Database::escape_string(api_get_course_id())."' AND
                 document.c_id = $course_id AND
                 document.id = template.ref_doc";

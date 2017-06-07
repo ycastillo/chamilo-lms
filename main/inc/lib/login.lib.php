@@ -138,7 +138,7 @@ class Login
         $email_body .= $user_account_list . "\n-----------------------------------------------\n\n";
         $email_body .= get_lang('PasswordEncryptedForSecurity');
 
-        $email_body .= "\n\n" . get_lang('Formula') . ",\n" . api_get_setting('administratorName') . " " . api_get_setting('administratorSurname') . "\n" . get_lang('PlataformAdmin') . " - " . api_get_setting('siteName');
+        $email_body .= "\n\n" . get_lang('SignatureFormula') . ",\n" . api_get_setting('administratorName') . " " . api_get_setting('administratorSurname') . "\n" . get_lang('PlataformAdmin') . " - " . api_get_setting('siteName');
 
         $sender_name = api_get_person_name(api_get_setting('administratorName'), api_get_setting('administratorSurname'), null, PERSON_NAME_EMAIL_ADDRESS);
         $email_admin = api_get_setting('emailAdministrator');
@@ -472,7 +472,7 @@ class Login
                         $session_lifetime = 3600; // 1 hour
 
                         $course_code = $_course['sysCode'];
-                        $time = api_get_datetime();
+                        $time = api_get_utc_datetime();
 
                         if (isset($_user['user_id']) && !empty($_user['user_id'])) {
 
@@ -791,7 +791,8 @@ class Login
      * @param string $username (email or username)
      * @return boolean
      */
-    function get_user_accounts_by_username($username) {
+    public static function get_user_accounts_by_username($username)
+    {
         if (strpos($username,'@')){
             $username = api_strtolower($username);
             $email = true;

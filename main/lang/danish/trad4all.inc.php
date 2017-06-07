@@ -2,6 +2,9 @@
 /*
 for more information: see languages.txt in the lang folder.
 */
+$AddForum = "Tilføj et nyt diskussionsforum";
+$ReplyShort = "SV:";
+$NoTimeLimits = "Ingen tidsbegrænsning";
 $Title = "Titel";
 $By = "Af";
 $UsersOnline = "Brugere online";
@@ -472,6 +475,7 @@ $Gradebook = "Karakterer";
 $OpenIDWhatIs = "Hvad er OpenID?";
 $OpenIDDescription = "OpenID eliminates the need for multiple usernames across different websites, simplifying your online experience. You get to choose the OpenID Provider that best meets your needs and most importantly that you trust. At the same time, your OpenID can stay with you, no matter which Provider you move to. And best of all, the OpenID technology is not proprietary and is completely free. For businesses, this means a lower cost of password and account management, while drawing new web traffic. OpenID lowers user frustration by letting users have control of their login.Read on...";
 $NoManager = "Ingen administrator";
+$NextWeek = "Næste uge";
 $GeneralDescription = "Generel beskrivelse";
 $GeneralDescriptionQuestions = "Hvilken placering har kurset i uddannelsesforløbet? Hvilke krav er der til kurset? Hvordan er kurset forbundet med andre kurser?";
 $GeneralDescriptionInformation = "Beskriv kurset (antal timer, lokale mv.) og underviser (navn, fornavn, kontor, telefonnummer, e-mail...)";
@@ -493,4 +497,5 @@ $HumanAndTechnicalResourcesInformation = "Kort beskrivelse af identiteterne for 
 $Assessment = "Eksamen";
 $AssessmentQuestions = "Hvordan foregår eksamen?";
 $AssessmentInformation = "Eksempel spørgsmål. Kriterier for succes. Tips og tricks.";
+$UploadADocument = "Upload et dokument";
 ?>

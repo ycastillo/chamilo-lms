@@ -1,10 +1,11 @@
 <?php
 /* For licensing terms, see /license.txt */
 /**
-*	@package chamilo.admin
-*	@author Julio Montoya <gugli100@gmail.com>
-*/
-
+ * Frontend script for multiple access urls
+ * @package chamilo.admin
+ * @author Julio Montoya <gugli100@gmail.com>
+ * @author Yannick Warnier <yannick.warnier@beeznest.com>
+ */
 // name of the language file that needs to be included
 $language_file = 'admin';
 $cidReset = true;
@@ -39,7 +40,7 @@ if (isset ($_GET['action'])) {
 
     $check = Security::check_token('get');
     if ($check) {
-		$url_id = Database::escape_string($_GET['url_id']);
+		$url_id = intval($_GET['url_id']);
 
         switch ($_GET['action']) {
             case 'delete_url':

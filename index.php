@@ -5,12 +5,10 @@
  * @package chamilo.main
  */
 
-
 use \ChamiloSession as Session;
-
 define('CHAMILO_HOMEPAGE', true);
 
-$language_file = array('courses', 'index');
+$language_file = array('courses', 'index', 'userInfo');
 
 /* Flag forcing the 'current course' reset, as we're not inside a course anymore. */
 // Maybe we should change this into an api function? an example: CourseManager::unset();
@@ -19,6 +17,7 @@ $cidReset = true;
 require_once 'main/inc/global.inc.php';
 require_once api_get_path(LIBRARY_PATH).'userportal.lib.php';
 require_once 'main/chat/chat_functions.lib.php';
+require_once 'main/auth/external_login/facebook.inc.php';
 
 // The section (for the tabs).
 $this_section = SECTION_CAMPUS;
@@ -42,8 +41,10 @@ $htmlHeadXtra[] ='
     });
 </script>';
 
-//set cookie for check if client browser are cookies enabled
-setcookie('TestCookie', 'cookies_yes', time()+3600*24*31*12);
+// Facebook connexion, if activated
+if (api_is_facebook_auth_activated() && !api_get_user_id()) {
+    facebookConnect();
+}
 
 $controller = new IndexManager($header_title);
 
@@ -123,8 +124,7 @@ if (!empty($_POST['submitAuth'])) {
         }
     }
     // End login -- if ($_POST['submitAuth'])
-}
-else {
+} else {
     // Only if login form was not sent because if the form is sent the user was already on the page.
     event_open();
 }
@@ -133,28 +133,38 @@ if (api_get_setting('display_categories_on_homepage') == 'true') {
     $controller->tpl->assign('course_category_block', $controller->return_courses_in_categories());
 }
 
-// Facebook connexion, if activated
-if (api_is_facebook_auth_activated() && !api_get_user_id()) {
-    facebook_connect();
-}
-
 $controller->set_login_form();
 
 //@todo move this inside the IndexManager
 if (!api_is_anonymous()) {
     $controller->tpl->assign('profile_block', $controller->return_profile_block());
-    $controller->tpl->assign('user_image_block', $controller->return_user_image_block());    
+    $controller->tpl->assign('user_image_block', $controller->return_user_image_block());
 
     if (api_is_platform_admin()) {
         $controller->tpl->assign('course_block', $controller->return_course_block());
-    }
-    else {
+    } else {
         $controller->tpl->assign('teacher_block', $controller->return_teacher_link());
     }
 }
 
 $hot_courses = null;
 $announcements_block = null;
+
+
+// Display the Site Use Cookie Warning Validation
+$useCookieValidation = api_get_configuration_value('cookie_warning');
+if ($useCookieValidation) {
+    if (isset($_POST['acceptCookies'])) {
+        api_set_site_use_cookie_warning_cookie();
+    } else if (!api_site_use_cookie_warning_cookie_exist()) {
+        if (Template::isToolBarDisplayedForUser()) {
+            $controller->tpl->assign('toolBarDisplayed', true);
+        } else {
+            $controller->tpl->assign('toolBarDisplayed', false);
+        }
+        $controller->tpl->assign('displayCookieUsageWarning', true);
+    }
+}
 
 // When loading a chamilo page do not include the hot courses and news
 
@@ -168,9 +178,7 @@ if (!isset($_REQUEST['include'])) {
 $controller->tpl->assign('hot_courses', $hot_courses);
 $controller->tpl->assign('announcements_block', $announcements_block);
 $controller->tpl->assign('home_page_block', $controller->return_home_page());
-
 $controller->tpl->assign('navigation_course_links', $controller->return_navigation_links());
-
 $controller->tpl->assign('notice_block', $controller->return_notice());
 $controller->tpl->assign('main_navigation_block', $controller->return_navigation_links());
 $controller->tpl->assign('help_block', $controller->return_help());
@@ -179,15 +187,18 @@ if (api_is_platform_admin() || api_is_drh()) {
     $controller->tpl->assign('skills_block', $controller->return_skills_links());
 }
 
+if (api_is_anonymous()) {
+    $controller->tpl->setLoginBodyClass();
+}
+
 // direct login to course
 if (isset($_GET['firstpage'])) {
     api_set_firstpage_parameter($_GET['firstpage']);
     // if we are already logged, go directly to course
     if (api_user_is_login()) {
-        echo "<script type='text/javascript'>self.location.href='index.php?firstpage=".$_GET['firstpage']."'</script>";
+        echo "<script type='text/javascript'>self.location.href='index.php?firstpage=".Security::remove_XSS($_GET['firstpage'])."'</script>";
     }
-}
-else {
+} else {
     api_delete_firstpage_parameter();
 }
 

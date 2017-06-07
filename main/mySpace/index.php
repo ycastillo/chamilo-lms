@@ -1,12 +1,11 @@
 <?php
 /* For licensing terms, see /license.txt */
+
 /**
  * Homepage for the MySpace directory
  * @package chamilo.reporting
  */
-/**
- * code
- */
+
 $language_file = array('registration', 'index', 'tracking', 'admin', 'exercice');
 
 // resetting the course id
@@ -48,19 +47,6 @@ api_block_anonymous_users();
 
 if (!$export_csv) {
     Display :: display_header($nameTools);
-} else {
-    if ($_GET['view'] == 'admin') {
-        if ($display == 'useroverview') {
-            MySpace::export_tracking_user_overview();
-            exit;
-        } elseif ($display == 'sessionoverview') {
-            MySpace::export_tracking_session_overview();
-            exit;
-        } elseif ($display == 'courseoverview') {
-            MySpace::export_tracking_course_overview();
-            exit;
-        }
-    }
 }
 
 // Database table definitions
@@ -87,15 +73,38 @@ $menu_items = array();
 if ($is_platform_admin) {
     if ($view == 'admin') {
         $title = get_lang('CoachList');
-        $menu_items[] = Display::url(Display::return_icon('teacher.png', get_lang('TeacherInterface'), array(), ICON_SIZE_MEDIUM), api_get_self().'?view=teacher');
-        $menu_items[] = Display::url(Display::return_icon('star_na.png', get_lang('AdminInterface'), array(), ICON_SIZE_MEDIUM), api_get_self().'?view=admin');
-        $menu_items[] = Display::url(Display::return_icon('quiz.png', get_lang('ExamTracking'), array(), ICON_SIZE_MEDIUM), api_get_path(WEB_CODE_PATH).'tracking/exams.php');
-        $menu_items[] = Display::url(Display::return_icon('statistics.png', get_lang('CurrentCoursesReport'), array(), ICON_SIZE_MEDIUM), api_get_path(WEB_CODE_PATH).'mySpace/current_courses.php');
+        $menu_items[] = Display::url(
+            Display::return_icon('teacher.png', get_lang('TeacherInterface'), array(), ICON_SIZE_MEDIUM),
+            api_get_self().'?view=teacher'
+        );
+        $menu_items[] = Display::url(
+            Display::return_icon('star_na.png', get_lang('AdminInterface'), array(), ICON_SIZE_MEDIUM),
+            api_get_path(WEB_CODE_PATH).'mySpace/admin_view.php'
+        );
+        $menu_items[] = Display::url(
+            Display::return_icon('quiz.png', get_lang('ExamTracking'), array(), ICON_SIZE_MEDIUM),
+            api_get_path(WEB_CODE_PATH).'tracking/exams.php'
+        );
+        $menu_items[] = Display::url(
+            Display::return_icon('statistics.png', get_lang('CurrentCoursesReport'), array(), ICON_SIZE_MEDIUM),
+            api_get_path(WEB_CODE_PATH).'mySpace/current_courses.php'
+        );
     } else {
-        $menu_items[] = Display::url(Display::return_icon('teacher_na.png', get_lang('TeacherInterface'), array(), ICON_SIZE_MEDIUM), '');
-        $menu_items[] = Display::url(Display::return_icon('star.png', get_lang('AdminInterface'), array(), ICON_SIZE_MEDIUM), api_get_self().'?view=admin');
-        $menu_items[] = Display::url(Display::return_icon('quiz.png', get_lang('ExamTracking'), array(), ICON_SIZE_MEDIUM), api_get_path(WEB_CODE_PATH).'tracking/exams.php');
-        $menu_items[] = Display::url(Display::return_icon('statistics.png', get_lang('CurrentCoursesReport'), array(), ICON_SIZE_MEDIUM), api_get_path(WEB_CODE_PATH).'mySpace/current_courses.php');
+        $menu_items[] = Display::url(
+            Display::return_icon('teacher_na.png', get_lang('TeacherInterface'), array(), ICON_SIZE_MEDIUM), '');
+        $menu_items[] = Display::url(
+            Display::return_icon('star.png', get_lang('AdminInterface'), array(), ICON_SIZE_MEDIUM),
+            //api_get_path(WEB_CODE_PATH).'tracking/course_session_report.php?view=admin'
+            api_get_path(WEB_CODE_PATH).'mySpace/admin_view.php'
+        );
+        $menu_items[] = Display::url(
+            Display::return_icon('quiz.png', get_lang('ExamTracking'), array(), ICON_SIZE_MEDIUM),
+            api_get_path(WEB_CODE_PATH).'tracking/exams.php'
+        );
+        $menu_items[] = Display::url(
+            Display::return_icon('statistics.png', get_lang('CurrentCoursesReport'), array(), ICON_SIZE_MEDIUM),
+            api_get_path(WEB_CODE_PATH).'mySpace/current_courses.php'
+        );
     }
 }
 
@@ -105,7 +114,7 @@ if ($is_drh) {
     $menu_items[] = Display::url(Display::return_icon('teacher.png', get_lang('Trainers'), array(), ICON_SIZE_MEDIUM), 'teachers.php');
     $menu_items[] = Display::url(Display::return_icon('course.png', get_lang('Courses'), array(), ICON_SIZE_MEDIUM), 'course.php');
     $menu_items[] = Display::url(Display::return_icon('session.png', get_lang('Sessions'), array(), ICON_SIZE_MEDIUM), 'session.php');
-    $menu_items[] = Display::url(Display::return_icon('empty_evaluation.png', get_lang('CompanyReports'), array(), ICON_SIZE_MEDIUM), 'company_reports.php');
+    $menu_items[] = Display::url(Display::return_icon('empty_evaluation.png', get_lang('CompanyReport'), array(), ICON_SIZE_MEDIUM), 'company_reports.php');
     $menu_items[] = Display::url(Display::return_icon('evaluation_rate.png', get_lang('CompanyReportResumed'), array(), ICON_SIZE_MEDIUM), 'company_reports_resumed.php');
 }
 
@@ -121,7 +130,9 @@ echo '<a href="javascript: void(0);" onclick="javascript: window.print()">'.
     Display::return_icon('printer.png', get_lang('Print'), '', ICON_SIZE_MEDIUM).'</a>';
 echo '</span>';
 
-if (!empty($session_id) && !in_array($display, array('accessoverview','lpprogressoverview','progressoverview','exerciseprogress', 'surveyoverview'))) {
+if (!empty($session_id) &&
+    !in_array($display, array('accessoverview','lpprogressoverview','progressoverview','exerciseprogress', 'surveyoverview'))
+) {
     echo '<a href="index.php">'.Display::return_icon('back.png', get_lang('Back'), '', ICON_SIZE_MEDIUM).'</a>';
     if (!api_is_platform_admin()) {
         if (api_get_setting('add_users_by_coach') == 'true') {
@@ -139,12 +150,17 @@ if (!empty($session_id) && !in_array($display, array('accessoverview','lpprogres
         echo "</div><br />";
     }
 } else {
-	echo Display::url(Display::return_icon('stats.png', get_lang('MyStats'),'',ICON_SIZE_MEDIUM), api_get_path(WEB_CODE_PATH)."auth/my_progress.php");
+	echo Display::url(
+        Display::return_icon('stats.png', get_lang('MyStats'),'',ICON_SIZE_MEDIUM),
+        api_get_path(WEB_CODE_PATH)."auth/my_progress.php"
+    );
 }
 
 // Actions menu
 $nb_menu_items = count($menu_items);
-if (empty($session_id) || in_array($display, array('accessoverview','lpprogressoverview', 'progressoverview', 'exerciseprogress', 'surveyoverview'))) {
+if (empty($session_id) ||
+    in_array($display, array('accessoverview','lpprogressoverview', 'progressoverview', 'exerciseprogress', 'surveyoverview'))
+) {
     if ($nb_menu_items > 1) {
         foreach ($menu_items as $key => $item) {
             echo $item;
@@ -160,6 +176,7 @@ $stats = Tracking::getStats($userId);
 $students = $stats['students'];
 $teachers = $stats['teachers'];
 $humanResourcesUsers = $stats['drh'];
+$assignedCourses = $stats['assignedCourses'];
 $courses = $stats['courses'];
 $sessions = $stats['sessions'];
 
@@ -171,6 +188,7 @@ if (!empty($sessions)) {
 }
 
 // Courses for the user
+$countAssignedCourses = count($assignedCourses);
 $count_courses = count($courses);
 
 // Sessions for the user
@@ -186,8 +204,8 @@ $inactiveTime = time() - (3600 * 24 * 7);
 $nb_students = 0;
 $numberTeachers = 0;
 $countHumanResourcesUsers = 0;
-
 $daysAgo = 7;
+$studentIds = array();
 if (!empty($students)) {
     // Students
     $nb_students = count($students);
@@ -219,22 +237,28 @@ $nb_posts = $posts;
 $avg_time_spent = $totalTimeSpent;
 
 $linkAddUser = null;
+$linkCourseDetailsAsTeacher = null;
 $linkAddCourse = null;
 $linkAddSession = null;
 
 if (api_is_platform_admin()) {
     $linkAddUser = ' '.Display::url(
-        Display::return_icon('add.png', get_lang('Add')),
+        Display::return_icon('2rightarrow.gif', get_lang('Add')),
         api_get_path(WEB_CODE_PATH).'admin/dashboard_add_users_to_user.php?user='.api_get_user_id(),
         array('class' => '')
     );
+    $linkCourseDetailsAsTeacher = ' '.Display::url(
+        Display::return_icon('2rightarrow.gif', get_lang('Details')),
+        api_get_path(WEB_CODE_PATH).'mySpace/course.php',
+        array('class' => '')
+    );
     $linkAddCourse = ' '.Display::url(
-        Display::return_icon('add.png', get_lang('Add')),
-        api_get_path(WEB_CODE_PATH).'admin/dashboard_add_courses_to_user.php?user='.api_get_user_id(),
+        Display::return_icon('2rightarrow.gif', get_lang('Details')),
+        api_get_path(WEB_CODE_PATH).'mySpace/course.php?follow',
         array('class' => '')
     );
     $linkAddSession = ' '.Display::url(
-        Display::return_icon('add.png', get_lang('Add')),
+        Display::return_icon('2rightarrow.gif', get_lang('Add')),
         api_get_path(WEB_CODE_PATH).'admin/dashboard_add_sessions_to_user.php?user='.api_get_user_id(),
         array('class' => '')
     );
@@ -242,7 +266,7 @@ if (api_is_platform_admin()) {
 
 echo Display::page_subheader(get_lang('Overview'));
 echo '<div class="report_section">
-        <table class="table table-bordered">
+        <table class="table table-bordered table-striped">
             <tr>
                 <td>'.Display::url(
                     get_lang('FollowedStudents'),
@@ -276,11 +300,19 @@ echo '<div class="report_section">
             </tr>
             <tr>
                 <td>'.Display::url(
-                    get_lang('FollowedCourses'),
+                    get_lang('AssignedCourses'),
                     api_get_path(WEB_CODE_PATH).'mySpace/course.php'
                 ).
                 '</td>
-                <td align="right">'.$count_courses.$linkAddCourse.'</td>
+                <td align="right">'.$count_courses.$linkCourseDetailsAsTeacher.'</td>
+            </tr>
+            <tr>
+                <td>'.Display::url(
+                    get_lang('FollowedCourses'),
+                    api_get_path(WEB_CODE_PATH).'mySpace/course.php?follow'
+                ).
+                '</td>
+                <td align="right">'.$countAssignedCourses.$linkAddCourse.'</td>
             </tr>
             <tr>
                 <td>'.Display::url(
@@ -326,13 +358,12 @@ if ($export_csv) {
     );
 
     $form = new FormValidator('search_user', 'get', api_get_path(WEB_CODE_PATH).'mySpace/student.php');
-    $form->addElement('text', 'keyword', get_lang('User'));
-    $form->addElement('button', 'submit', get_lang('Search'));
+    $form = Tracking::setUserSearchForm($form);
     $form->display();
 
     // html part
     echo '<div class="report_section">
-            <table class="table table-bordered">
+            <table class="table table-bordered table-striped">
                 <tr>
                     <td>'.get_lang('AverageCoursePerStudent').'</td>
                     <td align="right">'.(is_null($avg_courses_per_student) ? '' : round($avg_courses_per_student, 2)).'</td>

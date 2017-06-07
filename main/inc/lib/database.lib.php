@@ -1,6 +1,12 @@
 <?php
 /* For licensing terms, see /license.txt */
 /**
+ * Constants definition
+ */
+require_once 'database.constants.inc.php';
+
+/**
+ * Class Database
  *  This is the main database library for Chamilo.
  *  Include/require it in your code to use its functionality.
  *  Because this library contains all the basic database calls, it could be
@@ -13,20 +19,10 @@
  *
  *  @package chamilo.library
  */
-/**
- * Constants definition
- */
-require_once 'database.constants.inc.php';
-
-/**
- * Database class definition
- * @package chamilo.database
- */
-class Database {
-
+class Database
+{
     /* Variable use only in the installation process to log errors. See the Database::query function */
     static $log_queries = false;
-
     /*
         Accessor methods
         Usually, you won't need these directly but instead
@@ -34,48 +30,52 @@ class Database {
     */
 
     /**
-     *	Returns the name of the main database.
+     *  Returns the name of the main database.
      */
-    public static function get_main_database() {
+    public static function get_main_database()
+    {
         global $_configuration;
         return $_configuration['main_database'];
     }
 
     /**
-     *	Returns the name of the statistics database.
+     *  Returns the name of the statistics database.
      *  @todo use main_database
      */
-    public static function get_statistic_database() {
-        global $_configuration;
-        return $_configuration['main_database'];
+    public static function get_statistic_database()
+    {
+        return self::get_main_database();
     }
 
     /**
-     *	Returns the name of the database where all the personal stuff of the user is stored
+     *  Returns the name of the database where all the personal stuff of the user is stored
      *  @todo use main_database
      */
-    public static function get_user_personal_database() {
-        global $_configuration;
-        return $_configuration['main_database'];
+    public static function get_user_personal_database()
+    {
+        return self::get_main_database();
     }
 
     /**
-     *	Returns the name of the current course database.
+     *  Returns the name of the current course database.
      *  @return    mixed   Glued database name of false if undefined
      */
-    public static function get_current_course_database() {
+    public static function get_current_course_database()
+    {
         $course_info = api_get_course_info();
         if (empty($course_info['dbName'])) {
             return false;
         }
+
         return $course_info['dbName'];
     }
 
     /**
-     *	Returns the glued name of the current course database.
+     *  Returns the glued name of the current course database.
      *  @return    mixed   Glued database name of false if undefined
      */
-    public static function get_current_course_glued_database() {
+    public static function get_current_course_glued_database()
+    {
         $course_info = api_get_course_info();
         if (empty($course_info['dbNameGlu'])) {
             return false;
@@ -84,36 +84,39 @@ class Database {
     }
 
     /**
-     *	The glue is the string needed between database and table.
-     *	The trick is: in multiple databases, this is a period (with backticks).
-     *	In single database, this can be e.g. an underscore so we just fake
-     *	there are multiple databases and the code can be written independent
-     *	of the single / multiple database setting.
+     *  The glue is the string needed between database and table.
+     *  The trick is: in multiple databases, this is a period (with backticks).
+     *  In single database, this can be e.g. an underscore so we just fake
+     *  there are multiple databases and the code can be written independent
+     *  of the single / multiple database setting.
      */
-    public static function get_database_glue() {
+    public static function get_database_glue()
+    {
         global $_configuration;
         return $_configuration['db_glue'];
     }
 
     /**
-     *	Returns the database prefix.
-     *	All created COURSE databases are prefixed with this string.
+     *  Returns the database prefix.
+     *  All created COURSE databases are prefixed with this string.
      *
-     *	TIP: This can be convenient if you have multiple system installations
-     *	on the same physical server.
+     *  TIP: This can be convenient if you have multiple system installations
+     *  on the same physical server.
      */
-    public static function get_database_name_prefix() {
+    public static function get_database_name_prefix()
+    {
         global $_configuration;
         return $_configuration['db_prefix'];
     }
 
     /**
-     *	Returns the course table prefix for single database.
-     *	Not certain exactly when this is used.
-     *	Do research.
-     *	It's used in local.inc.php.
+     *  Returns the course table prefix for single database.
+     *  Not certain exactly when this is used.
+     *  Do research.
+     *  It's used in local.inc.php.
      */
-    public static function get_course_table_prefix() {
+    public static function get_course_table_prefix()
+    {
         global $_configuration;
         return $_configuration['table_prefix'];
     }
@@ -143,14 +146,14 @@ class Database {
      *
      * @param string $short_table_name, the name of the table
      */
-    public static function get_main_table($short_table_name) {
+    public static function get_main_table($short_table_name)
+    {
         return self::format_table_name(
           self::get_main_database(),
           $short_table_name);
     }
 
     /**
-
      * A more generic method than the older get_course_xxx_table methods,
      * This one can return the correct complete name of any course table of
      * which you pass the short name as a parameter.
@@ -161,7 +164,8 @@ class Database {
      * @param string $database_name, optional, name of the course database
      * - if you don't specify this, you work on the current course.
      */
-    public static function get_course_table($short_table_name, $extra = null) {
+    public static function get_course_table($short_table_name, $extra = null)
+    {
         //forces fatal errors so we can debug more easily
         if (!empty($extra)) {
             var_dump($extra);
@@ -169,7 +173,7 @@ class Database {
             echo "<h3>Dev Message: get_course_table() doesn't have a 2nd parameter</h3>";
             //exit;
         }
-    	return self::format_table_name(self::get_main_database(), DB_COURSE_PREFIX.$short_table_name);
+        return self::format_table_name(self::get_main_database(), DB_COURSE_PREFIX.$short_table_name);
         //return self::format_glued_course_table_name(self::fix_database_parameter($database_name), $short_table_name);
     }
 
@@ -178,11 +182,12 @@ class Database {
      * statistic table of which you pass the short name as a parameter.
      * Please, define table names as constants in this library and use them
      * instead of directly using magic words in your tool code.
-     *
+     * @deprecated use get_main_table
      * @param string $short_table_name, the name of the table
      */
-    public static function get_statistic_table($short_table_name) {
-        return self::format_table_name(self::get_statistic_database(), $short_table_name);
+    public static function get_statistic_table($short_table_name)
+    {
+        return self::get_main_table($short_table_name);
     }
 
     /**
@@ -193,11 +198,13 @@ class Database {
      *
      * @param string $short_table_name, the name of the table
      */
-    public static function get_user_personal_table($short_table_name) {
-        return self::format_table_name(self::get_user_personal_database(), $short_table_name);
+    public static function get_user_personal_table($short_table_name)
+    {
+        return self::get_main_table($short_table_name);
     }
 
-    public static function get_course_chat_connected_table($database_name = '') {
+    public static function get_course_chat_connected_table($database_name = '')
+    {
         return self::format_glued_course_table_name(self::fix_database_parameter($database_name), TABLE_CHAT_CONNECTED);
     }
 
@@ -207,21 +214,23 @@ class Database {
     */
 
     /**
-     *	@return a list (array) of all courses.
-     * 	@todo shouldn't this be in the course.lib.php script?
+     *  @return array a list (array) of all courses.
+     *  @todo shouldn't this be in the course.lib.php script?
      */
-    public static function get_course_list() {
+    public static function get_course_list()
+    {
         $table = self::get_main_table(TABLE_MAIN_COURSE);
         return self::store_result(self::query("SELECT *, id as real_id FROM $table"));
     }
 
     /**
-     *	Returns an array with all database fields for the specified course.
+     *  Returns an array with all database fields for the specified course.
      *
-     *	@param string The real (system) course code (main course table ID)
-     * 	@todo shouldn't this be in the course.lib.php script?
+     *  @param string The real (system) course code (main course table ID)
+     *  @todo shouldn't this be in the course.lib.php script?
      */
-    public static function get_course_info($course_code) {
+    public static function get_course_info($course_code)
+    {
         $course_code = self::escape_string($course_code);
         $table = self::get_main_table(TABLE_MAIN_COURSE);
         $result = self::generate_abstract_course_field_names(
@@ -240,7 +249,8 @@ class Database {
      * @desc find all the information about a specified user. Without parameter this is the current user.
      * @todo shouldn't this be in the user.lib.php script?
      */
-    public static function get_user_info_from_id($user_id = '') {
+    public static function get_user_info_from_id($user_id = '')
+    {
         if (empty($user_id)) {
             return $GLOBALS['_user'];
         }
@@ -256,29 +266,31 @@ class Database {
      * @return string  Course code
      * @todo move this function in a gradebook-related library
      */
-    public static function get_course_by_category($category_id) {
+    public static function get_course_by_category($category_id)
+    {
         $category_id = intval($category_id);
         $info = self::fetch_array(self::query('SELECT course_code FROM '.self::get_main_table(TABLE_MAIN_GRADEBOOK_CATEGORY).' WHERE id='.$category_id), 'ASSOC');
         return $info ? $info['course_code'] : false;
     }
 
     /**
-     *	This method creates an abstraction layer between database field names
-     *	and field names expected in code.
+     *  This method creates an abstraction layer between database field names
+     *  and field names expected in code.
      *
-     *	This approach helps when changing database names.
-     *	It's also useful now to get rid of the 'franglais'.
+     *  This approach helps when changing database names.
+     *  It's also useful now to get rid of the 'franglais'.
      *
-     *	@todo	add more array entries to abstract course info from field names
-     *	@author	Roan Embrechts
+     *  @todo   add more array entries to abstract course info from field names
+     *  @author Roan Embrechts
      *
-     * 	@todo What's the use of this method. I think this is better removed.
-     * 		  There should be consistency in the variable names and the
+     *  @todo What's the use of this method. I think this is better removed.
+     *        There should be consistency in the variable names and the
      *            use throughout the scripts
-     * 		  for the database name we should consistently use or db_name
+     *        for the database name we should consistently use or db_name
      *            or database (db_name probably being the better one)
      */
-    public static function generate_abstract_course_field_names($result_array) {
+    public static function generate_abstract_course_field_names($result_array)
+    {
         $visual_code = isset($result_array['visual_code']) ? $result_array['visual_code'] : null;
         $code        = isset($result_array['code']) ? $result_array['code'] : null;
         $title       = isset($result_array['title']) ? $result_array['title'] : null;
@@ -316,25 +328,25 @@ class Database {
     }
 
     /**
-     *	This method creates an abstraction layer between database field names
-     *	and field names expected in code.
+     *  This method creates an abstraction layer between database field names
+     *  and field names expected in code.
      *
-     *	This helps when changing database names.
-     *	It's also useful now to get rid of the 'franglais'.
+     *  This helps when changing database names.
+     *  It's also useful now to get rid of the 'franglais'.
      *
-     *	@todo add more array entries to abstract user info from field names
-     *	@author Roan Embrechts
-     *	@author Patrick Cool
+     *  @todo add more array entries to abstract user info from field names
+     *  @author Roan Embrechts
+     *  @author Patrick Cool
      *
-     * 	@todo what's the use of this function. I think this is better removed.
-     * 		There should be consistency in the variable names and the use throughout the scripts
+     *  @todo what's the use of this function. I think this is better removed.
+     *      There should be consistency in the variable names and the use throughout the scripts
      */
     public static function generate_abstract_user_field_names($result_array) {
-        $result_array['firstName'] 		= $result_array['firstname'];
-        $result_array['lastName'] 		= $result_array['lastname'];
-        $result_array['mail'] 			= $result_array['email'];
-        #$result_array['picture_uri'] 	= $result_array['picture_uri'];
-        #$result_array ['user_id']		= $result_array['user_id'];
+        $result_array['firstName']      = $result_array['firstname'];
+        $result_array['lastName']       = $result_array['lastname'];
+        $result_array['mail']           = $result_array['email'];
+        #$result_array['picture_uri']   = $result_array['picture_uri'];
+        #$result_array ['user_id']      = $result_array['user_id'];
         return $result_array;
     }
 
@@ -342,6 +354,7 @@ class Database {
      * Counts the number of rows in a table
      * @param string $table The table of which the rows should be counted
      * @return int The number of rows in the given table.
+     * @deprecated
      */
     public static function count_rows($table) {
         $obj = self::fetch_object(self::query("SELECT COUNT(*) AS n FROM $table"));   //
@@ -349,13 +362,13 @@ class Database {
     }
 
     /*
-        An intermediate API-layer between the system and the dabase server.
+        An intermediate API-layer between the system and the database server.
     */
 
     /**
      * Returns the number of affected rows in the last database operation.
-     * @param resource $connection (optional)	The database server connection, for detailed description see the method query().
-     * @return int								Returns the number of affected rows on success, and -1 if the last query failed.
+     * @param resource $connection (optional)   The database server connection, for detailed description see the method query().
+     * @return int                              Returns the number of affected rows on success, and -1 if the last query failed.
      */
     public static function affected_rows($connection = null) {
         return self::use_default_connection($connection) ? mysql_affected_rows() : mysql_affected_rows($connection);
@@ -363,8 +376,8 @@ class Database {
 
     /**
      * Closes non-persistent database connection.
-     * @param resource $connection (optional)	The database server connection, for detailed description see the method query().
-     * @return bool								Returns TRUE on success or FALSE on failure.
+     * @param resource $connection (optional)   The database server connection, for detailed description see the method query().
+     * @return bool                             Returns TRUE on success or FALSE on failure.
      */
     public static function close($connection = null) {
         return self::use_default_connection($connection) ? mysql_close() : mysql_close($connection);
@@ -372,8 +385,8 @@ class Database {
 
     /**
      * Opens a connection to a database server.
-     * @param array $parameters (optional)		An array that contains the necessary parameters for accessing the server.
-     * @return resource/boolean					Returns a database connection on success or FALSE on failure.
+     * @param array $parameters (optional)      An array that contains the necessary parameters for accessing the server.
+     * @return resource/boolean                 Returns a database connection on success or FALSE on failure.
      * Note: Currently the array could contain MySQL-specific parameters:
      * $parameters['server'], $parameters['username'], $parameters['password'],
      * $parameters['new_link'], $parameters['client_flags'], $parameters['persistent'].
@@ -416,7 +429,7 @@ class Database {
 
     /**
      * Returns error number from the last operation done on the database server.
-     * @param resource $connection (optional)	The database server connection,
+     * @param resource $connection (optional)   The database server connection,
      * for detailed description see the method query().
      * @return int Returns the error number from the last database (operation, or 0 (zero) if no error occurred.
      */
@@ -426,7 +439,7 @@ class Database {
 
     /**
      * Returns error text from the last operation done on the database server.
-     * @param resource $connection (optional)	The database server connection, for detailed description see the method query().
+     * @param resource $connection (optional)   The database server connection, for detailed description see the method query().
      * @return string Returns the error text from the last database operation, or '' (empty string) if no error occurred.
      */
     public static function error($connection = null) {
@@ -438,21 +451,32 @@ class Database {
      * @param string            The string to escape
      * @return string           The escaped string
      */
-    public static function escape_sql_wildcards($in_txt) {
+    public static function escape_sql_wildcards($in_txt)
+    {
         $out_txt = api_preg_replace("/_/", "\_", $in_txt);
         $out_txt = api_preg_replace("/%/", "\%", $out_txt);
+
         return $out_txt;
     }
 
     /**
      * Escapes a string to insert into the database as text
-     * @param string							The string to escape
-     * @param resource $connection (optional)	The database server connection, for detailed description see the method query().
-     * @return string							The escaped string
-     * @author Yannick Warnier <yannick.warnier@dokeos.com>
+     * @param string    $string The string to escape
+     * @param resource  $connection (optional)   The database server connection, for detailed description see the method query().
+     * @param bool $addFix
+     * @return string   he escaped string
+     * @author Yannick Warnier <yannick.warnier@beeznest.com>
      * @author Patrick Cool <patrick.cool@UGent.be>, Ghent University
      */
-    public static function escape_string($string, $connection = null) {
+    public static function escape_string($string, $connection = null, $addFix = true)
+    {
+        // Fixes security problem when there's no "" or '' between a variable.
+        // See #7440 for more info
+        /*
+        if ($addFix) {
+            //$string = "__@$string@__";
+        }
+        */
         return get_magic_quotes_gpc()
             ? (self::use_default_connection($connection)
                 ? mysql_real_escape_string(stripslashes($string))
@@ -462,23 +486,25 @@ class Database {
                 : mysql_real_escape_string($string, $connection));
     }
 
+
     /**
      * Gets the array from a SQL result (as returned by Database::query) - help achieving database independence
-     * @param resource		The result from a call to sql_query (e.g. Database::query)
-     * @param string		Optional: "ASSOC","NUM" or "BOTH", as the constant used in mysql_fetch_array.
-     * @return array		Array of results as returned by php
+     * @param resource      The result from a call to sql_query (e.g. Database::query)
+     * @param string        Optional: "ASSOC","NUM" or "BOTH", as the constant used in mysql_fetch_array.
+     * @return array        Array of results as returned by php
      * @author Yannick Warnier <yannick.warnier@beeznest.com>
      */
-    public static function fetch_array($result, $option = 'BOTH') {
-	if ($result === false) { return array(); }
+    public static function fetch_array($result, $option = 'BOTH')
+    {
+        if ($result === false) { return array(); }
         return $option == 'ASSOC' ? mysql_fetch_array($result, MYSQL_ASSOC) : ($option == 'NUM' ? mysql_fetch_array($result, MYSQL_NUM) : mysql_fetch_array($result));
     }
 
     /**
      * Gets an associative array from a SQL result (as returned by Database::query).
      * This method is equivalent to calling Database::fetch_array() with 'ASSOC' value for the optional second parameter.
-     * @param resource $result	The result from a call to sql_query (e.g. Database::query).
-     * @return array			Returns an associative array that corresponds to the fetched row and moves the internal data pointer ahead.
+     * @param resource $result  The result from a call to sql_query (e.g. Database::query).
+     * @return array            Returns an associative array that corresponds to the fetched row and moves the internal data pointer ahead.
      */
     public static function fetch_assoc($result) {
         return mysql_fetch_assoc($result);
@@ -486,11 +512,11 @@ class Database {
 
     /**
      * Gets the next row of the result of the SQL query (as returned by Database::query) in an object form
-     * @param	resource	The result from a call to sql_query (e.g. Database::query)
-     * @param	string		Optional class name to instanciate
-     * @param	array		Optional array of parameters
-     * @return	object		Object of class StdClass or the required class, containing the query result row
-     * @author	Yannick Warnier <yannick.warnier@dokeos.com>
+     * @param   resource    The result from a call to sql_query (e.g. Database::query)
+     * @param   string      Optional class name to instanciate
+     * @param   array       Optional array of parameters
+     * @return  object      Object of class StdClass or the required class, containing the query result row
+     * @author  Yannick Warnier <yannick.warnier@beeznest.com>
      */
     public static function fetch_object($result, $class = null, $params = null) {
         return !empty($class) ? (is_array($params) ? mysql_fetch_object($result, $class, $params) : mysql_fetch_object($result, $class)) : mysql_fetch_object($result);
@@ -498,8 +524,8 @@ class Database {
 
     /**
      * Gets the array from a SQL result (as returned by Database::query) - help achieving database independence
-     * @param resource		The result from a call to sql_query (see Database::query()).
-     * @return array		Array of results as returned by php (mysql_fetch_row)
+     * @param resource      The result from a call to sql_query (see Database::query()).
+     * @return array        Array of results as returned by php (mysql_fetch_row)
      */
     public static function fetch_row($result) {
         return mysql_fetch_row($result);
@@ -507,7 +533,7 @@ class Database {
 
     /**
      * Frees all the memory associated with the provided result identifier.
-     * @return bool		Returns TRUE on success or FALSE on failure.
+     * @return bool     Returns TRUE on success or FALSE on failure.
      * Notes: Use this method if you are concerned about how much memory is being used for queries that return large result sets.
      * Anyway, all associated result memory is automatically freed at the end of the script's execution.
      */
@@ -517,7 +543,7 @@ class Database {
 
     /**
      * Returns the database client library version.
-     * @return strung		Returns a string that represents the client library version.
+     * @return strung       Returns a string that represents the client library version.
      */
     public static function get_client_info() {
         return mysql_get_client_info();
@@ -526,9 +552,9 @@ class Database {
     /**
      * Returns a list of databases created on the server. The list may contain all of the
      * available database names or filtered database names by using a pattern.
-     * @param string $pattern (optional)		A pattern for filtering database names as if it was needed for the SQL's LIKE clause, for example 'chamilo_%'.
-     * @param resource $connection (optional)	The database server connection, for detailed description see the method query().
-     * @return array							Returns in an array the retrieved list of database names.
+     * @param string $pattern (optional)        A pattern for filtering database names as if it was needed for the SQL's LIKE clause, for example 'chamilo_%'.
+     * @param resource $connection (optional)   The database server connection, for detailed description see the method query().
+     * @return array                            Returns in an array the retrieved list of database names.
      */
     public static function get_databases($pattern = '', $connection = null) {
         $result = array();
@@ -542,13 +568,13 @@ class Database {
     /**
      * Returns a list of the fields that a given table contains. The list may contain all of the available field names or filtered field names by using a pattern.
      * By using a special option, this method is able to return an indexed list of fields' properties, where field names are keys.
-     * @param string $table						This is the examined table.
-     * @param string $pattern (optional)		A pattern for filtering field names as if it was needed for the SQL's LIKE clause, for example 'column_%'.
-     * @param string $database (optional)		The name of the targeted database. If it is omited, the current database is assumed, see Database::select_db().
-     * @param bool $including_properties (optional)	When this option is true, the returned result has the followong format:
-     * 												array(field_name_1 => array(0 => property_1, 1 => property_2, ...), fieald_name_2 => array(0 => property_1, ...), ...)
-     * @param resource $connection (optional)	The database server connection, for detailed description see the method query().
-     * @return array							Returns in an array the retrieved list of field names.
+     * @param string $table                     This is the examined table.
+     * @param string $pattern (optional)        A pattern for filtering field names as if it was needed for the SQL's LIKE clause, for example 'column_%'.
+     * @param string $database (optional)       The name of the targeted database. If it is omited, the current database is assumed, see Database::select_db().
+     * @param bool $including_properties (optional) When this option is true, the returned result has the followong format:
+     *                                              array(field_name_1 => array(0 => property_1, 1 => property_2, ...), fieald_name_2 => array(0 => property_1, ...), ...)
+     * @param resource $connection (optional)   The database server connection, for detailed description see the method query().
+     * @return array                            Returns in an array the retrieved list of field names.
      */
     public static function get_fields($table, $pattern = '', $database = '', $including_properties = false, $connection = null) {
         $result = array();
@@ -576,8 +602,8 @@ class Database {
 
     /**
      * Returns information about the type of the current connection and the server host name.
-     * @param resource $connection (optional)	The database server connection, for detailed description see the method query().
-     * @return string/boolean					Returns string data on success or FALSE on failure.
+     * @param resource $connection (optional)   The database server connection, for detailed description see the method query().
+     * @return string/boolean                   Returns string data on success or FALSE on failure.
      */
     public static function get_host_info($connection = null) {
         return self::use_default_connection($connection) ? mysql_get_host_info() : mysql_get_host_info($connection);
@@ -585,8 +611,8 @@ class Database {
 
     /**
      * Retrieves database client/server protocol version.
-     * @param resource $connection (optional)	The database server connection, for detailed description see the method query().
-     * @return int/boolean						Returns the protocol version on success or FALSE on failure.
+     * @param resource $connection (optional)   The database server connection, for detailed description see the method query().
+     * @return int/boolean                      Returns the protocol version on success or FALSE on failure.
      */
     public static function get_proto_info($connection = null) {
         return self::use_default_connection($connection) ? mysql_get_proto_info() : mysql_get_proto_info($connection);
@@ -594,8 +620,8 @@ class Database {
 
     /**
      * Retrieves the database server version.
-     * @param resource $connection (optional)	The database server connection, for detailed description see the method query().
-     * @return string/boolean					Returns the MySQL server version on success or FALSE on failure.
+     * @param resource $connection (optional)   The database server connection, for detailed description see the method query().
+     * @return string/boolean                   Returns the MySQL server version on success or FALSE on failure.
      */
     public static function get_server_info($connection = null) {
         return self::use_default_connection($connection) ? mysql_get_server_info() : mysql_get_server_info($connection);
@@ -604,10 +630,10 @@ class Database {
     /**
      * Returns a list of tables within a database. The list may contain all of the
      * available table names or filtered table names by using a pattern.
-     * @param string $database (optional)		The name of the examined database. If it is omited, the current database is assumed, see Database::select_db().
-     * @param string $pattern (optional)		A pattern for filtering table names as if it was needed for the SQL's LIKE clause, for example 'access_%'.
-     * @param resource $connection (optional)	The database server connection, for detailed description see the method query().
-     * @return array							Returns in an array the retrieved list of table names.
+     * @param string $database (optional)       The name of the examined database. If it is omited, the current database is assumed, see Database::select_db().
+     * @param string $pattern (optional)        A pattern for filtering table names as if it was needed for the SQL's LIKE clause, for example 'access_%'.
+     * @param resource $connection (optional)   The database server connection, for detailed description see the method query().
+     * @return array                            Returns in an array the retrieved list of table names.
      */
     public static function get_tables($database = '', $pattern = '', $connection = null) {
         $result = array();
@@ -628,8 +654,8 @@ class Database {
     /**
      * Gets the ID of the last item inserted into the database
      * This should be updated to use ADODB at some point
-     * @param resource $connection (optional)	The database server connection, for detailed description see the method query().
-     * @return int								The last ID as returned by the DB function
+     * @param resource $connection (optional)   The database server connection, for detailed description see the method query().
+     * @return int                              The last ID as returned by the DB function
      */
     public static function insert_id($connection = null) {
         return self::use_default_connection($connection) ? mysql_insert_id() : mysql_insert_id($connection);
@@ -637,9 +663,9 @@ class Database {
 
     /**
      * Gets the number of rows from the last query result - help achieving database independence
-     * @param resource		The result
-     * @return integer		The number of rows contained in this result
-     * @author Yannick Warnier <yannick.warnier@dokeos.com>
+     * @param resource      The result
+     * @return integer      The number of rows contained in this result
+     * @author Yannick Warnier <yannick.warnier@beeznest.com>
      **/
     public static function num_rows($result) {
         return is_resource($result) ? mysql_num_rows($result) : false;
@@ -648,13 +674,43 @@ class Database {
     /**
      * Acts as the relative *_result() function of most DB drivers and fetches a
      * specific line and a field
-     * @param	resource	The database resource to get data from
-     * @param	integer		The row number
-     * @param	string		Optional field name or number
-     * @return	mixed		One cell of the result, or FALSE on error
+     * @param   resource    The database resource to get data from
+     * @param   integer     The row number
+     * @param   string      Optional field name or number
+     * @return  mixed       One cell of the result, or FALSE on error
      */
     public static function result($resource, $row, $field = '') {
         return self::num_rows($resource) > 0 ? (!empty($field) ? mysql_result($resource, $row, $field) : mysql_result($resource, $row)) : null;
+    }
+
+    /**
+     * Removes "__@" prefix and @__ suffix added by Database::escape_string()
+     * See #7440 for more info
+     * @param string $query
+     * @return mixed
+     */
+    public static function fixQuery($query)
+    {
+        // LIKE condition
+        $query = str_replace("'%__@", "'%", $query);
+        $query = str_replace("@__%'", "%'", $query);
+
+        $query = str_replace('@__%"', "%'", $query);
+        $query = str_replace('"%__@', "'%", $query);
+
+        // Fixing doubles
+        $query = str_replace("__@__@", "__@", $query);
+        $query = str_replace("@__@__", "@__", $query);
+
+        $query = str_replace("'__@", "'", $query);
+        $query = str_replace('"__@', "'", $query);
+        $query = str_replace("__@", "'", $query);
+
+        $query = str_replace("@__'", "'", $query);
+        $query = str_replace('@__"', "'", $query);
+        $query = str_replace("@__", "'", $query);
+
+        return $query;
     }
 
     /**
@@ -662,14 +718,16 @@ class Database {
      * Documentation has been added by Arthur Portugal
      * Some adaptations have been implemented by Ivan Tcholakov, 2009, 2010
      * @author Olivier Brouckaert
-     * @param string $query						The SQL query
-     * @param resource $connection (optional)	The database server (MySQL) connection.
-     * 											If it is not specified, the connection opened by mysql_connect() is assumed.
-     * 											If no connection is found, the server will try to create one as if mysql_connect() was called with no arguments.
-     * 											If no connection is found or established, an E_WARNING level error is generated.
-     * @param string $file (optional)			On error it shows the file in which the error has been trigerred (use the "magic" constant __FILE__ as input parameter)
-     * @param string $line (optional)			On error it shows the line in which the error has been trigerred (use the "magic" constant __LINE__ as input parameter)
-     * @return resource							The returned result from the query
+     * @param string $query                     The SQL query
+     * @param resource $connection (optional)   The database server (MySQL) connection.
+     * If it is not specified, the connection opened by mysql_connect() is assumed.
+     * If no connection is found, the server will try to create one as if mysql_connect() was called with no arguments.
+     * If no connection is found or established, an E_WARNING level error is generated.
+     * @param string $file (optional)           On error it shows the file in which the error has been trigerred (use the "magic" constant __FILE__ as input parameter)
+     * @param string $line (optional)           On error it shows the line in which the error has been trigerred (use the "magic" constant __LINE__ as input parameter)
+     *
+     * @return resource                         The returned result from the query
+     *
      * Note: The parameter $connection could be skipped. Here are examples of this method usage:
      * Database::query($query);
      * $result = Database::query($query);
@@ -681,7 +739,8 @@ class Database {
      * Database::query($query, $connection, __FILE__, __LINE__);
      * $result = Database::query($query, $connection, __FILE__, __LINE__);
      */
-    public static function query($query, $connection = null, $file = null, $line = null) {
+    public static function query($query, $connection = null, $file = null, $line = null)
+    {
         $use_default_connection = self::use_default_connection($connection);
         if ($use_default_connection) {
             // Let us do parameter shifting, thus the method would be similar
@@ -690,12 +749,13 @@ class Database {
             $file = $connection;
             $connection = null;
         }
-        //@todo remove this before the stable release
 
-        //Check if the table contains a c_ (means a course id)
-        if (api_get_setting('server_type')==='test' && strpos($query, 'c_')) {
-        	//Check if the table contains inner joins
-        	if (
+        //$query = self::fixQuery($query);
+
+        // Check if the table contains a c_ (means a course id)
+        if (api_get_setting('server_type') === 'test' && strpos($query, 'c_')) {
+            //Check if the table contains inner joins
+            if (
                 strpos($query, 'assoc_handle') === false &&
                 strpos($query, 'olpc_peru_filter') === false &&
                 strpos($query, 'allow_public_certificates') === false &&
@@ -715,20 +775,20 @@ class Database {
                 strpos($query, 'chamilo_electric_blue') === false &&
                 strpos($query, 'wcag_anysurfer_public_pages') === false &&
                 strpos($query, 'specific_field') === false &&
-        	    strpos($query, 'down_doc_path') === false &&
-        		strpos($query, 'INNER JOIN') === false &&
-        		strpos($query, 'inner join') === false &&
-        		strpos($query, 'left join') === false &&
-        		strpos($query, 'LEFT JOIN') === false &&
-        		strpos($query, 'insert') 	=== false &&
-        		strpos($query, 'INSERT') === false &&
-        		strpos($query, 'ALTER') === false &&
-        		strpos($query, 'alter') === false &&
-        		strpos($query, 'c_id') === false &&
-        		strpos($query, 'create table') === false &&
-        		strpos($query, 'CREATE TABLE') === false &&
-        		strpos($query, 'AUTO_INCREMENT') === false
-        	) {
+                strpos($query, 'down_doc_path') === false &&
+                strpos($query, 'INNER JOIN') === false &&
+                strpos($query, 'inner join') === false &&
+                strpos($query, 'left join') === false &&
+                strpos($query, 'LEFT JOIN') === false &&
+                strpos($query, 'insert') === false &&
+                strpos($query, 'INSERT') === false &&
+                strpos($query, 'ALTER') === false &&
+                strpos($query, 'alter') === false &&
+                strpos($query, 'c_id') === false &&
+                strpos($query, 'create table') === false &&
+                strpos($query, 'CREATE TABLE') === false &&
+                strpos($query, 'AUTO_INCREMENT') === false
+            ) {
                 //@todo remove this
                 echo '<pre>';
                 $message = '<h4>Dev message: please add the c_id field in this query or report this error in support.chamilo.org </h4>';
@@ -736,7 +796,7 @@ class Database {
                 echo $message;
                 echo '</pre>';
                 //error_log($message);
-        	}
+            }
         }
 
         if (!($result = $use_default_connection ? mysql_query($query) : mysql_query($query, $connection))) {
@@ -815,9 +875,9 @@ class Database {
 
     /**
      * Selects a database.
-     * @param string $database_name				The name of the database that is to be selected.
-     * @param resource $connection (optional)	The database server connection, for detailed description see the method query().
-     * @return bool								Returns TRUE on success or FALSE on failure.
+     * @param string $database_name             The name of the database that is to be selected.
+     * @param resource $connection (optional)   The database server connection, for detailed description see the method query().
+     * @return bool                             Returns TRUE on success or FALSE on failure.
      */
     public static function select_db($database_name, $connection = null) {
         return self::use_default_connection($connection) ? mysql_select_db($database_name) : mysql_select_db($database_name, $connection);
@@ -847,8 +907,8 @@ class Database {
 
     /**
      * Checks whether a given encoding is supported by the database server.
-     * @param string $encoding	The encoding (a system conventional id, for example 'UTF-8') to be checked.
-     * @return bool				Returns a boolean value as a check-result.
+     * @param string $encoding  The encoding (a system conventional id, for example 'UTF-8') to be checked.
+     * @return bool             Returns a boolean value as a check-result.
      * @author Ivan Tcholakov
      */
     public static function is_encoding_supported($encoding) {
@@ -868,9 +928,9 @@ class Database {
      * Constructs a SQL clause about default character set and default collation for newly created databases and tables.
      * Example: Database::make_charset_clause('UTF-8', 'bulgarian') returns
      *  DEFAULT CHARACTER SET `utf8` DEFAULT COLLATE `utf8_general_ci`
-     * @param string $encoding (optional)	The default database/table encoding (a system conventional id) to be used.
-     * @param string $language (optional)	Language (a system conventional id) used for choosing language sensitive collation (if it is possible).
-     * @return string						Returns the constructed SQL clause or empty string if $encoding is not correct or is not supported.
+     * @param string $encoding (optional)   The default database/table encoding (a system conventional id) to be used.
+     * @param string $language (optional)   Language (a system conventional id) used for choosing language sensitive collation (if it is possible).
+     * @return string                       Returns the constructed SQL clause or empty string if $encoding is not correct or is not supported.
      * @author Ivan Tcholakov
      */
     public static function make_charset_clause($encoding = null, $language = null) {
@@ -895,8 +955,8 @@ class Database {
     /**
      * Converts an encoding identificator to MySQL-specific encoding identifictor,
      * i.e. 'UTF-8' --> 'utf8'.
-     * @param string $encoding	The conventional encoding identificator.
-     * @return string			Returns the corresponding MySQL-specific encoding identificator if any, otherwise returns NULL.
+     * @param string $encoding  The conventional encoding identificator.
+     * @return string           Returns the corresponding MySQL-specific encoding identificator if any, otherwise returns NULL.
      * @author Ivan Tcholakov
      */
     public static function to_db_encoding($encoding) {
@@ -917,8 +977,8 @@ class Database {
     /**
      * Converts a MySQL-specific encoding identifictor to conventional encoding identificator,
      * i.e. 'utf8' --> 'UTF-8'.
-     * @param string $encoding	The MySQL-specific encoding identificator.
-     * @return string			Returns the corresponding conventional encoding identificator if any, otherwise returns NULL.
+     * @param string $encoding  The MySQL-specific encoding identificator.
+     * @return string           Returns the corresponding conventional encoding identificator if any, otherwise returns NULL.
      * @author Ivan Tcholakov
      */
     public static function from_db_encoding($db_encoding) {
@@ -938,9 +998,9 @@ class Database {
 
     /**
      * Chooses the default MySQL-specific collation from given encoding and language.
-     * @param string $encoding				A conventional encoding id, i.e. 'UTF-8'
-     * @param string $language (optional)	A conventional for the system language id, i.e. 'bulgarian'. If it is empty, the chosen collation is the default server value corresponding to the given encoding.
-     * @return string						Returns a suitable default collation, for example 'utf8_general_ci', or NULL if collation was not found.
+     * @param string $encoding              A conventional encoding id, i.e. 'UTF-8'
+     * @param string $language (optional)   A conventional for the system language id, i.e. 'bulgarian'. If it is empty, the chosen collation is the default server value corresponding to the given encoding.
+     * @return string                       Returns a suitable default collation, for example 'utf8_general_ci', or NULL if collation was not found.
      * @author Ivan Tcholakov
      */
     public static function to_db_collation($encoding, $language = null) {
@@ -977,18 +1037,18 @@ class Database {
     */
 
     /**
-     *	Glues a course database.
-     *	glue format from local.inc.php.
+     *  Glues a course database.
+     *  glue format from local.inc.php.
      */
     private static function glue_course_database_name($database_name) {
         return self::get_course_table_prefix().$database_name.self::get_database_glue();
     }
 
     /**
-     *	@param string $database_name, can be empty to use current course db
+     *  @param string $database_name, can be empty to use current course db
      *
-     *	@return the glued parameter if it is not empty,
-     *	or the current course database (glued) if the parameter is empty.
+     *  @return the glued parameter if it is not empty,
+     *  or the current course database (glued) if the parameter is empty.
      */
     private static function fix_database_parameter($database_name) {
         if (empty($database_name)) {
@@ -999,18 +1059,18 @@ class Database {
     }
 
     /**
-     *	Structures a course database and table name to ready them
-     *	for querying. The course database parameter is considered glued:
-     *	e.g. COURSE001`.`
+     *  Structures a course database and table name to ready them
+     *  for querying. The course database parameter is considered glued:
+     *  e.g. COURSE001`.`
      */
     private static function format_glued_course_table_name($database_name_with_glue, $table) {
         return '`'.$database_name_with_glue.$table.'`';
     }
 
     /**
-     *	Structures a database and table name to ready them
-     *	for querying. The database parameter is considered not glued,
-     *	just plain e.g. COURSE001
+     *  Structures a database and table name to ready them
+     *  for querying. The database parameter is considered not glued,
+     *  just plain e.g. COURSE001
      */
     private static function format_table_name($database, $table) {
         global $_configuration;
@@ -1027,9 +1087,9 @@ class Database {
      * checking whether the input parameter $connection actually has been provided.
      * If the input parameter connection is not a resource or if it is not FALSE (in case of error)
      * then the default opened connection should be used by the called method.
-     * @param resource/boolean $connection	The checked parameter $connection.
-     * @return boolean						TRUE means that calling method should use the default connection.
-     * 										FALSE means that (valid) parameter $connection has been provided and it should be used.
+     * @param resource/boolean $connection  The checked parameter $connection.
+     * @return boolean                      TRUE means that calling method should use the default connection.
+     *                                      FALSE means that (valid) parameter $connection has been provided and it should be used.
      */
     private static function use_default_connection($connection) {
         return !is_resource($connection) && $connection !== false;
@@ -1038,8 +1098,8 @@ class Database {
     /**
      * This private method tackles the XSS injections. It is similar to Security::remove_XSS() and works always,
      * including the time of initialization when the class Security has not been loaded yet.
-     * @param string	The input variable to be filtered from XSS, in this class it is expected to be a string.
-     * @return string	Returns the filtered string as a result.
+     * @param string    The input variable to be filtered from XSS, in this class it is expected to be a string.
+     * @return string   Returns the filtered string as a result.
      */
     private static function remove_XSS(& $var) {
         return class_exists('Security') ? Security::remove_XSS($var) : @htmlspecialchars($var, ENT_QUOTES, api_get_system_encoding());
@@ -1098,9 +1158,9 @@ class Database {
 
     /**
      * Constructs a MySQL-specific collation and checks whether it is supported by the database server.
-     * @param string $db_encoding	A MySQL-specific encoding id, i.e. 'utf8'
-     * @param string $language		A MySQL-compatible language id, i.e. 'bulgarian'
-     * @return string				Returns a suitable default collation, for example 'utf8_general_ci', or NULL if collation was not found.
+     * @param string $db_encoding   A MySQL-specific encoding id, i.e. 'utf8'
+     * @param string $language      A MySQL-compatible language id, i.e. 'bulgarian'
+     * @return string               Returns a suitable default collation, for example 'utf8_general_ci', or NULL if collation was not found.
      * @author Ivan Tcholakov
      */
     private static function check_db_collation($db_encoding, $language) {
@@ -1121,13 +1181,12 @@ class Database {
         return null;
     }
 
-    /*
-        New useful DB functions
-    */
-
     /**
-     * Experimental useful database insert
-     * @todo lot of stuff to do here
+     * Database insert
+     * @param string $table_name
+     * @param array $attributes
+     * @param bool $show_query
+     * @return bool|int
      */
     public static function insert($table_name, $attributes, $show_query = false)
     {
@@ -1138,6 +1197,7 @@ class Database {
         foreach($attributes as $key => $value) {
             $filtred_attributes[$key] = "'".self::escape_string($value)."'";
         }
+
         //@todo check if the field exists in the table we should use a describe of that table
         $params = array_keys($filtred_attributes);
         $values = array_values($filtred_attributes);
@@ -1145,7 +1205,8 @@ class Database {
             $sql    = 'INSERT INTO '.$table_name.' ('.implode(',',$params).') VALUES ('.implode(',',$values).')';
             self::query($sql);
             if ($show_query) {
-            	var_dump($sql);
+                var_dump($sql);
+                error_log($sql);
             }
             return self::insert_id();
         }
@@ -1158,15 +1219,13 @@ class Database {
      * @todo known issues, it doesn't work when using LIKE conditions
      * @example array('where'=> array('course_code LIKE "?%"'))
      * @example array('where'=> array('type = ? AND category = ?' => array('setting', 'Plugins'))
-     * @example array('where'=> array('name = "Julio" AND lastname = "montoya"))
+     * @example array('where'=> array('name = "Julio" AND lastname = "montoya"'))
     */
-
     public static function select($columns, $table_name, $conditions = array(), $type_result = 'all', $option = 'ASSOC')
     {
         $conditions = self::parse_conditions($conditions);
 
         //@todo we could do a describe here to check the columns ...
-        $clean_columns = '';
         if (is_array($columns)) {
             $clean_columns = implode(',', $columns);
         } else {
@@ -1180,7 +1239,7 @@ class Database {
         $sql    = "SELECT $clean_columns FROM $table_name $conditions";
         $result = self::query($sql);
         $array = array();
-        //if (self::num_rows($result) > 0 ) {
+
         if ($type_result == 'all') {
             while ($row = self::fetch_array($result, $option)) {
                 if (isset($row['id'])) {
@@ -1197,11 +1256,12 @@ class Database {
 
     /**
      * Parses WHERE/ORDER conditions i.e array('where'=>array('id = ?' =>'4'), 'order'=>'id DESC'))
-     * @todo known issues, it doesn't work when using LIKE conditions example: array('where'=>array('course_code LIKE "?%"'))
-     * @param   array
-     * @todo lot of stuff to do here
+     * @todo known issues, it doesn't work when using
+     * LIKE conditions example: array('where'=>array('course_code LIKE "?%"'))
+     * @param   array $conditions
     */
-    static function parse_conditions($conditions) {
+    public static function parse_conditions($conditions)
+    {
         if (empty($conditions)) {
             return '';
         }
@@ -1213,7 +1273,6 @@ class Database {
             $type_condition = strtolower($type_condition);
             switch ($type_condition) {
                 case 'where':
-
                     foreach ($condition_data as $condition => $value_array) {
                         if (is_array($value_array)) {
                             $clean_values = array();
@@ -1235,13 +1294,12 @@ class Database {
                             $condition = str_replace("%s","'%s'", $condition);
                             $condition = str_replace("@-@","@%s@", $condition);
 
-                            //Treat conditons as string
+                            // Treat conditions as string
                             $condition = vsprintf($condition, $clean_values);
                             $condition = str_replace('@percentage@','%', $condition); //replace "%"
                             $where_return .= $condition;
                         }
                     }
-
 
                     if (!empty($where_return)) {
                         $return_value = " WHERE $where_return" ;
@@ -1252,7 +1310,7 @@ class Database {
 
                     if (!empty($order_array)) {
                         // 'order' => 'id desc, name desc'
-                        $order_array = self::escape_string($order_array);
+                        $order_array = self::escape_string($order_array, null, false);
                         $new_order_array = explode(',', $order_array);
                         $temp_value = array();
 
@@ -1282,7 +1340,6 @@ class Database {
                     break;
                 case 'limit':
                     $limit_array = explode(',', $condition_data);
-
                     if (!empty($limit_array)) {
                         if (count($limit_array) > 1) {
                             $return_value .= ' LIMIT '.intval($limit_array[0]).' , '.intval($limit_array[1]);
@@ -1293,47 +1350,56 @@ class Database {
                     break;
             }
         }
+
         return $return_value;
     }
 
-    public static function parse_where_conditions($coditions) {
-        return self::parse_conditions(array('where'=>$coditions));
+    /**
+     * @param array $conditions
+     * @return string
+     */
+    public static function parse_where_conditions($conditions)
+    {
+        return self::parse_conditions(array('where' => $conditions));
     }
 
     /**
      * Experimental useful database update
      * @todo lot of stuff to do here
      */
-    public static function delete($table_name, $where_conditions, $show_query = false) {
-        $result = false;
+    public static function delete($table_name, $where_conditions, $show_query = false)
+    {
         $where_return = self::parse_where_conditions($where_conditions);
         $sql    = "DELETE FROM $table_name $where_return ";
         if ($show_query) { echo $sql; echo '<br />'; }
-        $result = self::query($sql);
+        self::query($sql);
         $affected_rows = self::affected_rows();
         //@todo should return affected_rows for
         return $affected_rows;
     }
 
-
     /**
-     * Experimental useful database update
-     * @param	string	table name use Database::get_main_table
-     * @param	array	array with values to updates, keys are the fields in the database: Example: $params['name'] = 'Julio'; $params['lastname'] = 'Montoya';
-     * @param	array	where conditions i.e array('id = ?' =>'4')
-     * @todo lot of stuff to do here
+     * @param string $table_name use Database::get_main_table
+     * @param array $attributes Values to updates
+     * Example: $params['name'] = 'Julio'; $params['lastname'] = 'Montoya';
+     * @param array $where_conditions where conditions i.e array('id = ?' =>'4')
+     * @param bool $show_query
+     * @return bool|int
      */
-    public static function update($table_name, $attributes, $where_conditions = array(), $show_query = false) {
-
+    public static function update(
+        $table_name,
+        $attributes,
+        $where_conditions = array(),
+        $show_query = false
+    ) {
         if (!empty($table_name) && !empty($attributes)) {
             $update_sql = '';
             //Cleaning attributes
             $count = 1;
             foreach ($attributes as $key=>$value) {
-
-                if (!is_array($value))
-
-                $value = self::escape_string($value);
+                if (!is_array($value)) {
+                    $value = self::escape_string($value);
+                }
                 $update_sql .= "$key = '$value' ";
                 if ($count < count($attributes)) {
                     $update_sql.=', ';
@@ -1344,18 +1410,16 @@ class Database {
                 //Parsing and cleaning the where conditions
                 $where_return = self::parse_where_conditions($where_conditions);
                 $sql    = "UPDATE $table_name SET $update_sql $where_return ";
-                if ($show_query) { var_dump($sql); }
-                $result = self::query($sql);
+                if ($show_query) {
+                    var_dump($sql);
+                }
+                self::query($sql);
                 $affected_rows = self::affected_rows();
                 return $affected_rows;
             }
         }
         return false;
     }
-
-     /*
-        DEPRECATED METHODS
-    */
 
     /**
      * @deprecated Use api_get_language_isocode($language) instead.

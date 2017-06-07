@@ -2,16 +2,14 @@
 /* For licensing terms, see /license.txt */
 
 /**
+ * Class defining the elements from an AICC Descriptor file.
  * Container for the aiccResource class that deals with elemens from AICC Descriptor file
  * @package	chamilo.learnpath
  * @author	Yannick Warnier <ywarnier@beeznest.org>
  * @license	GNU/GPL
  */
-
-/**
- * Class defining the elements from an AICC Descriptor file.
- */
-class aiccResource {
+class aiccResource
+{
     public $identifier = '';
     public $title = '';
     public $description = '';
@@ -23,7 +21,8 @@ class aiccResource {
      * @param	string	Type of construction needed ('db' or 'config', default = 'config')
      * @param	mixed	Depending on the type given, DB id for the lp_item or parameters array
      */
-    public function aiccResource($type = 'config', $params) {
+    public function aiccResource($type = 'config', $params)
+    {
 
         if (isset($params)) {
             switch ($type) {
@@ -32,24 +31,24 @@ class aiccResource {
                     return false;
                 case 'config': // Do the same as the default.
                 default:
-                     foreach ($params as $a => $value) {
-                         switch ($a) {
-                                case 'system_id':
-                                    $this->identifier = strtolower($value);
-                                 break;
-                             case 'title':
-                                 $this->title = $value;
-                             case 'description':
-                                 $this->description = $value;
-                                 break;
-                             case 'developer_id':
-                                 $this->developer_id = $value;
-                                 break;
-                         }
-                     }
+                    foreach ($params as $a => $value) {
+                        switch ($a) {
+                            case 'system_id':
+                                $this->identifier = strtolower($value);
+                                break;
+                            case 'title':
+                                $this->title = $value;
+                            case 'description':
+                                $this->description = $value;
+                                break;
+                            case 'developer_id':
+                                $this->developer_id = $value;
+                                break;
+                        }
+                    }
                     return true;
             }
         }
         return false;
-     }
+    }
 }

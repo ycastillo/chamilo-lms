@@ -11,7 +11,6 @@
 {% block footer %}
     {#  Footer  #}
     {% if show_footer == true %}
-
         </div> <!-- end of #row" -->
         </div> <!-- end of #main" -->
         <div class="push"></div>

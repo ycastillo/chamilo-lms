@@ -2,6 +2,7 @@
 /*
 for more information: see languages.txt in the lang folder.
 */
+$NoTimeLimits = "Ingen tidsbegrensning";
 $Title = "Tittel";
 $UsersOnline = "Brukere online";
 $Remove = "Fjern";
@@ -305,6 +306,7 @@ $Progress = "Fremdrift";
 $MyProgress = "Min fremdrift";
 $MyGradebook = "Min karakterbok";
 $Gradebook = "Karakterbok";
+$NextWeek = "Neste uke";
 $GeneralDescription = "Generell beskrivelse";
 $Objectives = "Målsettning";
 $Topics = "Emner";
@@ -312,4 +314,5 @@ $Methodology = "Metode";
 $CourseMaterial = "Kurs materiell";
 $HumanAndTechnicalResources = "Menneskelige og tekniske ressurser";
 $Assessment = "Eksamen";
+$UploadADocument = "Last opp ett dokument";
 ?>

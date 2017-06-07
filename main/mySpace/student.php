@@ -4,9 +4,7 @@
  * Student report
  * @package chamilo.reporting
  */
-/**
- * Code
- */
+
  // name of the language file that needs to be included
 $language_file = array ('registration', 'index', 'tracking', 'admin');
 $cidReset = true;
@@ -72,7 +70,6 @@ function get_users($from, $limit, $column, $direction)
     if (api_is_drh()) {
         $column = 'u.user_id';
         if (api_drh_can_access_all_session_content()) {
-
             $students = SessionManager::getAllUsersFromCoursesFromAllSessionFromStatus(
                 'drh_all',
                 api_get_user_id(),
@@ -105,7 +102,8 @@ function get_users($from, $limit, $column, $direction)
             $direction,
             $active,
             $lastConnectionDate,
-            COURSEMANAGER
+            COURSEMANAGER,
+            $keyword
         );
     }
 
@@ -153,8 +151,8 @@ function get_users($from, $limit, $column, $direction)
             $row[] = $student_data['lastname'];
             $row[] = $student_data['firstname'];
         }
-        $string_date = Tracking :: get_last_connection_date($student_id, true);
-        $first_date = Tracking :: get_first_connection_date($student_id);
+        $string_date = Tracking::get_last_connection_date($student_id, true);
+        $first_date = Tracking::get_first_connection_date($student_id);
         $row[] = $first_date;
         $row[] = $string_date;
 
@@ -165,7 +163,16 @@ function get_users($from, $limit, $column, $direction)
             $detailsLink =  '<a href="myStudents.php?student='.$student_id.'">
 				             <img src="'.api_get_path(WEB_IMG_PATH).'2rightarrow.gif" border="0" /></a>';
         }
-        $row[] = $detailsLink;
+
+        $lostPasswordLink = '';
+        if (api_is_drh() || api_is_platform_admin()) {
+            $lostPasswordLink = '&nbsp;'.Display::url(
+                Display::return_icon('edit.png', get_lang('Edit')),
+                api_get_path(WEB_CODE_PATH).'mySpace/user_edit.php?user_id='.$student_id
+            );
+        }
+
+        $row[] = $lostPasswordLink.$detailsLink;
         $all_datas[] = $row;
     }
     return $all_datas;
@@ -198,8 +205,14 @@ if (api_is_drh()) {
 }
 
 $actions .= '<span style="float:right">';
-$actions .= Display::url(Display::return_icon('printer.png', get_lang('Print'), array(), ICON_SIZE_MEDIUM), 'javascript: void(0);', array('onclick'=>'javascript: window.print();'));
-$actions .= Display::url(Display::return_icon('export_csv.png', get_lang('ExportAsCSV'), array(), ICON_SIZE_MEDIUM), api_get_self().'?export=csv&keyword='.$keyword);
+$actions .= Display::url(
+    Display::return_icon('printer.png', get_lang('Print'), array(), ICON_SIZE_MEDIUM), 'javascript: void(0);',
+    array('onclick'=>'javascript: window.print();')
+);
+$actions .= Display::url(
+    Display::return_icon('export_csv.png', get_lang('ExportAsCSV'), array(), ICON_SIZE_MEDIUM),
+    api_get_self().'?export=csv&keyword='.$keyword
+);
 $actions .= '</span>';
 $actions .= '</div>';
 
@@ -249,19 +262,7 @@ if ($export_csv) {
 }
 
 $form = new FormValidator('search_user', 'get', api_get_path(WEB_CODE_PATH).'mySpace/student.php');
-$form->addElement('text', 'keyword', get_lang('Keyword'));
-$form->addElement('select', 'active', get_lang('Status'), array(1 => get_lang('Active'), 0 => get_lang('Inactive')));
-if (isset($_configuration['save_user_last_login']) &&
-    $_configuration['save_user_last_login']
-) {
-    $form->addElement(
-        'select',
-        'sleeping_days',
-        get_lang('InactiveDays'),
-        array('', 1 => 1, 5 => 5, 15 => 15, 30 => 30, 60 => 60, 90 => 90, 120 => 120)
-    );
-}
-$form->addElement('button', 'submit', get_lang('Search'));
+$form = Tracking::setUserSearchForm($form);
 $form->setDefaults($params);
 
 if ($export_csv) {

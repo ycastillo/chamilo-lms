@@ -9,20 +9,11 @@
  * Centro de Supercomputacion de Galicia (CESGA)
  *
  * @author Ivan Tcholakov <ivantcholakov@gmail.com> (technical adaptation for Chamilo 1.8.8), 2010
- */
-/**
- * Code
- */
-define(COURSE_REQUEST_PENDING,  0);
-define(COURSE_REQUEST_ACCEPTED, 1);
-define(COURSE_REQUEST_REJECTED, 2);
-
-/**
- * Course request manager
+ *
  * @package chamilo.library
  */
-class CourseRequestManager {
-
+class CourseRequestManager
+{
     /**
      * Checks whether a given course code has been already occupied.
      * @param string $wanted_course_code    The code to be checked.
@@ -32,7 +23,8 @@ class CourseRequestManager {
      * - a course request with the same code as the given one, or
      * Othewise returns FALSE.
      */
-    public static function course_code_exists($wanted_course_code) {
+    public static function course_code_exists($wanted_course_code)
+    {
         if ($code_exists = CourseManager::course_code_exists($wanted_course_code)) {
             return $code_exists;
         }
@@ -55,7 +47,17 @@ class CourseRequestManager {
      * @param int/string $user_id
      * @return int/bool                 The database id of the newly created course request or FALSE on failure.
      */
-    public static function create_course_request($wanted_code, $title, $description, $category_code, $course_language, $objetives, $target_audience, $user_id, $exemplary_content) {
+    public static function create_course_request(
+        $wanted_code,
+        $title,
+        $description,
+        $category_code,
+        $course_language,
+        $objetives,
+        $target_audience,
+        $user_id,
+        $exemplary_content
+    ) {
         global $_configuration;
         $wanted_code = trim($wanted_code);
         $user_id = (int)$user_id;
@@ -89,7 +91,7 @@ class CourseRequestManager {
         }
         $visual_code = $keys['currentCourseCode'];
         $code = $keys['currentCourseId'];
-        $db_name = $keys['currentCourseDbName'];
+        $db_name = isset($keys['currentCourseDbName']) ? $keys['currentCourseDbName'] : null;
         $directory = $keys['currentCourseRepository'];
 
         $sql = sprintf('INSERT INTO %s (
@@ -102,10 +104,10 @@ class CourseRequestManager {
                 "%s", "%s", "%s", "%s",
                 "%s", "%s", "%s",
                 "%s", "%s", "%s", "%s", "%s");', Database::get_main_table(TABLE_MAIN_COURSE_REQUEST),
-                Database::escape_string($code), Database::escape_string($user_id), Database::escape_string($directory), Database::escape_string($db_name),
-                Database::escape_string($course_language), Database::escape_string($title), Database::escape_string($description), Database::escape_string($category_code),
-                Database::escape_string($tutor_name), Database::escape_string($visual_code), Database::escape_string($request_date),
-                Database::escape_string($objetives), Database::escape_string($target_audience), Database::escape_string($status), Database::escape_string($info), Database::escape_string($exemplary_content));
+            Database::escape_string($code), Database::escape_string($user_id), Database::escape_string($directory), Database::escape_string($db_name),
+            Database::escape_string($course_language), Database::escape_string($title), Database::escape_string($description), Database::escape_string($category_code),
+            Database::escape_string($tutor_name), Database::escape_string($visual_code), Database::escape_string($request_date),
+            Database::escape_string($objetives), Database::escape_string($target_audience), Database::escape_string($status), Database::escape_string($info), Database::escape_string($exemplary_content));
         $result_sql = Database::query($sql);
 
         if (!$result_sql) {
@@ -145,7 +147,26 @@ class CourseRequestManager {
         $recipient_name_admin = api_get_person_name(api_get_setting('administratorName'), api_get_setting('administratorSurname'), null, PERSON_NAME_EMAIL_ADDRESS);
         $recipient_email_admin = get_setting('emailAdministrator');
 
-        @api_mail($recipient_name_admin, $recipient_email_admin, $email_subject, $email_body_admin, $sender_name_teacher, $sender_email_teacher);
+        $userInfo = api_get_user_info($user_id);
+        $plugin = new AppPlugin();
+        $additionalParameters = array(
+            'smsType' => constant($plugin->getSMSPluginName().'::NEW_COURSE_SUGGESTED_TEACHER'),
+            'userId' => $user_id,
+            'userUsername' => $userInfo['username']
+        );
+
+        api_mail_html(
+            $recipient_name_admin,
+            $recipient_email_admin,
+            $email_subject,
+            $email_body_admin,
+            $sender_name_teacher,
+            $sender_email_teacher,
+            null,
+            null,
+            null,
+            $additionalParameters
+        );
 
         // Sending an e-mail to the requestor.
 
@@ -165,7 +186,25 @@ class CourseRequestManager {
         $recipient_name_teacher = $sender_name_teacher;
         $recipient_email_teacher = $sender_email_teacher;
 
-        @api_mail($recipient_name_teacher, $recipient_email_teacher, $email_subject, $email_body_teacher, $sender_name_admin, $sender_email_admin);
+        $plugin = new AppPlugin();
+        $additionalParameters = array(
+            'smsType' => constant($plugin->getSMSPluginName().'::COURSE_OPENING_REQUEST_CODE_REGISTERED'),
+            'userId' => $user_info['user_id'],
+            'courseCode' => $wanted_code
+        );
+
+        api_mail_html(
+            $recipient_name_teacher,
+            $recipient_email_teacher,
+            $email_subject,
+            $email_body_teacher,
+            $sender_name_admin,
+            $sender_email_admin,
+            null,
+            null,
+            null,
+            $additionalParameters
+        );
 
         return $last_insert_id;
 
@@ -261,22 +300,22 @@ class CourseRequestManager {
                 tutor_name = "%s", visual_code = "%s", request_date = "%s",
                 objetives = "%s", target_audience = "%s", status = "%s", info = "%s", exemplary_content = "%s"
             WHERE id = '.$id, Database::get_main_table(TABLE_MAIN_COURSE_REQUEST),
-                Database::escape_string($code),
-                Database::escape_string($user_id),
-                Database::escape_string($directory),
-                Database::escape_string($db_name),
-                Database::escape_string($course_language),
-                Database::escape_string($title),
-                Database::escape_string($description),
-                Database::escape_string($category_code),
-                Database::escape_string($tutor_name),
-                Database::escape_string($visual_code),
-                Database::escape_string($request_date),
-                Database::escape_string($objetives),
-                Database::escape_string($target_audience),
-                Database::escape_string($status),
-                Database::escape_string($info),
-                Database::escape_string($exemplary_content)
+            Database::escape_string($code),
+            intval($user_id),
+            Database::escape_string($directory),
+            Database::escape_string($db_name),
+            Database::escape_string($course_language),
+            Database::escape_string($title),
+            Database::escape_string($description),
+            Database::escape_string($category_code),
+            Database::escape_string($tutor_name),
+            Database::escape_string($visual_code),
+            Database::escape_string($request_date),
+            Database::escape_string($objetives),
+            Database::escape_string($target_audience),
+            Database::escape_string($status),
+            Database::escape_string($info),
+            Database::escape_string($exemplary_content)
         );
         $result_sql = Database::query($sql);
 
@@ -289,14 +328,20 @@ class CourseRequestManager {
      * @param int/string $id            The id (an integer number) of the corresponding database record.
      * @return bool                     Returns TRUE on success or FALSE on failure.
      */
-    public static function delete_course_request($id) {
+    public static function delete_course_request($id)
+    {
         $id = (int)$id;
         $sql = "DELETE FROM ".Database :: get_main_table(TABLE_MAIN_COURSE_REQUEST)." WHERE id = ".$id;
         $result = Database::query($sql);
         return $result !== false;
     }
 
-    public static function count_course_requests($status = null) {
+    /**
+     * @param null $status
+     * @return bool
+     */
+    public static function count_course_requests($status = null)
+    {
         $course_table = Database :: get_main_table(TABLE_MAIN_COURSE_REQUEST);
         if (is_null($status)) {
             $sql = "SELECT COUNT(id) AS number FROM ".$course_table;
@@ -316,9 +361,12 @@ class CourseRequestManager {
      * @param int/string $id              The id (an integer number) of the corresponding database record.
      * @return array/bool                 Returns the requested data as an array or FALSE on failure.
      */
-    public static function get_course_request_info($id) {
+    public static function get_course_request_info($id)
+    {
         $id = (int)$id;
-        $sql = "SELECT * FROM ".Database :: get_main_table(TABLE_MAIN_COURSE_REQUEST)." WHERE id = ".$id;
+        $sql = "SELECT *
+                FROM ".Database :: get_main_table(TABLE_MAIN_COURSE_REQUEST)."
+                WHERE id = ".$id;
         $result = Database::query($sql);
         if (Database::num_rows($result) > 0) {
             return Database::fetch_array($result);
@@ -331,9 +379,12 @@ class CourseRequestManager {
      * @param int/string $id              The id (an integer number) of the corresponding database record.
      * @return string/bool                Returns the requested requested code or FALSE on failure.
      */
-    public static function get_course_request_code($id) {
+    public static function get_course_request_code($id)
+    {
         $id = (int)$id;
-        $sql = "SELECT code FROM ".Database :: get_main_table(TABLE_MAIN_COURSE_REQUEST)." WHERE id = ".$id;
+        $sql = "SELECT code
+                FROM ".Database :: get_main_table(TABLE_MAIN_COURSE_REQUEST)."
+                WHERE id = ".$id;
         $result = Database::query($sql);
         if (Database::num_rows($result) > 0) {
             $result_array = Database::fetch_array($result, 'NUM');
@@ -351,7 +402,6 @@ class CourseRequestManager {
      */
     public static function accept_course_request($id)
     {
-
         $id = (int)$id;
 
         // Retrieve request's data
@@ -390,7 +440,9 @@ class CourseRequestManager {
         if (!empty($course_info)) {
 
             // Mark the request as accepted.
-            $sql = "UPDATE ".Database :: get_main_table(TABLE_MAIN_COURSE_REQUEST)." SET status = ".COURSE_REQUEST_ACCEPTED." WHERE id = ".$id;
+            $sql = "UPDATE ".Database :: get_main_table(TABLE_MAIN_COURSE_REQUEST)."
+                    SET status = ".COURSE_REQUEST_ACCEPTED."
+                    WHERE id = ".$id;
             Database::query($sql);
 
             // E-mail notification.
@@ -416,7 +468,26 @@ class CourseRequestManager {
             $recipient_email = $user_info['mail'];
             $extra_headers = 'Bcc: '.$sender_email;
 
-            @api_mail($recipient_name, $recipient_email, $email_subject, $email_body, $sender_name, $sender_email);
+            $plugin = new AppPlugin();
+            $additionalParameters = array(
+                'smsType' => constant($plugin->getSMSPluginName().'::COURSE_OPENING_REQUEST_CODE_APPROVED'),
+                'userId' => $user_id,
+                'courseCode' => $course_info['code']
+            );
+
+            api_mail_html(
+                $recipient_name,
+                $recipient_email,
+                $email_subject,
+                $email_body,
+                $sender_name,
+                $sender_email,
+                null,
+                null,
+                null,
+                $additionalParameters
+            );
+
             return $course_info['code'];
         }
         return false;
@@ -429,9 +500,7 @@ class CourseRequestManager {
      */
     public static function reject_course_request($id)
     {
-
         $id = (int)$id;
-
         // Retrieve request's data
         $course_request_info = self::get_course_request_info($id);
         if (!is_array($course_request_info)) {
@@ -458,8 +527,6 @@ class CourseRequestManager {
         // E-mail notification.
 
         // E-mail language: The platform language seems to be the best choice.
-        //$email_language = $course_language;
-        //$email_language = api_get_interface_language();
         $email_language = api_get_setting('platformLanguage');
 
         $email_subject = sprintf(get_lang('CourseRequestRejectedEmailSubject', null, $email_language), '['.api_get_setting('siteName').']', $code);
@@ -480,7 +547,25 @@ class CourseRequestManager {
         $recipient_email = $user_info['mail'];
         $extra_headers = 'Bcc: '.$sender_email;
 
-        @api_mail($recipient_name, $recipient_email, $email_subject, $email_body, $sender_name, $sender_email);
+        $plugin = new AppPlugin();
+        $additionalParameters = array(
+            'smsType' => constant($plugin->getSMSPluginName().'::COURSE_OPENING_REQUEST_CODE_REJECTED'),
+            'userId' => $user_id,
+            'courseCode' => $code
+        );
+
+        api_mail_html(
+            $recipient_name,
+            $recipient_email,
+            $email_subject,
+            $email_body,
+            $sender_name,
+            $sender_email,
+            null,
+            null,
+            null,
+            $additionalParameters
+        );
 
         return true;
     }
@@ -490,8 +575,8 @@ class CourseRequestManager {
      * @param int/string $id            The database primary id of the given request.
      * @return bool                     Returns TRUE on success or FALSE on failure.
      */
-    public static function ask_for_additional_info($id) {
-
+    public static function ask_for_additional_info($id)
+    {
         $id = (int)$id;
 
         // Retrieve request's data
@@ -521,10 +606,7 @@ class CourseRequestManager {
         // E-mail notification.
 
         // E-mail language: The platform language seems to be the best choice.
-        //$email_language = $course_language;
-        //$email_language = api_get_interface_language();
         $email_language = api_get_setting('platformLanguage');
-
         $email_subject = sprintf(get_lang('CourseRequestAskInfoEmailSubject', null, $email_language), '['.api_get_setting('siteName').']', $code);
 
         $email_body = get_lang('Dear', null, $email_language).' ';
@@ -543,7 +625,26 @@ class CourseRequestManager {
         $recipient_email = $user_info['mail'];
         $extra_headers = 'Bcc: '.$sender_email;
 
-        $result = @api_mail($recipient_name, $recipient_email, $email_subject, $email_body, $sender_name, $sender_email);
+        $plugin = new AppPlugin();
+        $additionalParameters = array(
+            'smsType' => constant($plugin->getSMSPluginName().'::COURSE_OPENING_REQUEST_CODE'),
+            'userId' => $user_id,
+            'courseCode' => $code
+        );
+
+        $result = api_mail_html(
+            $recipient_name,
+            $recipient_email,
+            $email_subject,
+            $email_body,
+            $sender_name,
+            $sender_email,
+            null,
+            null,
+            null,
+            $additionalParameters
+        );
+
         if (!$result) {
             return false;
         }
@@ -560,11 +661,12 @@ class CourseRequestManager {
      * @param int/string $id            The database primary id of the given request.
      * @return bool                     Returns TRUE if additional information has been asked or FALSE otherwise.
      */
-    public static function additional_info_asked($id) {
+    public static function additional_info_asked($id)
+    {
         $id = (int)$id;
-        $sql = "SELECT id FROM ".Database :: get_main_table(TABLE_MAIN_COURSE_REQUEST)." WHERE (id = ".$id." AND info > 0)";
+        $sql = "SELECT id FROM ".Database :: get_main_table(TABLE_MAIN_COURSE_REQUEST)."
+                WHERE (id = ".$id." AND info > 0)";
         $result = Database::num_rows(Database::query($sql));
         return !empty($result);
     }
-
 }

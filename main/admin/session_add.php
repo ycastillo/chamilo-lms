@@ -26,6 +26,8 @@ $this_section=SECTION_PLATFORM_ADMIN;
 
 api_protect_admin_script(true);
 
+api_protect_limit_for_session_admin();
+
 $formSent=0;
 $errorMsg='';
 
@@ -95,41 +97,74 @@ function fill_coach_field (username) {
 </script>';
 
 
-if ($_POST['formSent']) {
-	$formSent = 1;
-	$name                  = $_POST['name'];
-	$year_start            = $_POST['year_start'];
-	$month_start           = $_POST['month_start'];
-	$day_start             = $_POST['day_start'];
-	$year_end              = $_POST['year_end'];
-	$month_end             = $_POST['month_end'];
-	$day_end               = $_POST['day_end'];
-	$nb_days_acess_before  = $_POST['nb_days_acess_before'];
-	$nb_days_acess_after   = $_POST['nb_days_acess_after'];
-	//$nolimit               = $_POST['nolimit'];
-	$coach_username        = $_POST['coach_username'];
-	$id_session_category   = $_POST['session_category'];
-	$id_visibility         = $_POST['session_visibility'];
+if (isset($_POST['formSent']) && $_POST['formSent']) {
+    $check = Security::check_token('post');
+    Security::clear_token();
+    if ($check) {
+        $formSent = 1;
+        $name = $_POST['name'];
+        $year_start = $_POST['year_start'];
+        $month_start = $_POST['month_start'];
+        $day_start = $_POST['day_start'];
+        $year_end = $_POST['year_end'];
+        $month_end = $_POST['month_end'];
+        $day_end = $_POST['day_end'];
+        $nb_days_acess_before = $_POST['nb_days_acess_before'];
+        $nb_days_acess_after = $_POST['nb_days_acess_after'];
+        $coach_username = $_POST['coach_username'];
+        $id_session_category = $_POST['session_category'];
+        $id_visibility = $_POST['session_visibility'];
+        $end_limit = $_POST['end_limit'];
+        $start_limit = $_POST['start_limit'];
+        $duration = isset($_POST['duration']) ? $_POST['duration'] : null;
 
-    $end_limit             = $_POST['end_limit'];
-    $start_limit           = $_POST['start_limit'];
+        if (empty($end_limit) && empty($start_limit)) {
+            $nolimit = 1;
+        } else {
+            $nolimit = null;
+        }
 
-    if (empty($end_limit) && empty($start_limit)) {
-        $nolimit = 1;
+        $return = SessionManager::create_session(
+            $name,
+            $year_start,
+            $month_start,
+            $day_start,
+            $year_end,
+            $month_end,
+            $day_end,
+            $nb_days_acess_before,
+            $nb_days_acess_after,
+            $nolimit,
+            $coach_username,
+            $id_session_category,
+            $id_visibility,
+            $start_limit,
+            $end_limit,
+            $duration
+        );
+
+        if ($return == strval(intval($return))) {
+            // integer => no error on session creation
+            header('Location: add_courses_to_session.php?id_session=' . $return . '&add=true&msg=');
+            exit();
+        }
     } else {
-    	$nolimit = null;
+        header('Location: '.api_get_self());
+        exit();
     }
-	$return = SessionManager::create_session($name,$year_start,$month_start,$day_start,$year_end,$month_end,$day_end,$nb_days_acess_before,$nb_days_acess_after,$nolimit,$coach_username, $id_session_category,$id_visibility, $start_limit, $end_limit);
-
-	if ($return == strval(intval($return))) {
-		// integer => no error on session creation
-		header('Location: add_courses_to_session.php?id_session='.$return.'&add=true&msg=');
-		exit();
-	}
 }
 
-$nb_days_acess_before = 0;
-$nb_days_acess_after = 0;
+$token = Security::get_token();
+
+
+global $_configuration;
+$defaultBeforeDays = isset($_configuration['session_days_before_coach_access']) ?
+    $_configuration['session_days_before_coach_access'] : 0;
+$defaultAfterDays = isset($_configuration['session_days_after_coach_access'])
+    ? $_configuration['session_days_after_coach_access'] : 0;
+
+$nb_days_acess_before = $defaultBeforeDays;
+$nb_days_acess_after = $defaultAfterDays;
 
 $thisYear=date('Y');
 $thisMonth=date('m');
@@ -145,16 +180,16 @@ if (!empty($return)) {
 echo '<div class="actions">';
 echo '<a href="../admin/index.php">'.Display::return_icon('back.png', get_lang('BackTo').' '.get_lang('PlatformAdmin'),'',ICON_SIZE_MEDIUM).'</a>';
 echo '</div>';
-
 ?>
 <form class="form-horizontal" method="post" name="form" action="<?php echo api_get_self(); ?>" style="margin:0px;">
+    <input type="hidden" name="sec_token" value="<?php echo $token; ?>">
     <input type="hidden" name="formSent" value="1">
     <div class="control-group">
         <label class="control-label">
             <?php echo get_lang('SessionName') ?>
         </label>
         <div class="controls">
-            <input type="text" name="name" class="span4" maxlength="50" value="<?php if($formSent) echo api_htmlentities($name,ENT_QUOTES,$charset); ?>">
+            <input type="text" name="name" class="span4" maxlength="50" value="<?php if($formSent) echo Security::remove_XSS($name); ?>">
         </div>
     </div>
 
@@ -204,9 +239,6 @@ $Categories = SessionManager::get_all_session_category();
 ?>
         </div>
     </div>
-
-
-
     <div class="control-group">
         <label class="control-label">
             <?php echo get_lang('SessionCategory') ?>
@@ -230,8 +262,8 @@ $Categories = SessionManager::get_all_session_category();
             <a href="javascript://" onclick="if(document.getElementById('options').style.display == 'none'){document.getElementById('options').style.display = 'block';}else{document.getElementById('options').style.display = 'none';}"><?php echo get_lang('DefineSessionOptions') ?></a>
         <div style="display: <?php if($formSent && ($nb_days_acess_before!=0 || $nb_days_acess_after!=0)) echo 'block'; else echo 'none'; ?>;" id="options">
             <br />
-            <input type="text" name="nb_days_acess_before" value="<?php echo $nb_days_acess_before; ?>" style="width: 30px;">&nbsp;<?php echo get_lang('DaysBefore') ?><br /><br />
-            <input type="text" name="nb_days_acess_after" value="<?php echo $nb_days_acess_after; ?>" style="width: 30px;">&nbsp;<?php echo get_lang('DaysAfter') ?>
+            <input type="text" name="nb_days_acess_before" value="<?php echo intval($nb_days_acess_before); ?>" style="width: 30px;">&nbsp;<?php echo get_lang('DaysBefore') ?><br /><br />
+            <input type="text" name="nb_days_acess_after" value="<?php echo intval($nb_days_acess_after); ?>" style="width: 30px;">&nbsp;<?php echo get_lang('DaysAfter') ?>
             <br />
         </div>
         </div>
@@ -306,12 +338,8 @@ for ($i=$thisYear-5;$i <= ($thisYear+5);$i++) {
 ?>
     </select>
     </div>
-
         </div>
     </div>
-
-
-
  <div class="control-group">
         <div class="controls">
             <label for="end_limit">
@@ -371,7 +399,6 @@ for ($i=$thisYear-5;$i <= ($thisYear+5);$i++) {
   </select>
   /
   <select name="year_end">
-
 <?php
 for ($i=$thisYear-5;$i <= ($thisYear+5);$i++) {
 ?>
@@ -384,16 +411,36 @@ for ($i=$thisYear-5;$i <= ($thisYear+5);$i++) {
     <?php echo get_lang('SessionVisibility') ?>
     <select name="session_visibility" style="width:250px;">
         <?php
-        $visibility_list = array(SESSION_VISIBLE_READ_ONLY=>get_lang('SessionReadOnly'), SESSION_VISIBLE=>get_lang('SessionAccessible'), SESSION_INVISIBLE=>api_ucfirst(get_lang('SessionNotAccessible')));
+        $visibility_list = array(
+            SESSION_VISIBLE_READ_ONLY => get_lang('SessionReadOnly'),
+            SESSION_VISIBLE => get_lang('SessionAccessible'),
+            SESSION_INVISIBLE => api_ucfirst(get_lang('SessionNotAccessible'))
+        );
         foreach($visibility_list as $key=>$item): ?>
-        <option value="<?php echo $key; ?>" <?php if($item == $visibility_id) echo 'selected="selected"'; ?>><?php echo $item; ?></option>
+        <option value="<?php echo $key; ?>"><?php echo $item; ?></option>
         <?php endforeach; ?>
     </select>
      </div>
-
         </div>
     </div>
 
+    <?php
+    if (SessionManager::durationPerUserIsEnabled()) {
+        ?>
+        <div class="control-group">
+            <label class="control-label">
+                <?php echo get_lang('SessionDurationTitle') ?> <br />
+            </label>
+            <div class="controls">
+                <input id="duration" type="text" name="duration" class="span1" maxlength="50" value="">
+                <br />
+                <?php echo get_lang('SessionDurationDescription') ?>
+            </div>
+        </div>
+
+    <?php
+    }
+    ?>
 
  <div class="control-group">
     <div class="controls">
@@ -433,6 +480,8 @@ function disable_endtime(select) {
         end_div.style.display = 'block';
      else
         end_div.style.display = 'none';
+
+    emptyDuration();
 }
 
 function disable_starttime(select) {
@@ -441,6 +490,14 @@ function disable_starttime(select) {
         start_div.style.display = 'block';
      else
         start_div.style.display = 'none';
+
+    emptyDuration();
+}
+
+function emptyDuration() {
+    if ($('#duration').val()) {
+        $('#duration').val('');
+    }
 }
 </script>
 <?php

@@ -3,17 +3,23 @@ header('Content-type: text/html; charset=utf-8');
 
 // The following variables values must reflect your installation needs.
 
-$aspell_prog	= '"C:\Program Files\Aspell\bin\aspell.exe"';	// by FredCK (for Windows)
-//$aspell_prog	= 'aspell';										// by FredCK (for Linux)
+require_once '../../../../../../../../inc/global.inc.php';
 
+$aspellBinary = api_get_configuration_value('aspell_bin');
+$aspellOptions = api_get_configuration_value('aspell_opts');
+$aspellTempDir = api_get_configuration_value('aspell_temp_dir');
+
+$aspell_prog	= !empty($aspellBinary) ? $aspellBinary : '"C:\Program Files\Aspell\bin\aspell.exe"';
 $lang			= 'en_US';
-$aspell_opts	= "-a --lang=$lang --encoding=utf-8 -H --rem-sgml-check=alt";		// by FredCK
-
-$tempfiledir	= "./";
+$aspell_opts	= !empty($aspellOptions) ? $aspellOptions : "-a --lang=$lang --encoding=utf-8 -H --rem-sgml-check=alt";
+$tempfiledir	= !empty($aspellTempDir) ? $aspellTempDir : "./";
 
 $spellercss		= '../spellerStyle.css';						// by FredCK
 $word_win_src	= '../wordWindow.js';							// by FredCK
 
+if (empty($_POST['textinputs']) || !is_array($_POST['textinputs'])) {
+  die();
+}
 $textinputs		= $_POST['textinputs']; # array
 $input_separator = "A";
 
@@ -22,9 +28,11 @@ $input_separator = "A";
 # value of the text control submitted for spell-checking
 function print_textinputs_var() {
 	global $textinputs;
-	foreach( $textinputs as $key=>$val ) {
+	for( $i = 0; $i < count( $textinputs ); $i++ ) {
+		if (!isset($textinputs[$i]))
+			break;
 		# $val = str_replace( "'", "%27", $val );
-		echo "textinputs[$key] = decodeURIComponent(\"" . $val . "\");\n";
+		echo "textinputs[$i] = decodeURIComponent(\"" . htmlspecialchars($textinputs[$i], ENT_QUOTES) . "\");\n";
 	}
 }
 
@@ -81,6 +89,8 @@ function print_checker_results() {
 	# open temp file, add the submitted text.
 	if( $fh = fopen( $tempfile, 'w' )) {
 		for( $i = 0; $i < count( $textinputs ); $i++ ) {
+			if (!isset($textinputs[$i]))
+				break;
 			$text = urldecode( $textinputs[$i] );
 
 			// Strip all tags for the text. (by FredCK - #339 / #681)

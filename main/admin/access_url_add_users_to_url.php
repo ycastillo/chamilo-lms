@@ -12,13 +12,13 @@
 $language_file = 'admin';
 $cidReset = true;
 require_once '../inc/global.inc.php';
-$this_section=SECTION_PLATFORM_ADMIN;
+$this_section = SECTION_PLATFORM_ADMIN;
 
 require_once api_get_path(LIBRARY_PATH).'urlmanager.lib.php';
 api_protect_global_admin_script();
 if (!api_get_multiple_access_url()) {
-    header('Location: index.php');
-    exit;
+	header('Location: index.php');
+	exit;
 }
 
 $form_sent = 0;
@@ -79,12 +79,12 @@ if (empty($first_letter_user)) {
     }
 	unset($result);
 }
-$first_letter_user = Database::escape_string($first_letter_user);
+$first_letter_user_lower = Database::escape_string(api_strtolower($first_letter_user));
 
 $target_name = api_sort_by_first_name() ? 'firstname' : 'lastname';
 $target_name = 'lastname';
 $sql = "SELECT user_id,lastname,firstname,username FROM $tbl_user
-	    WHERE ".$target_name." LIKE '".$first_letter_user."%' OR ".$target_name." LIKE '".api_strtolower($first_letter_user)."%'
+	    WHERE ".$target_name." LIKE '".$first_letter_user_lower."%' OR ".$target_name." LIKE '".$first_letter_user_lower."%'
 		ORDER BY ". (count($users) > 0 ? "(user_id IN(".implode(',', $users).")) DESC," : "")." ".$target_name;
 $result     = Database::query($sql);
 $db_users   = Database::store_result($result);

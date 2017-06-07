@@ -13,7 +13,8 @@
 
 // Language file that needs to be included
 $language_file = 'survey';
-if (!isset ($_GET['cidReq'])){
+
+if (!isset($_GET['cidReq'])) {
     $_GET['cidReq'] = 'none'; // Prevent sql errors
     $cidReset = true;
 }
@@ -21,9 +22,10 @@ if (!isset ($_GET['cidReq'])){
 // Including the global initialization file
 require_once '../inc/global.inc.php';
 $this_section = SECTION_COURSES;
-$current_course_tool  = TOOL_SURVEY;
+$current_course_tool = TOOL_SURVEY;
 
 api_protect_course_script(true);
+$action = isset($_GET['action']) ? Security::remove_XSS($_GET['action']) : null;
 
 // Including additional libraries
 require_once 'survey.lib.php';
@@ -31,10 +33,28 @@ require_once 'survey.lib.php';
 // Tracking
 event_access_tool(TOOL_SURVEY);
 
-/** @todo This has to be moved to a more appropriate place (after the display_header of the code)*/
-if (!api_is_allowed_to_edit(false, true)) { // Coach can see this
+/** @todo
+ * This has to be moved to a more appropriate place (after the display_header
+ * of the code)
+ */
+
+$courseInfo = api_get_course_info();
+$isDrhOfCourse = CourseManager::isUserSubscribedInCourseAsDrh(
+    api_get_user_id(),
+    $courseInfo
+);
+
+if ($isDrhOfCourse) {
     Display::display_header(get_lang('SurveyList'));
-    SurveyUtil::survey_list_user($_user['user_id']);
+    SurveyUtil::displaySurveyListForDrh();
+    Display::display_footer();
+    exit;
+}
+
+if (!api_is_allowed_to_edit(false, true)) {
+    // Coach can see this
+    Display::display_header(get_lang('SurveyList'));
+    SurveyUtil::survey_list_user(api_get_user_id());
     Display::display_footer();
     exit;
 }
@@ -42,17 +62,26 @@ if (!api_is_allowed_to_edit(false, true)) { // Coach can see this
 $extend_rights_for_coachs = api_get_setting('extend_rights_for_coach_on_survey');
 
 // Database table definitions
-$table_survey 			= Database :: get_course_table(TABLE_SURVEY);
-$table_survey_question 	= Database :: get_course_table(TABLE_SURVEY_QUESTION);
-$table_course 			= Database :: get_main_table(TABLE_MAIN_COURSE);
-$table_user 			= Database :: get_main_table(TABLE_MAIN_USER);
+$table_survey = Database:: get_course_table(TABLE_SURVEY);
+$table_survey_question = Database:: get_course_table(TABLE_SURVEY_QUESTION);
+$table_course = Database:: get_main_table(TABLE_MAIN_COURSE);
+$table_user = Database:: get_main_table(TABLE_MAIN_USER);
 
 // Language variables
 if (isset($_GET['search']) && $_GET['search'] == 'advanced') {
-    $interbreadcrumb[] = array('url' => 'survey_list.php', 'name' => get_lang('SurveyList'));
+    $interbreadcrumb[] = array('url' => api_get_path(WEB_CODE_PATH).'survey/survey_list.php', 'name' => get_lang('SurveyList'));
     $tool_name = get_lang('SearchASurvey');
 } else {
     $tool_name = get_lang('SurveyList');
+}
+
+if ($action == 'copy_survey') {
+    if (api_is_allowed_to_edit()) {
+        survey_manager::copy_survey($_GET['survey_id']);
+        $message = get_lang('Copied');
+        header('Location: ' . api_get_path(WEB_CODE_PATH) . 'survey/survey_list.php?' . api_get_cidreq());
+        exit;
+    }
 }
 
 // Header
@@ -62,11 +91,11 @@ Display::display_header($tool_name, 'Survey');
 Display::display_introduction_section('survey', 'left');
 
 // Action handling: searching
-if (isset ($_GET['search']) && $_GET['search'] == 'advanced') {
+if (isset($_GET['search']) && $_GET['search'] == 'advanced') {
     SurveyUtil::display_survey_search_form();
 }
 // Action handling: deleting a survey
-if (isset($_GET['action']) && $_GET['action'] == 'delete' && isset($_GET['survey_id'])) {
+if ($action == 'delete' && isset($_GET['survey_id'])) {
     // Getting the information of the survey (used for when the survey is shared)
     $survey_data = survey_manager::get_survey($_GET['survey_id']);
     if (api_is_course_coach() && intval($_SESSION['id_session']) != $survey_data['session_id']) {
@@ -79,18 +108,20 @@ if (isset($_GET['action']) && $_GET['action'] == 'delete' && isset($_GET['survey
         survey_manager::delete_survey($survey_data['survey_share'], true);
     }
 
-    $return = survey_manager :: delete_survey($_GET['survey_id']);
+    $return = survey_manager::delete_survey($_GET['survey_id']);
+
     if ($return) {
-        Display :: display_confirmation_message(get_lang('SurveyDeleted'), false);
+        Display::display_confirmation_message(get_lang('SurveyDeleted'), false);
     } else {
-        Display :: display_error_message(get_lang('ErrorOccurred'), false);
+        Display::display_error_message(get_lang('ErrorOccurred'), false);
     }
 }
 
-if (isset($_GET['action']) && $_GET['action'] == 'empty') {
+if ($action == 'empty') {
     $mysession = api_get_session_id();
-    if ( $mysession != 0 ) {
-        if (!((api_is_course_coach() || api_is_platform_admin()) && api_is_element_in_the_session(TOOL_SURVEY,intval($_GET['survey_id'])))) {
+    if ($mysession != 0) {
+        if (!((api_is_course_coach() || api_is_platform_admin()) &&
+            api_is_element_in_the_session(TOOL_SURVEY, $_GET['survey_id']))) {
             // The coach can't empty a survey not belonging to his session
             api_not_allowed();
             exit;
@@ -130,11 +161,12 @@ if (isset($_POST['action']) && $_POST['action']) {
 
 echo '<div class="actions">';
 if (!api_is_course_coach() || $extend_rights_for_coachs == 'true') {
-	// Action links
-	echo '<a href="create_new_survey.php?'.api_get_cidreq().'&amp;action=add">'.Display::return_icon('new_survey.png', get_lang('CreateNewSurvey'),'',ICON_SIZE_MEDIUM).'</a> ';
+    // Action links
+    echo '<a href="'.api_get_path(WEB_CODE_PATH).'survey/create_new_survey.php?'.api_get_cidreq().'&amp;action=add">'.
+        Display::return_icon('new_survey.png', get_lang('CreateNewSurvey'),'',ICON_SIZE_MEDIUM).'</a> ';
 }
-//echo '<a href="survey_all_courses.php">'.get_lang('CreateExistingSurvey').'</a> ';
-echo '<a href="'.api_get_self().'?'.api_get_cidreq().'&amp;search=advanced">'.Display::return_icon('search.png', get_lang('Search'),'',ICON_SIZE_MEDIUM).'</a>';
+echo '<a href="'.api_get_self().'?'.api_get_cidreq().'&amp;search=advanced">'.
+    Display::return_icon('search.png', get_lang('Search'),'',ICON_SIZE_MEDIUM).'</a>';
 echo '</div>';
 
 // Load main content
@@ -151,34 +183,46 @@ Display :: display_footer();
 
 function get_number_of_surveys()
 {
-	return SurveyUtil::get_number_of_surveys();
+    return SurveyUtil::get_number_of_surveys();
 }
 
 function get_survey_data($from, $number_of_items, $column, $direction)
 {
-	return SurveyUtil::get_survey_data($from, $number_of_items, $column, $direction);
+    return SurveyUtil::get_survey_data($from, $number_of_items, $column, $direction);
 }
 
 function modify_filter($survey_id)
 {
-	return SurveyUtil::modify_filter($survey_id);
+    return SurveyUtil::modify_filter($survey_id);
+}
+
+function modify_filter_drh($survey_id)
+{
+    return SurveyUtil::modify_filter($survey_id, true);
 }
 
 function get_number_of_surveys_for_coach()
 {
-	return SurveyUtil::get_number_of_surveys_for_coach();
+    return SurveyUtil::get_number_of_surveys_for_coach();
 }
 function get_survey_data_for_coach($from, $number_of_items, $column, $direction)
 {
-	return SurveyUtil::get_survey_data_for_coach($from, $number_of_items, $column, $direction);
+    return SurveyUtil::get_survey_data_for_coach($from, $number_of_items, $column, $direction);
 }
 
 function modify_filter_for_coach($survey_id)
 {
-	return SurveyUtil::modify_filter_for_coach($survey_id);
+    return SurveyUtil::modify_filter_for_coach($survey_id);
 }
 
 function anonymous_filter($anonymous)
 {
-	return SurveyUtil::anonymous_filter($anonymous);
+    return SurveyUtil::anonymous_filter($anonymous);
 }
+
+function get_survey_data_drh($from, $number_of_items, $column, $direction)
+{
+    return SurveyUtil::get_survey_data($from, $number_of_items, $column, $direction, true);
+}
+
+

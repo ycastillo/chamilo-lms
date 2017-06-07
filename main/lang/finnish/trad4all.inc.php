@@ -3,6 +3,8 @@
 for more information: see languages.txt in the lang folder.
 */
 $DeleteAllAttendances = "Poista kaikki valitut läsnäolot";
+$AddForum = "Lisää uusi keskustelualue";
+$ReplyShort = "VS:";
 $SearchXapianModuleNotInstalled = "Xapian hakumodulia ei ole asennettu";
 $Title = "Otsikko";
 $By = "Kirjoittaja";
@@ -697,6 +699,7 @@ $Topics = "Aiheet";
 $Methodology = "Menetelmä";
 $CourseMaterial = "Kurssimateriaali";
 $Assessment = "Arviointi";
+$UploadADocument = "Tallenna dokumentti";
 $New = "Uusi";
 $AddAdditionalProfileField = "Lisää kenttä käyttäjäprofiiliin";
 $UserAdded = "Käyttäjä lisätty";

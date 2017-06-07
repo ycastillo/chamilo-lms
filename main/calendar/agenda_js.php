@@ -1,11 +1,10 @@
 <?php
 /* For licensing terms, see /license.txt */
+
 /**
  * @package chamilo.calendar
  */
-/**
- * INIT SECTION
- */
+
 use \ChamiloSession as Session;
 
 // name of the language file that needs to be included
@@ -21,7 +20,6 @@ $userId = isset($_REQUEST['user_id']) ? $_REQUEST['user_id'] : null;
 if ($type == 'personal') {
     $cidReset = true; // fixes #5162
 }
-
 require_once '../inc/global.inc.php';
 require_once 'agenda.lib.php';
 require_once 'agenda.inc.php';
@@ -41,7 +39,14 @@ if (api_is_platform_admin() && ($type == 'admin' || $type == 'platform')) {
 }
 
 if (isset($_REQUEST['cidReq']) && !empty($_REQUEST['cidReq'])) {
-    $type = 'course';
+    if ($_REQUEST['cidReq'] == -1) {
+        // When is out of the course tool (e.g My agenda)
+        header('Location: ' . api_get_self());
+        exit;
+    } else {
+        $type = 'course';
+        $this_section = SECTION_COURSES;
+    }
 }
 
 $agenda = new Agenda();
@@ -93,8 +98,14 @@ switch ($type) {
         if (api_is_anonymous()) {
             api_not_allowed(true);
         }
-        $extra_field_data = UserManager::get_extra_user_data_by_field(api_get_user_id(), 'google_calendar_url');
-        if (!empty($extra_field_data) && isset($extra_field_data['google_calendar_url']) && !empty($extra_field_data['google_calendar_url'])) {
+        $extra_field_data = UserManager::get_extra_user_data_by_field(
+            api_get_user_id(),
+            'google_calendar_url'
+        );
+        if (!empty($extra_field_data) &&
+            isset($extra_field_data['google_calendar_url']) &&
+            !empty($extra_field_data['google_calendar_url'])
+        ) {
             $tpl->assign('use_google_calendar', 1);
             $tpl->assign('google_calendar_url', $extra_field_data['google_calendar_url']);
         }
@@ -149,7 +160,7 @@ $actions = $agenda->displayActions('calendar', $userId);
 
 $tpl->assign('actions', $actions);
 
-//Calendar Type : course, admin, personal
+// Calendar Type : course, admin, personal
 $tpl->assign('type', $type);
 
 $type_event_class = $type.'_event';
@@ -189,37 +200,41 @@ if (!empty($userId)) {
 $tpl->assign('web_agenda_ajax_url', $agenda_ajax_url);
 $course_code = api_get_course_id();
 
-//if ((api_is_allowed_to_edit() || $is_group_tutor) && $course_code != '-1' && $type == 'course') {
+$form = new FormValidator('form', 'get', null, null, array('id' => 'add_event_form'));
+$form->addElement('html', '<div id="visible_to_input">');
 
-    $form = new FormValidator('form', 'get', null, null, array('id' => 'add_event_form'));
-    $form->addElement('html', '<div id="visible_to_input">');
+$sendTo = $agenda->parseAgendaFilter($userId);
+$addOnlyItemsInSendTo = true;
 
-    $sendTo = $agenda->parseAgendaFilter($userId);
-    $addOnlyItemsInSendTo = true;
+if ($sendTo['everyone']) {
+    $addOnlyItemsInSendTo = false;
+}
 
-    if ($sendTo['everyone']) {
-        $addOnlyItemsInSendTo = false;
-    }
+$agenda->showToForm($form, $sendTo, array(), $addOnlyItemsInSendTo);
+$form->addElement('html', '</div>');
 
-    $agenda->showToForm($form, $sendTo, array(), $addOnlyItemsInSendTo);
+$form->addElement('html', '<div id="visible_to_read_only" style="display: none">');
+$form->addElement('label', get_lang('To'), '<div id="visible_to_read_only_users"></div>');
+$form->addElement('html', '</div>');
+
+$form->addElement('label', get_lang('Agenda'), '<div id ="color_calendar"></div>');
+$form->addElement('label', get_lang('Date'), '<span id="start_date"></span><span id="end_date"></span>');
+$form->addElement('text', 'title', get_lang('Title'), array('id' => 'title'));
+$form->addElement('textarea', 'content', get_lang('Description'), array('id' => 'content'));
+
+$allowEventComment = api_get_configuration_value('allow_agenda_event_comment');
+
+if ($agenda->type == 'course') {
+    $form->addElement('html', '<div id="add_as_announcement_div" style="display: none">');
+    $form->addElement('checkbox', 'add_as_annonuncement', null, get_lang('AddAsAnnouncement'));
     $form->addElement('html', '</div>');
-
-    $form->addElement('html', '<div id="visible_to_read_only" style="display: none">');
-    $form->addElement('label', get_lang('To'), '<div id="visible_to_read_only_users"></div>');
-    $form->addElement('html', '</div>');
-
-    $form->addElement('label', get_lang('Agenda'), '<div id ="color_calendar"></div>');
-    $form->addElement('label', get_lang('Date'), '<span id="start_date"></span><span id="end_date"></span>');
-    $form->addElement('text', 'title', get_lang('Title'), array('id' => 'title'));
-    $form->addElement('textarea', 'content', get_lang('Description'), array('id' => 'content'));
-    if ($agenda->type == 'course') {
-        $form->addElement('html', '<div id="add_as_announcement_div" style="display: none">');
-        $form->addElement('checkbox', 'add_as_annonuncement', null, get_lang('AddAsAnnouncement'));
-        $form->addElement('html', '</div>');
+    if ($allowEventComment) {
+        $form->addElement('textarea', 'comment', get_lang('Comment'), array('id' => 'comment'));
     }
+}
 
-    $tpl->assign('form_add', $form->return_form());
-//}
+$tpl->assign('form_add', $form->return_form());
+$tpl->assign('allow_agenda_event_comment', $allowEventComment);
 
 // Loading Agenda template.
 $content = $tpl->fetch('default/agenda/month.tpl');

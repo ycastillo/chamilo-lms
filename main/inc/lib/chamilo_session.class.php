@@ -84,9 +84,40 @@ class ChamiloSession extends System\Session
           }
          */
 
-        if (self::session_stored_in_db() && function_exists('session_set_save_handler')) {
-            $handler = new SessionHandler();
-            @session_set_save_handler(array(& $handler, 'open'), array(& $handler, 'close'), array(& $handler, 'read'), array(& $handler, 'write'), array(& $handler, 'destroy'), array(& $handler, 'garbage'));
+        if (isset($_configuration['session_stored_in_db']) && 
+                $_configuration['session_stored_in_db'] && 
+                function_exists('session_set_save_handler')
+           ) {
+            $handler = new SessionHandlerDatabase();
+            @session_set_save_handler(
+                array($handler, 'open'),
+                array($handler, 'close'),
+                array($handler, 'read'),
+                array($handler, 'write'),
+                array($handler, 'destroy'),
+                array($handler, 'garbage')
+            );
+        }
+
+        // An alternative session handler, storing the session in memcache,
+        // and in the DB as backup for memcache server failure, can be used
+        // by defining specific configuration settings. 
+        // This requires memcache or memcached and the php5-memcache module
+        // to be installed.
+        // See configuration.dist.php for greater details
+        if (isset($_configuration['session_stored_in_db_as_backup']) && 
+                $_configuration['session_stored_in_db_as_backup'] && 
+                function_exists('session_set_save_handler')
+           ) {
+            $handler = new SessionHandlerMemcache();
+            session_set_save_handler(
+                array(&$handler, 'open'),
+                array(&$handler, 'close'),
+                array(&$handler, 'read'),
+                array(&$handler, 'write'),
+                array(&$handler, 'destroy'),
+                array(&$handler, 'gc')
+            );
         }
 
         /*
@@ -120,17 +151,17 @@ class ChamiloSession extends System\Session
         if ($already_installed) {
             if (!isset($session['checkChamiloURL'])) {
                 $session['checkChamiloURL'] = api_get_path(WEB_PATH);
-            } else if ($session['checkChamiloURL'] != api_get_path(WEB_PATH)) {
+            } elseif ($session['checkChamiloURL'] != api_get_path(WEB_PATH)) {
                 self::clear();
             }
         }
 
-        /*if (!$session->has('starttime') || $session->is_valid()) {
+        /*if (!$session->has('starttime') && !$session->is_expired()) {
             $session->write('starttime', time());
         }*/
-        // if the session time has expired, refresh the starttime value, so we're starting to count down from a later time
-        if ( $session->has('starttime') && $session->is_valid()) {
-            //error_log('Time expired, cancel session');
+        // If the session time has expired, refresh the starttime value,
+        //  so we're starting to count down from a later time
+        if ( $session->has('starttime') && $session->is_expired()) {
             $session->destroy();
         } else {
             //error_log('Time not expired, extend session for a bit more');
@@ -160,22 +191,12 @@ class ChamiloSession extends System\Session
     }
 
     /**
-     * Returns true if the session is stalled. I.e. if session end time is
-     * greater than now. Returns false otherwise.
-     * @return bool True if the session is expired. False otherwise
+     * Returns whether the session is expired
+     * @return bool True if the session is expired, false if it is still valid
      */
-    function is_stalled()
+    public function is_expired()
     {
-        return $this->end_time() >= time();
-    }
-
-    /**
-     * Returns whether the session is not stalled
-     * @return bool True if the session is still valid, false otherwise
-     */
-    public function is_valid()
-    {
-        return !$this->is_stalled();
+        return $this->end_time() < time();
     }
 
     /**

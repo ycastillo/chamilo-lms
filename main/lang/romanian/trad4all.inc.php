@@ -2,6 +2,9 @@
 /*
 for more information: see languages.txt in the lang folder.
 */
+$AddForum = "Adaugati un forum nou";
+$ReplyShort = "Re:";
+$NoTimeLimits = "Fara limite de timp";
 $Title = "Titlu";
 $By = "De";
 $UsersOnline = "Utilizatori online";
@@ -608,6 +611,7 @@ $SaveIntroText = "Salvati introducerea textului";
 $CourseName = "Numele cursului";
 $SendAMessage = "Trimite un mesaj";
 $Menu = "Meniu";
+$NextWeek = "Saptamana viitoare";
 $GeneralDescription = "Descriere generala";
 $GeneralDescriptionQuestions = "Care este locul cursului in prgram? Exista cerinte de indeplinit? Cum este cursul in relatie cu alte cursuri?";
 $GeneralDescriptionInformation = "Descrie cursul (numarul de ore, codul oficial, camera unde se desfasoara...) si profesorul (nume, prenume, birou, telefon, e-mail...).";
@@ -629,4 +633,5 @@ $HumanAndTechnicalResourcesInformation = "Scurta descriere a diferitelor persoan
 $Assessment = "Evaluare";
 $AssessmentQuestions = "Cum vor fi utilizatorii evaluati? Exista si alte strategii suplimentare pentru o intelegere cat mai buna a acestui subiect de discutie?";
 $AssessmentInformation = "Exemple de intrebari la examen. Crieteriu de succes. Indicatii si trucuri.";
+$UploadADocument = "Incarcati documentul";
 ?>

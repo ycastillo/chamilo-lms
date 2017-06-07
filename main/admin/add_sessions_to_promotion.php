@@ -38,8 +38,7 @@ if (isset($_REQUEST['add_type']) && $_REQUEST['add_type']!=''){
 }
 
 $htmlHeadXtra[] = $xajax->getJavascript('../inc/lib/xajax/');
-$htmlHeadXtra[] = '
-<script>
+$htmlHeadXtra[] = '<script>
 function add_user_to_session (code, content) {
 
     document.getElementById("user_to_add").value = "";
@@ -94,7 +93,7 @@ if (isset($_POST['form_sent']) && $_POST['form_sent']) {
 }
 
 $promotion_data = $promotion->get($id);
-$session_list   = SessionManager::get_sessions_list(array(), array('name'));
+$session_list = SessionManager::get_sessions_list(array(), array('name'));
 $session_not_in_promotion = $session_in_promotion= array();
 
 if (!empty($session_list)) {
@@ -124,20 +123,21 @@ function search_sessions($needle, $type)
 
         // xajax send utf8 datas... datas in db can be non-utf8 datas
         $charset = api_get_system_encoding();
-        $needle = Database::escape_string($needle);
         $needle = api_convert_encoding($needle, $charset, 'utf-8');
 
-        $session_list = SessionManager::get_sessions_list(array('s.name LIKE' => "$needle%"));
+        $session_list = SessionManager::get_sessions_list(
+            array('s.name' => array('operator' => 'LIKE', 'value' => "$needle%"))
+        );
         $return .= '<select id="session_not_in_promotion" name="session_not_in_promotion_name[]" multiple="multiple" size="15" style="width:360px;">';
-        foreach ($session_list as $row ) {
+        foreach ($session_list as $row) {
             if (!in_array($row['id'], array_keys($session_in_promotion))) {
                 $return .= '<option value="'.$row['id'].'">'.$row['name'].'</option>';
             }
         }
         $return .= '</select>';
         $xajax_response -> addAssign('ajax_list_multiple','innerHTML',api_utf8_encode($return));
-
     }
+
     return $xajax_response;
 }
 $xajax->processRequests();

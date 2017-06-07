@@ -5,7 +5,6 @@
 *	@author Julio Montoya <gugli100@gmail.com>
 */
 
-
 // name of the language file that needs to be included
 $language_file = 'admin';
 
@@ -41,20 +40,18 @@ $interbreadcrumb[] = array ('url' => 'index.php', 'name' => get_lang('PlatformAd
 $interbreadcrumb[] = array ('url' => 'access_urls.php', 'name' => get_lang('MultipleAccessURLs'));
 
 $add_type = 'multiple';
-if(isset($_REQUEST['add_type']) && $_REQUEST['add_type']!=''){
+if(isset($_REQUEST['add_type']) && $_REQUEST['add_type']!='') {
 	$add_type = Security::remove_XSS($_REQUEST['add_type']);
-
 }
 
 $access_url_id=1;
-if(isset($_REQUEST['access_url_id']) && $_REQUEST['access_url_id']!=''){
+if (isset($_REQUEST['access_url_id']) && $_REQUEST['access_url_id']!='') {
 	$access_url_id = Security::remove_XSS($_REQUEST['access_url_id']);
 }
 
 $xajax -> processRequests();
 $htmlHeadXtra[] = $xajax->getJavascript('../inc/lib/xajax/');
-$htmlHeadXtra[] = '
-<script type="text/javascript">
+$htmlHeadXtra[] = '<script>
 function add_user_to_url(code, content) {
 
 	document.getElementById("course_to_add").value = "";
@@ -68,16 +65,14 @@ function add_user_to_url(code, content) {
 }
 
 function send() {
-
-	if (document.formulaire.access_url_id.value!=0) {
+	if (document.formulaire.access_url_id.value != 0) {
 		document.formulaire.form_sent.value=0;
 		document.formulaire.add_type.value=\''.$add_type.'\';
 		document.formulaire.submit();
 	}
 }
 
-function remove_item(origin)
-{
+function remove_item(origin) {
 	for(var i = 0 ; i<origin.options.length ; i++) {
 		if(origin.options[i].selected) {
 			origin.options[i]=null;
@@ -87,25 +82,25 @@ function remove_item(origin)
 }
 </script>';
 
-$form_sent=0;
-$errorMsg='';
-$UserList=$SessionList=array();
-$users=$sessions=array();
+$form_sent = 0;
+$errorMsg = '';
+$UserList = $SessionList = array();
+$users = $sessions = array();
 
 if (isset($_POST['form_sent']) && $_POST['form_sent']) {
 	$form_sent=$_POST['form_sent'];
 	$course_list=$_POST['course_list'];
 
-	if(!is_array($course_list)) {
+	if (!is_array($course_list)) {
 		$course_list=array();
 	}
 
-	if($form_sent == 1) {
+	if ($form_sent == 1) {
 		if ($access_url_id==0) {
 			header('Location: access_url_edit_users_to_url.php?action=show_message&message='.get_lang('SelectURL'));
 		}
 		elseif(is_array($course_list) ) {
-			UrlManager::update_urls_rel_course($course_list,$access_url_id);
+			UrlManager::update_urls_rel_course($course_list, $access_url_id);
 			header('Location: access_urls.php?action=show_message&message='.get_lang('CoursesWereEdited'));
 		}
 	}
@@ -199,6 +194,7 @@ $url_list = UrlManager::get_url_data();
 if(!empty($errorMsg)) {
 	Display::display_normal_message($errorMsg); //main API
 }
+
 ?>
 
 <table border="0" cellpadding="5" cellspacing="0" width="100%">
@@ -282,7 +278,6 @@ unset($course_list);
 </form>
 
 <script type="text/javascript">
-<!--
 function moveItem(origin , destination) {
 	for(var i = 0 ; i<origin.options.length ; i++) {
 		if(origin.options[i].selected) {
@@ -308,10 +303,10 @@ function sortOptions(options) {
 }
 
 function mysort(a, b) {
-	if(a.text.toLowerCase() > b.text.toLowerCase()){
+	if (a.text.toLowerCase() > b.text.toLowerCase()) {
 		return 1;
 	}
-	if(a.text.toLowerCase() < b.text.toLowerCase()){
+	if (a.text.toLowerCase() < b.text.toLowerCase()) {
 		return -1;
 	}
 	return 0;
@@ -321,19 +316,11 @@ function valide(){
 	var options = document.getElementById('destination_users').options;
 	for (i = 0 ; i<options.length ; i++)
 		options[i].selected = true;
-	/*
-	var options = document.getElementById('destination_classes').options;
-	for (i = 0 ; i<options.length ; i++)
-		options[i].selected = true;
-		*/
 	document.forms.formulaire.submit();
 }
 
-
-function loadUsersInSelect(select){
-
+function loadUsersInSelect(select) {
 	var xhr_object = null;
-
 	if(window.XMLHttpRequest) // Firefox
 		xhr_object = new XMLHttpRequest();
 	else if(window.ActiveXObject) // Internet Explorer
@@ -341,12 +328,8 @@ function loadUsersInSelect(select){
 	else  // XMLHttpRequest non supporté par le navigateur
 	alert("Votre navigateur ne supporte pas les objets XMLHTTPRequest...");
 
-	//xhr_object.open("GET", "loadUsersInSelect.ajax.php?id_session=<?php echo $id_session ?>&letter="+select.options[select.selectedIndex].text, false);
 	xhr_object.open("POST", "loadUsersInSelect.ajax.php");
-
 	xhr_object.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-
-
 	nosessionUsers = makepost(document.getElementById('origin_users'));
 	sessionUsers = makepost(document.getElementById('destination_users'));
 	nosessionClasses = makepost(document.getElementById('origin_classes'));
@@ -368,9 +351,7 @@ function makepost(select){
 		ret = ret + options[i].value +'::'+options[i].text+";;";
 
 	return ret;
-
 }
--->
 </script>
 <?php
 Display::display_footer();

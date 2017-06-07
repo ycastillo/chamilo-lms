@@ -2,6 +2,9 @@
 /*
 for more information: see languages.txt in the lang folder.
 */
+$AddForum = "Yapay hoq k'itirimanata";
+$ReplyShort = "Kuti:";
+$NoTimeLimits = "Sin límite de tiempo";
 $Title = "Sutinchaynin";
 $By = "Pi churarun";
 $UsersOnline = "Haykan kashanku";
@@ -669,6 +672,7 @@ $SendAMessage = "Enviar mensaje";
 $Menu = "Menú";
 $BackToUserList = "Regresar a lista de usurios";
 $GraphicNotAvailable = "Gráfico no disponible";
+$NextWeek = "Hamuq qanchis p'unchayuq";
 $GeneralDescription = "Llipin nisqasqay";
 $GeneralDescriptionQuestions = "Iman yachachinaq ruwaynin kay programapi ? Munakunchu ñaupaq ruwanakunata ? Ima masichay kan kay yachachinawan hoqkunawan ?";
 $GeneralDescriptionInformation = "Yachachinamanta nisqasqakuna (hayka pacha, chinpu, may k'itipi ruwakuynin...). Yachachiq (suti, mamataytamanta suti, kamachiynin, telÃ©fono nisqa, e-chaski...).";
@@ -690,6 +694,7 @@ $HumanAndTechnicalResourcesInformation = "Yanapaysinakuna hapinapaq técnicos ni
 $Assessment = "Chaninchana";
 $AssessmentQuestions = "Imaynatan yachaqekunapaq chaninchay kanqa ? Iman kashan paykuna yachachinata atinankupaq ?";
 $AssessmentInformation = "Tapukunamanta qhawarichina. Imakunamanta chaninchay. Ima yupipaykuna.";
+$UploadADocument = "Apachiy qelqa khiputa";
 $langNameOfLang['dutch_corporate'] = "holandés corporativo";
 $TitleColumnGradebook = "Patara chaninchanapaq sutinchaynin";
 $QualifyWeight = "Chaninchaymanta llasaynin";

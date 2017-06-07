@@ -2,6 +2,9 @@
 /*
 for more information: see languages.txt in the lang folder.
 */
+$AddForum = "Sukurti naują forumą";
+$ReplyShort = "Re:";
+$NoTimeLimits = "Laiko apribojimų nėra";
 $Title = "Antraštė";
 $By = "By";
 $UsersOnline = "Prisijungę vartotojai";
@@ -414,6 +417,7 @@ $SeeDetail = "See detail";
 $GroupSingle = "Group";
 $PleaseLoginAgainFromHomepage = "Please try to login again from the homepage";
 $PleaseLoginAgainFromFormBelow = "Please try to login again using the form below";
+$NextWeek = "Kita savaitė";
 $GeneralDescription = "Apibūdinimas";
 $GeneralDescriptionQuestions = "Koks kurso vaidmuo studijų modulyje? Ar yra kokių išankstinių reikalavimų? Kaip šis kursas siejasi su kitais kursais?";
 $GeneralDescriptionInformation = "Apibūdinkite kursą (valandų skaičius, oficialus kodas, kokiai auditorijai jis skirtas...) ir dėstytoją (vardas, pavardė, pareigos, telefonas, el. pašto adresas...).";
@@ -435,4 +439,5 @@ $HumanAndTechnicalResourcesInformation = "Trumpas kontaktinių asmenų ir techni
 $Assessment = "Įvertinimas";
 $AssessmentQuestions = "Kaip bus vertinami kurso vartotojų pasiekimai? Ar yra strategija tobulinti kurso temas, įvertinimo kriterijus?";
 $AssessmentInformation = "Egzaminų klausimų pavyzdžiai. Vertinimo kriterijai. Įvairios pastabos ir patarimai.";
+$UploadADocument = "Įkelti dokumentą";
 ?>

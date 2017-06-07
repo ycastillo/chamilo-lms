@@ -51,29 +51,7 @@ function switch_item_details($lp_id, $user_id, $view_id, $current_item, $next_it
     require_once 'learnpathItem.class.php';
     require_once 'scormItem.class.php';
     require_once 'aiccItem.class.php';
-    $mylp = '';
-    if (isset($_SESSION['lpobject'])) {
-        if ($debug > 1) {
-            error_log('$_SESSION[lpobject] is set', 0);
-        }
-        $oLP = unserialize($_SESSION['lpobject']);
-        if (!is_object($oLP)) {
-            if ($debug > 1) {
-                error_log(print_r($oLP, true), 0);
-            }
-            if ($debug > 2) {
-                error_log('Building new lp', 0);
-            }
-            unset($oLP);
-            $code = api_get_course_id();
-            $mylp = new learnpath($code, $lp_id, $user_id);
-        } else {
-            if ($debug > 1) {
-                error_log('Reusing session lp', 0);
-            }
-            $mylp = $oLP;
-        }
-    }
+    $mylp = learnpath::getLpFromSession(api_get_course_id(), $lp_id, $user_id);
     $new_item_id = 0;
     switch ($next_item) {
         case 'next':
@@ -193,7 +171,8 @@ function switch_item_details($lp_id, $user_id, $view_id, $current_item, $next_it
         "olms.interactions = new Array(".$myistring.");".
         "olms.item_objectives = new Array();".
         "olms.G_lastError = 0;".
-        "olms.G_LastErrorMessage = 'No error';";
+        "olms.G_LastErrorMessage = 'No error';".
+        "olms.finishSignalReceived = 0;";
     /*
      * and re-initialise the rest
      * -lms_lp_id
@@ -205,19 +184,19 @@ function switch_item_details($lp_id, $user_id, $view_id, $current_item, $next_it
      * -lms_view_id
      * -lms_user_id
      */
-    $mytotal              = $mylp->get_total_items_count_without_chapters();
-    $mycomplete           = $mylp->get_complete_items_count();
-    $myprogress_mode      = $mylp->get_progress_bar_mode();
-    $myprogress_mode      = ($myprogress_mode == '' ? '%' : $myprogress_mode);
-    $mynext               = $mylp->get_next_item_id();
-    $myprevious           = $mylp->get_previous_item_id();
-    $myitemtype           = $mylpi->get_type();
-    $mylesson_mode        = $mylpi->get_lesson_mode();
-    $mycredit             = $mylpi->get_credit();
-    $mylaunch_data        = $mylpi->get_launch_data();
+    $mytotal = $mylp->get_total_items_count_without_chapters();
+    $mycomplete = $mylp->get_complete_items_count();
+    $myprogress_mode = $mylp->get_progress_bar_mode();
+    $myprogress_mode = ($myprogress_mode == '' ? '%' : $myprogress_mode);
+    $mynext = $mylp->get_next_item_id();
+    $myprevious = $mylp->get_previous_item_id();
+    $myitemtype = $mylpi->get_type();
+    $mylesson_mode = $mylpi->get_lesson_mode();
+    $mycredit = $mylpi->get_credit();
+    $mylaunch_data = $mylpi->get_launch_data();
     $myinteractions_count = $mylpi->get_interactions_count();
-    $myobjectives_count   = $mylpi->get_objectives_count();
-    $mycore_exit          = $mylpi->get_core_exit();
+    $myobjectives_count = $mylpi->get_objectives_count();
+    $mycore_exit = $mylpi->get_core_exit();
 
     $return .=
         //"saved_lesson_status='not attempted';" .
@@ -253,9 +232,16 @@ function switch_item_details($lp_id, $user_id, $view_id, $current_item, $next_it
     if ($debug > 1) {
         error_log('Prereq_match() returned '.htmlentities($mylp->error), 0);
     }
-    $_SESSION['scorm_item_id'] = $new_item_id; // Save the new item ID for the exercise tool to use.
+    // Save the new item ID for the exercise tool to use.
+    $_SESSION['scorm_item_id'] = $new_item_id;
     $_SESSION['lpobject']      = serialize($mylp);
     return $return;
 }
 
-echo switch_item_details($_REQUEST['lid'], $_REQUEST['uid'], $_REQUEST['vid'], $_REQUEST['iid'], $_REQUEST['next']);
+echo switch_item_details(
+    $_REQUEST['lid'],
+    $_REQUEST['uid'],
+    $_REQUEST['vid'],
+    $_REQUEST['iid'],
+    $_REQUEST['next']
+);

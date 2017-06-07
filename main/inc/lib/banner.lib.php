@@ -16,7 +16,7 @@
  * @author Patrick Cool <patrick.cool@UGent.be>, Ghent University
  */
 function get_tabs() {
-	global $_course;
+    global $_course;
 
     $navigation = array();
 
@@ -109,21 +109,49 @@ function get_tabs() {
         $navigation['reports']['title'] = get_lang('Reports');
 	}*/
 
-	// Custom tabs
-	for ($i = 1; $i<=3; $i++)
-		if (api_get_setting('custom_tab_'.$i.'_name') && api_get_setting('custom_tab_'.$i.'_url')) {
-                    $navigation['custom_tab_'.$i]['url'] = api_get_setting('custom_tab_'.$i.'_url');
-                    $navigation['custom_tab_'.$i]['title'] = api_get_setting('custom_tab_'.$i.'_name');
-                    $navigation['custom_tab_'.$i]['key'] = 'custom_tab_'.$i;
-		}
+    // Custom Tabs See BT#7180
+    $customTabs = getCustomTabs();
+    if (!empty($customTabs)) {
+        foreach ($customTabs as $tab) {
+            if (api_get_setting($tab['variable'], $tab['subkey']) == 'true') {
+                if (!empty($tab['comment']) && $tab['comment'] !== 'ShowTabsComment') {
+                    $navigation[$tab['subkey']]['url'] = $tab['comment'];
+                    // $tab['title'] value must be included in trad4all.inc.php
+                    $navigation[$tab['subkey']]['title'] = get_lang($tab['title']);
+                    $navigation[$tab['subkey']]['key'] = $tab['subkey'];
+                }
+            }
+        }
+    }
+    // End Custom Tabs
 
 	// Platform administration
 	if (api_is_platform_admin(true)) {
-            $navigation['platform_admin']['url'] = api_get_path(WEB_CODE_PATH).'admin/';
-            $navigation['platform_admin']['title'] = get_lang('PlatformAdmin');
-            $navigation['platform_admin']['key'] = 'admin';
+        $navigation['platform_admin']['url'] = api_get_path(WEB_CODE_PATH).'admin/';
+        $navigation['platform_admin']['title'] = get_lang('PlatformAdmin');
+        $navigation['platform_admin']['key'] = 'admin';
 	}
 	return $navigation;
+}
+
+/**
+ * This function returns the custom tabs
+ *
+ * @return array
+ */
+function getCustomTabs() {
+    $tableSettingsCurrent = Database::get_main_table(TABLE_MAIN_SETTINGS_CURRENT);
+    $sql = "SELECT * FROM $tableSettingsCurrent
+        WHERE variable = 'show_tabs' AND
+        subkey like 'custom_tab_%'";
+    $result = Database::query($sql);
+    $customTabs = array();
+
+    while ($row = Database::fetch_assoc($result)) {
+        $customTabs[] = $row;
+    }
+
+    return $customTabs;
 }
 
 function return_logo($theme) {
@@ -231,9 +259,9 @@ function return_notification_menu() {
 
 function return_navigation_array() {
 
-    $navigation         = array();
-    $menu_navigation    = array();
-    $possible_tabs      = get_tabs();
+    $navigation = array();
+    $menu_navigation = array();
+    $possible_tabs = get_tabs();
 
     // Campus Homepage
     if (api_get_setting('show_tabs', 'campus_homepage') == 'true') {
@@ -291,10 +319,10 @@ function return_navigation_array() {
         // Social Networking
         if (api_get_setting('show_tabs', 'social') == 'true') {
             if (api_get_setting('allow_social_tool') == 'true') {
-                $navigation['social'] = $possible_tabs['social'];
+                $navigation['social'] = isset($possible_tabs['social']) ? $possible_tabs['social'] : null;
             }
         } else{
-            $menu_navigation['social'] = $possible_tabs['social'];
+            $menu_navigation['social'] = isset($possible_tabs['social']) ? $possible_tabs['social'] : null;
         }
 
         // Dashboard
@@ -327,17 +355,24 @@ function return_navigation_array() {
         }
 
         // Custom tabs
-        for ($i=1;$i<=3;$i++) {
-            if (api_get_setting('show_tabs', 'custom_tab_'.$i) == 'true' && isset($possible_tabs['custom_tab_'.$i])) {
-                $navigation['custom_tab_'.$i] = $possible_tabs['custom_tab_'.$i];
-            } else {
-                if (isset($possible_tabs['custom_tab_'.$i])) {
-                    $menu_navigation['custom_tab_'.$i] = $possible_tabs['custom_tab_'.$i];
+        $customTabs = getCustomTabs();
+        if (!empty($customTabs)) {
+            foreach ($customTabs as $tab) {
+                if (api_get_setting($tab['variable'], $tab['subkey']) == 'true' &&
+                    isset($possible_tabs[$tab['subkey']])
+                ) {
+                    $possible_tabs[$tab['subkey']]['url'] = api_get_path(WEB_PATH).$possible_tabs[$tab['subkey']]['url'];
+                    $navigation[$tab['subkey']] = $possible_tabs[$tab['subkey']];
+                } else {
+                    if (isset($possible_tabs[$tab['subkey']])) {
+                        $possible_tabs[$tab['subkey']]['url'] = api_get_path(WEB_PATH).$possible_tabs[$tab['subkey']]['url'];
+                        $menu_navigation[$tab['subkey']] = $possible_tabs[$tab['subkey']];
+                    }
                 }
             }
         }
-
     }
+
     return array('menu_navigation' => $menu_navigation, 'navigation' => $navigation, 'possible_tabs' => $possible_tabs);
 }
 
@@ -389,7 +424,7 @@ function return_menu() {
     } else {
         //$errorMsg = get_lang('HomePageFilesNotReadable');
     }
-    
+
     $home_top = api_to_system_encoding($home_top, api_detect_encoding(strip_tags($home_top)));
 
     $open = str_replace('{rel_path}',api_get_path(REL_PATH), $home_top);
@@ -455,14 +490,13 @@ function return_menu() {
     return $menu;
 }
 
-function return_breadcrumb($interbreadcrumb, $language_file, $nameTools) {
-    global $cidReset;
+function return_breadcrumb($interbreadcrumb, $language_file, $nameTools)
+{
     $session_id     = api_get_session_id();
     $session_name   = api_get_session_name($session_id);
     $_course        = api_get_course_info();
     $user_id        = api_get_user_id();
     $course_id      = api_get_course_id();
-
 
     /*  Plugins for banner section */
     $web_course_path = api_get_path(WEB_COURSE_PATH);
@@ -478,6 +512,7 @@ function return_breadcrumb($interbreadcrumb, $language_file, $nameTools) {
     if (!empty($_course) && !isset($_GET['hide_course_breadcrumb'])) {
 
         $navigation_item['url'] = $web_course_path . $_course['path'].'/index.php'.(!empty($session_id) ? '?id_session='.$session_id : '');
+        $_course['name'] = api_htmlentities($_course['name']);
         $course_title = cut($_course['name'], MAX_LENGTH_BREADCRUMB);
 
         switch (api_get_setting('breadcrumbs_course_homepage')) {
@@ -507,7 +542,9 @@ function return_breadcrumb($interbreadcrumb, $language_file, $nameTools) {
         $navigation[] = $navigation_item;
     }
 
-    // part 2: Interbreadcrumbs. If there is an array $interbreadcrumb defined then these have to appear before the last breadcrumb (which is the tool itself)
+    /* part 2: Interbreadcrumbs. If there is an array $interbreadcrumb
+    defined then these have to appear before the last breadcrumb
+    (which is the tool itself)*/
     if (isset($interbreadcrumb) && is_array($interbreadcrumb)) {
         foreach ($interbreadcrumb as $breadcrumb_step) {
             if (isset($breadcrumb_step['type']) && $breadcrumb_step['type'] == 'right') {

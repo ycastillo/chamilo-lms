@@ -20,15 +20,6 @@ function clean_user_select() {
 
 var region_value = '{{ region_value }}';
 $(document).ready(function() {
-
-    /*$("body").delegate(".datetime", "focusin", function(){
-        $(this).datepicker({
-            stepMinute: 10,
-            dateFormat: 'dd/mm/yy',
-            timeFormat: 'hh:mm:ss'
-        });
-    });*/
-
 	var date = new Date();
 	var d = date.getDate();
 	var m = date.getMonth()+1;
@@ -124,7 +115,7 @@ $(document).ready(function() {
                 //api.render();
             }
         },
-		//Add event
+		// Add event
 		select: function(start, end, allDay, jsEvent, view) {
 			//Removing UTC stuff
             var start_date = $.datepicker.formatDate("yy-mm-dd", start) + " " + start.toTimeString().substr(0, 8);
@@ -145,7 +136,6 @@ $(document).ready(function() {
 
 			if ({{ can_add_events }} == 1) {
 				var url = '{{ web_agenda_ajax_url }}&a=add_event&start='+start_date+'&end='+end_date+'&all_day='+allDay+'&view='+view.name;
-
                 var start_date_value = $.datepicker.formatDate('{{ js_format_date }}', start);
                 var end_date_value  = $.datepicker.formatDate('{{ js_format_date }}', end);
 
@@ -221,6 +211,7 @@ $(document).ready(function() {
 					close: function() {
 						$("#title").attr('value', '');
 						$("#content").attr('value', '');
+                        $("#comment").attr('value', '');
 					}
 				});
 
@@ -240,21 +231,25 @@ $(document).ready(function() {
                         delay: 2000
                     },
 		            content: event.attachment,
-		            position: { at:'top right' , my:'bottom right'},
+		            position: { at:'bottom right'}
 		        }).removeData('qtip'); // this is an special hack to add multiple qtip in the same target
             }
 			if (event.description) {
+                var comment = '';
+                if (event.comment) {
+                    comment = event.comment;
+                }
+
 				element.qtip({
                     hide: {
                         delay: 2000
                     },
-		            content: event.description,
-		            position: { at:'top left' , my:'bottom left'}
+		            content: event.description + ' ' + comment,
+		            position: { at:'top right' , my:'bottom left'}
 		        });
 			}
 	    },
 		eventClick: function(calEvent, jsEvent, view) {
-            //var start_date 	= Math.round(calEvent.start.getTime() / 1000);
             var start_date = $.datepicker.formatDate("yy-mm-dd", calEvent.start) + " " + calEvent.start.toTimeString().substr(0, 8);
 
             if (calEvent.allDay == 1) {
@@ -275,7 +270,6 @@ $(document).ready(function() {
 
                 {% if type != 'admin' %}
                     $('#visible_to_read_only').show();
-                console.log(calEvent.sent_to);
                     $("#visible_to_read_only_users").html(calEvent.sent_to);
 				{% endif %}
 
@@ -295,10 +289,6 @@ $(document).ready(function() {
                     $('#end_date').html(' '+calEvent.end.getDate() +"/"+ my_end_month +"/"+calEvent.end.getFullYear());
                 }
 
-                /*$("#title").attr('value', calEvent.title);
-                $("#content").attr('value', calEvent.description);*/
-
-
                 if ($("#title").parent().find('#title_edit').length == 0) {
                     $("#title").parent().append('<div id="title_edit"></div>');
                 }
@@ -308,14 +298,21 @@ $(document).ready(function() {
                 if ($("#content").parent().find('#content_edit').length == 0) {
                     $("#content").parent().append('<div id="content_edit"></div>');
                 }
-
                 $("#content_edit").html(calEvent.description);
+
+                if ($("#comment").parent().find('#comment_edit').length == 0) {
+                    $("#comment").parent().append('<div id="comment_edit"></div>');
+                }
+
+                $("#comment_edit").html(calEvent.comment);
 
                 $("#title_edit").show();
                 $("#content_edit").show();
+                $("#comment_edit").show();
 
                 $("#title").hide();
                 $("#content").hide();
+                $("#comment").hide();
 
 				allFields.removeClass( "ui-state-error" );
 
@@ -347,12 +344,11 @@ $(document).ready(function() {
 							$.ajax({
 								url: url+'&'+params,
 								success:function() {
-									calEvent.title 			= $("#title").val();
-									calEvent.start 			= calEvent.start;
-									calEvent.end 			= calEvent.end;
-									calEvent.allDay         = calEvent.allDay;
-									calEvent.description 	= $("#content").val();
-
+									calEvent.title = $("#title").val();
+									calEvent.start = calEvent.start;
+									calEvent.end = calEvent.end;
+									calEvent.allDay = calEvent.allDay;
+									calEvent.description = $("#content").val();
 									calendar.fullCalendar('updateEvent',
                                         calEvent,
                                         true // make the event "stick"
@@ -373,7 +369,6 @@ $(document).ready(function() {
 
                             if (calEvent.parent_event_id || calEvent.has_children != '' ) {
                                 var newDiv = $(document.createElement('div'));
-                                //newDiv.html('{{ "" |get_lang }}');
 
                                 newDiv.dialog({
                                     modal: true,
@@ -389,11 +384,11 @@ $(document).ready(function() {
                                                 url: delete_url,
                                                 success:function() {
                                                     calendar.fullCalendar('removeEvents',
-                                                            calEvent
+                                                        calEvent
                                                     );
                                                     calendar.fullCalendar("refetchEvents");
                                                     calendar.fullCalendar("rerenderEvents");
-                                                    $("#dialog-form").dialog( "close" );
+                                                    $("#dialog-form").dialog("close");
                                                     newDiv.dialog( "close" );
                                                 }
                                             });
@@ -410,7 +405,7 @@ $(document).ready(function() {
                                             url: delete_url+'&delete_all_events=1',
                                             success:function() {
                                                 calendar.fullCalendar('removeEvents',
-                                                        calEvent
+                                                    calEvent
                                                 );
                                                 calendar.fullCalendar("refetchEvents");
                                                 calendar.fullCalendar("rerenderEvents");
@@ -441,19 +436,23 @@ $(document).ready(function() {
 					close: function() {
                         $("#title_edit").hide();
                         $("#content_edit").hide();
+                        $("#comment_edit").hide();
 
                         $("#title").show();
                         $("#content").show();
+                        $("#comment").show();
 
 						$("#title_edit").html('');
 						$("#content_edit").html('');
+                        $("#comment_edit").html('');
 
                         $("#title").attr('value', '');
                         $("#content").attr('value', '');
+                        $("#comment").attr('value', '');
 					}
 				});
 			} else {
-			    //Simple form
+			    // Simple form
                 my_start_month = calEvent.start.getMonth() +1;
                 $('#simple_start_date').html(calEvent.start.getDate() +"/"+ my_start_month +"/"+calEvent.start.getFullYear());
 
@@ -465,13 +464,14 @@ $(document).ready(function() {
 
                 $("#simple_title").html(calEvent.title);
                 $("#simple_content").html(calEvent.description);
+                $("#simple_comment").html(calEvent.comment);
+
                 $("#simple-dialog-form").dialog("open");
                 $("#simple-dialog-form").dialog({
 					buttons: {
 						'{{"ExportiCalConfidential"|get_lang}}' : function() {
                             url =  "ical_export.php?id=" + calEvent.id+'&course_id='+calEvent.course_id+"&class=confidential";
                             window.location.href = url;
-
 						},
 						'{{"ExportiCalPrivate"|get_lang}}': function() {
                             url =  "ical_export.php?id=" + calEvent.id+'&course_id='+calEvent.course_id+"&class=private";
@@ -491,7 +491,10 @@ $(document).ready(function() {
 			$.ajax({
 				url: '{{ web_agenda_ajax_url }}',
 				data: {
-					a:'move_event', id: event.id, day_delta: day_delta, minute_delta: minute_delta
+                    a: 'move_event',
+                    id: event.id,
+                    day_delta: day_delta,
+                    minute_delta: minute_delta
 				}
 			});
 		},
@@ -499,7 +502,10 @@ $(document).ready(function() {
             $.ajax({
 				url: '{{ web_agenda_ajax_url }}',
 				data: {
-					a:'resize_event', id: event.id, day_delta: day_delta, minute_delta: minute_delta
+                    a: 'resize_event',
+                    id: event.id,
+                    day_delta: day_delta,
+                    minute_delta: minute_delta
 				}
 			});
         },
@@ -515,7 +521,7 @@ $(document).ready(function() {
 {{ actions_div }}
 
 <div id="simple-dialog-form" style="display:none;">
-    <div style="width:500px">d sqd qs
+    <div style="width:500px">
         <form name="form-simple" class="form-vertical">
             <div class="control-group">
                 <label class="control-label">
@@ -543,6 +549,17 @@ $(document).ready(function() {
                     <div id="simple_content"></div>
                 </div>
             </div>
+            {% if allow_agenda_event_comment %}
+            <div class="control-group">
+                <label class="control-label">
+                    <b>{{ "Comment" |get_lang}}</b>
+                </label>
+                <div class="controls">
+                    <div id="simple_comment"></div>
+                </div>
+            </div>
+            {% endif %}
+
         </form>
     </div>
 </div>
@@ -553,6 +570,6 @@ $(document).ready(function() {
 	</div>
 </div>
 <div id="loading" style="margin-left:150px;position:absolute;display:none">
-    {{ "Loading"|get_lang }}...
+    {{ "Loading" | get_lang }}...
 </div>
 <div id="calendar"></div>

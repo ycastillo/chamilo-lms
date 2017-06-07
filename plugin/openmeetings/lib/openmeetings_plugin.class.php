@@ -1,11 +1,12 @@
 <?php
+/* See license terms in /license.txt */
 
 /**
  * Class OpenMeetingsPlugin
  */
 class OpenMeetingsPlugin extends Plugin
 {
-    public $is_course_plugin = true;
+    public $isCoursePlugin = true;
 
     //When creating a new course this settings are added to the course
     public $course_settings = array(array(
@@ -87,5 +88,15 @@ class OpenMeetingsPlugin extends Plugin
 
         //Deleting course settings
         $this->uninstall_course_fields_in_all_courses($this->course_settings);
+    }
+
+    /**
+     * @param int $course_id
+     * @param bool $add_tool_link
+     */
+    public function course_install($course_id, $add_tool_link = true)
+    {
+        //force ignoring the tools table insertion for this plugin
+        $this->install_course_fields($course_id, $add_tool_link);
     }
 }

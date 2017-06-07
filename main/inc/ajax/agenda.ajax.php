@@ -36,6 +36,7 @@ switch ($action) {
             break;
         }
         $add_as_announcement = isset($_REQUEST['add_as_annonuncement']) ? $_REQUEST['add_as_annonuncement'] : null;
+        $comment = isset($_REQUEST['comment']) ? $_REQUEST['comment'] : null;
         echo $agenda->add_event(
             $_REQUEST['start'],
             $_REQUEST['end'],
@@ -43,7 +44,11 @@ switch ($action) {
             $_REQUEST['title'],
             $_REQUEST['content'],
             $_REQUEST['users_to_send'],
-            $add_as_announcement
+            $add_as_announcement,
+            null, //$parentEventId = null,
+            array(), //$attachmentArray = array(),
+            null, //$attachmentComment = null,
+            $comment
         );
         break;
     case 'edit_event':
@@ -138,13 +143,41 @@ switch ($action) {
             }
             $monthName = $MonthsLong[$month - 1];
 
-            $agendaitems = get_myagendaitems($user_id, $my_course_list, $month, $year);
-            $agendaitems = get_global_agenda_items($agendaitems, $day, $month, $year, $week, "month_view");
+            $agendaitems = get_myagendaitems(
+                $user_id,
+                $my_course_list,
+                $month,
+                $year
+            );
+            $agendaitems = get_global_agenda_items(
+                $agendaitems,
+                $day,
+                $month,
+                $year,
+                $week,
+                "month_view"
+            );
 
             if (api_get_setting('allow_personal_agenda') == 'true') {
-                $agendaitems = get_personal_agenda_items($user_id, $agendaitems, $day, $month, $year, $week, "month_view");
+                $agendaitems = get_personal_agenda_items(
+                    $user_id,
+                    $agendaitems,
+                    $day,
+                    $month,
+                    $year,
+                    $week,
+                    "month_view"
+                );
             }
-            display_mymonthcalendar($user_id, $agendaitems, $month, $year, array(), $monthName, false);
+            display_mymonthcalendar(
+                $user_id,
+                $agendaitems,
+                $month,
+                $year,
+                array(),
+                $monthName,
+                false
+            );
         }
         break;
     default:

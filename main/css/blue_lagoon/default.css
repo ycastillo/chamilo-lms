@@ -115,32 +115,7 @@ a:active {
     color: #FFFFFF;
 
 }
-.btn{
-    background: #ffffff; /* Old browsers */
-    background: -moz-linear-gradient(top, #ffffff 0%, #e5e5e5 100%); /* FF3.6+ */
-    background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#ffffff), color-stop(100%,#e5e5e5)); /* Chrome,Safari4+ */
-    background: -webkit-linear-gradient(top, #ffffff 0%,#e5e5e5 100%); /* Chrome10+,Safari5.1+ */
-    background: -o-linear-gradient(top, #ffffff 0%,#e5e5e5 100%); /* Opera 11.10+ */
-    background: -ms-linear-gradient(top, #ffffff 0%,#e5e5e5 100%); /* IE10+ */
-    background: linear-gradient(to bottom, #ffffff 0%,#e5e5e5 100%); /* W3C */
-    filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#ffffff', endColorstr='#e5e5e5',GradientType=0 ); /* IE6-9 */
-    border-radius: 4px;
-    border:1px solid rgba(0, 0, 0, 0.15);
-    text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.17);
-    padding: 6px 25px;
 
-}
-.btn:hover{
-    background: #f7f7f7; /* Old browsers */
-    background: -moz-linear-gradient(top, #f7f7f7 0%, #e5e5e5 100%); /* FF3.6+ */
-    background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#f7f7f7), color-stop(100%,#e5e5e5)); /* Chrome,Safari4+ */
-    background: -webkit-linear-gradient(top, #f7f7f7 0%,#e5e5e5 100%); /* Chrome10+,Safari5.1+ */
-    background: -o-linear-gradient(top, #f7f7f7 0%,#e5e5e5 100%); /* Opera 11.10+ */
-    background: -ms-linear-gradient(top, #f7f7f7 0%,#e5e5e5 100%); /* IE10+ */
-    background: linear-gradient(to bottom, #f7f7f7 0%,#e5e5e5 100%); /* W3C */
-    filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#f7f7f7', endColorstr='#e5e5e5',GradientType=0 ); /* IE6-9 */
-    text-decoration: none;
-}
 .btn-primary{
     background: #ff7b00; /* Old browsers */
     background: -moz-linear-gradient(top, #ff7b00 0%, #fd6600 100%); /* FF3.6+ */
@@ -578,27 +553,48 @@ footer a:link, footer a:visited {
  *  CSS CHAT END                             *
  *****************************************************/
 .normal-message {
-    color: #00407F;
-    border: 1px solid #CDE6F5;
-    background: url("images/background_message.png") repeat-x scroll 0 0 #EAF8FE;
+    background-color: #D9EDF7;
+    color: #3A87AD;
+    padding: 15px;
+    margin-bottom: 15px;
+    border-top: 1px solid #BCE8F1;
+    border-left: 1px solid #BCE8F1;
+    border-right: 1px solid #BCE8F1;
+    border-bottom: 3px solid #BCE8F1;
+    border-radius: 10px;
 }
 .warning-message {
-    border: 1px solid #FFB30F;
-    color: #000;
-	background: url("images/background_message.png") repeat-x scroll 0 0 #FFEFA7;
+    background-color: #FCF8E3;
+    color: #C09853;
+    padding: 10px;
+    margin-bottom: 15px;
+    border-top: 1px solid #FBEED5;
+    border-left: 1px solid #FBEED5;
+    border-right: 1px solid #FBEED5;
+    border-bottom: 3px solid #FBEED5;
+    border-radius: 10px;
 }
 .confirmation-message {
-	border: 1px solid #1F8323;
-    color:#1F8323;
-	background: url("images/accept_data.png") no-repeat scroll 5px center #CAF0C7;
-  padding-left: 45px;
+  background-color: #DFF0D8;
+  color: #468847;
+  padding: 10px;
+  margin-bottom: 15px;
+  border-top: 1px solid #D6E9C6;
+  border-left: 1px solid #D6E9C6;
+  border-right: 1px solid #D6E9C6;
+  border-bottom: 3px solid #D6E9C6;
+  border-radius: 10px;
 }
 .error-message {
-    border: 1px solid #FA5858;
-    color: #000;
-    padding-top: 5px;
-	  background: url("images/error.png") no-repeat scroll 5px center #F6CECE;
-    padding-left: 45px;
+  background-color: #F2DEDE;
+  color: #B94A48;
+  padding: 10px;
+  margin-bottom: 15px;
+  border-top: 1px solid #EED3D7;
+  border-left: 1px solid #EED3D7;
+  border-right: 1px solid #EED3D7;
+  border-bottom: 3px solid #EED3D7;
+  border-radius: 10px;
 }
 .error-message strong{
   font-weight: normal;

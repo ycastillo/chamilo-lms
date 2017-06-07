@@ -3,6 +3,9 @@
 for more information: see languages.txt in the lang folder.
 */
 $Unsubscribe = "Avsluta prenumeration";
+$AddForum = "Lägg till ett nytt forum";
+$ReplyShort = "Re:";
+$NoTimeLimits = "Ingen tidsbegränsning";
 $Title = "Titel";
 $By = "Av";
 $UsersOnline = "Inloggade användare";
@@ -508,6 +511,7 @@ $SocialNetwork = "Socialt nätverk";
 $Subject = "Ämne";
 $CourseName = "Kursnamn";
 $HistoryTrainingSessions = "Kurshistorik";
+$NextWeek = "Nästa vecka";
 $GeneralDescription = "Generell beskrivning";
 $GeneralDescriptionQuestions = "Vilken plats har kursen i programmet? Krävs det förkunskaper?  Hur är kurserna kopplade till varandra?";
 $GeneralDescriptionInformation = "Beskriv kursen (antal timmar, officiell kod, i vilket rum det sker...) och lärare (namn, förnamn, kontor, telefonnummer, e-post...).";
@@ -529,6 +533,7 @@ $HumanAndTechnicalResourcesInformation = "Kort beskrivning av identiteterna av d
 $Assessment = "Bedömning";
 $AssessmentQuestions = "Hur kommer användaren att bedömas? Finns det en strategi hur man skall bemästra ämnet?";
 $AssessmentInformation = "Exempel på frågor. Kriterier för att lyckas. Tips och tricks.";
+$UploadADocument = "Ladda upp dokument";
 $EditProfile = "Redigera Profil";
 $Dashboard = "Instrumentpanel";
 $ToolCourseDescription = "Kursbeskrivning";
@@ -548,6 +553,7 @@ $ToolSurvey = "Undersökning";
 $ToolNotebook = "Anteckningsbok";
 $ToolCourseProgress = "Kurs utveckling";
 $ContactInformation = "Kontaktuppgifter";
+$MyFiles = "Mina filer";
 $ConnectionsLastMonth = "Anslutningar senaste månaden";
 $ExamFail = "Underkänt";
 $Profile = "Profil";

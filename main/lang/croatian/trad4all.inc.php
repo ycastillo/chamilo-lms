@@ -2,6 +2,9 @@
 /*
 for more information: see languages.txt in the lang folder.
 */
+$AddForum = "Dodaj novi forum";
+$ReplyShort = "Odg:";
+$NoTimeLimits = "Bez vremenskog ograničenja";
 $Title = "Naslov";
 $By = "Od";
 $UsersOnline = "Aktivnih korisnika";
@@ -573,6 +576,7 @@ $BackToPreviousPage = "Povratak na prethodnu stranicu";
 $ListView = "Prikaži kao listu";
 $NoOfficialCode = "Nema službene šifre";
 $Owner = "Vlasnik";
+$NextWeek = "Sljedeći tjedan";
 $GeneralDescription = "Opći opis";
 $GeneralDescriptionQuestions = "Koje mjesto kolegij ima u programu? Postoje li kakvi preduvjeti? Kako je kolegij povezan s drugim kolegijima?";
 $GeneralDescriptionInformation = "Opišite kolegij (broj sati, službena šifra, prostorija...) i predavača (prezime, ime, ured, broj telefona, elektronička pošta...).";
@@ -594,4 +598,5 @@ $HumanAndTechnicalResourcesInformation = "Kratki opis za identifikaciju različi
 $Assessment = "Ocjenjivanje";
 $AssessmentQuestions = "Kako će korisnici biti ocjenjivani? Postoje li određene tehnike za svladavanje pojedinih tema?";
 $AssessmentInformation = "Primjer ispitnog pitanja. Kriteriji uspješnosti. Savjeti i naputci.";
+$UploadADocument = "Učitaj dokument";
 ?>

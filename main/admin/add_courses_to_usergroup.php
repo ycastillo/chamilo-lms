@@ -39,8 +39,7 @@ if (isset($_REQUEST['add_type']) && $_REQUEST['add_type']!=''){
 $add = isset($_GET['add']) ? Security::remove_XSS($_GET['add']) : null;
 
 $htmlHeadXtra[] = $xajax->getJavascript('../inc/lib/xajax/');
-$htmlHeadXtra[] = '
-<script>
+$htmlHeadXtra[] = '<script>
 function add_user_to_session (code, content) {
     document.getElementById("user_to_add").value = "";
     document.getElementById("ajax_list_users_single").innerHTML = "";
@@ -157,7 +156,6 @@ function search($needle,$type)
 
         // xajax send utf8 datas... datas in db can be non-utf8 datas
         $charset = api_get_system_encoding();
-        $needle  = Database::escape_string($needle);
         $needle  = api_convert_encoding($needle, $charset, 'utf-8');
 
         if ($type == 'single') {

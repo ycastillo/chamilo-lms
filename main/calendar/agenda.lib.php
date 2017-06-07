@@ -6,7 +6,6 @@
  *
  * @author: Julio Montoya <gugli100@gmail.com>
  */
-
 class Agenda
 {
     public $events = array();
@@ -14,11 +13,15 @@ class Agenda
     public $type = 'personal';
     public $types = array('personal', 'admin', 'course');
     public $sessionId = 0;
+    public $senderId;
     /** @var array */
     public $course;
+    public $comment;
+    private $isAllowedToEdit;
+    public $allowEventColoring;
 
     /**
-     *
+     * Constructor
      */
     public function __construct()
     {
@@ -34,15 +37,63 @@ class Agenda
         if (!empty($courseInfo)) {
             $this->course = $courseInfo;
         }
-        $this->sessionId = api_get_session_id();
+        $this->setSessionId(api_get_session_id());
+        $this->setSenderId(api_get_user_id());
+        $this->setIsAllowedToEdit(api_is_allowed_to_edit(null, true));
         $this->events = array();
 
-        //Event colors
+        // Event colors
         $this->event_platform_color = 'red'; //red
         $this->event_course_color = '#458B00'; //green
         $this->event_group_color = '#A0522D'; //siena
         $this->event_session_color = '#00496D'; // kind of green
         $this->event_personal_color = 'steel blue'; //steel blue
+
+        $this->allowEventColoring = api_get_configuration_value('allow_agenda_events_coloring');
+    }
+
+    /**
+     * @param int $senderId
+     */
+    public function setSenderId($senderId)
+    {
+        $this->senderId = intval($senderId);
+    }
+
+    /**
+     * @return int
+     */
+    public function getSenderId()
+    {
+        return $this->senderId;
+    }
+
+    /**
+     * @param string $type can be 'personal', 'admin'  or  'course'
+     */
+    public function setType($type)
+    {
+        $typeList = $this->getTypes();
+
+        if (in_array($type, $typeList)) {
+            $this->type = $type;
+        }
+    }
+
+    /**
+     * @param int $id
+     */
+    public function setSessionId($id)
+    {
+        $this->sessionId = intval($id);
+    }
+
+    /**
+     * @return int $id
+     */
+    public function getSessionId()
+    {
+        return $this->sessionId;
     }
 
     /**
@@ -71,8 +122,10 @@ class Agenda
      * @param array   $usersToSend array('everyone') or a list of user/group ids
      * @param bool    $addAsAnnouncement event as a *course* announcement
      * @param int $parentEventId
-     * @param array $attachmentArray $_FILES['']
-     * @param string $attachmentComment
+     * @param array $attachmentArray array of $_FILES['']
+     * @param array $attachmentCommentList
+     * @param string $eventComment
+     * @param string $color
      *
      * @return int
      */
@@ -86,13 +139,17 @@ class Agenda
         $addAsAnnouncement = false,
         $parentEventId = null,
         $attachmentArray = array(),
-        $attachmentComment = null
+        $attachmentCommentList = array(),
+        $eventComment = null,
+        $color = ''
     ) {
         $start = api_get_utc_datetime($start);
         $end = api_get_utc_datetime($end);
         $allDay = isset($allDay) && $allDay == 'true' ? 1 : 0;
-
         $id = null;
+        $content = nl2br($content);
+        $eventComment = nl2br($eventComment);
+
         switch ($this->type) {
             case 'personal':
                 $attributes = array(
@@ -103,7 +160,15 @@ class Agenda
                     'enddate' => $end,
                     'all_day' => $allDay
                 );
-                $id = Database::insert($this->tbl_personal_agenda, $attributes);
+
+                if ($this->allowEventColoring) {
+                    $attributes['color'] = $color;
+                }
+
+                $id = Database::insert(
+                    $this->tbl_personal_agenda,
+                    $attributes
+                );
                 break;
             case 'course':
                 $attributes = array(
@@ -112,13 +177,26 @@ class Agenda
                     'start_date' => $start,
                     'end_date' => $end,
                     'all_day' => $allDay,
-                    'session_id' => api_get_session_id(),
+                    'session_id' => $this->getSessionId(),
                     'c_id' => $this->course['real_id']
                 );
+
+                $allow = api_get_configuration_value('allow_agenda_event_comment');
+
+                if ($allow) {
+                    $attributes['comment'] = $eventComment;
+                }
+
+                if ($this->allowEventColoring) {
+                    $attributes['color'] = $color;
+                }
 
                 if (!empty($parentEventId)) {
                     $attributes['parent_event_id'] = $parentEventId;
                 }
+
+                $senderId = $this->getSenderId();
+                $sessionId = $this->getSessionId();
 
                 // Simple course event.
                 $id = Database::insert($this->tbl_course_agenda, $attributes);
@@ -135,22 +213,24 @@ class Agenda
                                 TOOL_CALENDAR_EVENT,
                                 $id,
                                 "AgendaAdded",
-                                api_get_user_id(),
+                                $senderId,
                                 $groupId,
                                 '',
                                 $start,
-                                $end
+                                $end,
+                                $sessionId
                             );
                             api_item_property_update(
                                 $this->course,
                                 TOOL_CALENDAR_EVENT,
                                 $id,
                                 "visible",
-                                api_get_user_id(),
+                                $senderId,
                                 $groupId,
                                 '',
                                 $start,
-                                $end
+                                $end,
+                                $sessionId
                             );
                         } else {
                             // Storing the selected groups
@@ -161,11 +241,12 @@ class Agenda
                                         TOOL_CALENDAR_EVENT,
                                         $id,
                                         "AgendaAdded",
-                                        api_get_user_id(),
+                                        $senderId,
                                         $group,
                                         0,
                                         $start,
-                                        $end
+                                        $end,
+                                        $sessionId
                                     );
 
                                     api_item_property_update(
@@ -173,11 +254,12 @@ class Agenda
                                         TOOL_CALENDAR_EVENT,
                                         $id,
                                         "visible",
-                                        api_get_user_id(),
+                                        $senderId,
                                         $group,
                                         0,
                                         $start,
-                                        $end
+                                        $end,
+                                        $sessionId
                                     );
                                 }
                             }
@@ -190,11 +272,12 @@ class Agenda
                                         TOOL_CALENDAR_EVENT,
                                         $id,
                                         "AgendaAdded",
-                                        api_get_user_id(),
+                                        $senderId,
                                         $groupId,
                                         $userId,
                                         $start,
-                                        $end
+                                        $end,
+                                        $sessionId
                                     );
 
                                     api_item_property_update(
@@ -202,11 +285,12 @@ class Agenda
                                         TOOL_CALENDAR_EVENT,
                                         $id,
                                         "visible",
-                                        api_get_user_id(),
+                                        $senderId,
                                         $groupId,
                                         $userId,
                                         $start,
-                                        $end
+                                        $end,
+                                        $sessionId
                                     );
                                 }
                             }
@@ -220,12 +304,16 @@ class Agenda
 
                     // Add attachment.
                     if (isset($attachmentArray) && !empty($attachmentArray)) {
-                        $this->addAttachment(
-                            $id,
-                            $attachmentArray,
-                            $attachmentComment,
-                            $this->course
-                        );
+                        $counter = 0;
+                        foreach ($attachmentArray as $attachmentItem) {
+                            $this->addAttachment(
+                                $id,
+                                $attachmentItem,
+                                $attachmentCommentList[$counter],
+                                $this->course
+                            );
+                            $counter++;
+                        }
                     }
                 }
                 break;
@@ -339,6 +427,8 @@ class Agenda
 
         $typeList = array('daily', 'weekly', 'monthlyByDate', 'monthlyByDay', 'monthlyByDayR', 'yearly');
 
+        // The event has to repeat *in the future*. We don't allow repeated
+        // events in the past
         if ($end > $now && in_array($type, $typeList)) {
             $sql = "INSERT INTO $t_agenda_r (c_id, cal_id, cal_type, cal_end)
                     VALUES ($course_id, '$eventId', '$type', '$end')";
@@ -442,7 +532,7 @@ class Agenda
         }
 
         // Get the agenda item.
-        $item_id = Database::escape_string($item_id);
+        $item_id = intval($item_id);
         $sql = "SELECT * FROM $table_agenda WHERE c_id = $course_id AND id = ".$item_id;
         $res = Database::query($sql);
 
@@ -475,9 +565,11 @@ class Agenda
      * @param string $title
      * @param string $content
      * @param array $usersToSend
-     * @param int $editRepeatType
      * @param array $attachmentArray
-     * @param string $attachmentComment
+     * @param array $attachmentCommentList
+     * @param string $comment
+     * @param string $color
+     * @param bool $addAnnouncement
      *
      * @return bool
      */
@@ -490,11 +582,17 @@ class Agenda
         $content,
         $usersToSend = array(),
         $attachmentArray = array(),
-        $attachmentComment = null
+        $attachmentCommentList = array(),
+        $comment = null,
+        $color = '',
+        $addAnnouncement = false
     ) {
         $start = api_get_utc_datetime($start);
         $end = api_get_utc_datetime($end);
         $allDay = isset($allDay) && $allDay == 'true' ? 1 : 0;
+
+        $content = nl2br($content);
+        $comment = nl2br($comment);
 
         switch ($this->type) {
             case 'personal':
@@ -509,6 +607,11 @@ class Agenda
                     'enddate' => $end,
                     'all_day' => $allDay
                 );
+
+                if ($this->allowEventColoring) {
+                    $attributes['color'] = $color;
+                }
+
                 Database::update(
                     $this->tbl_personal_agenda,
                     $attributes,
@@ -523,13 +626,13 @@ class Agenda
                 }
 
                 $groupId = api_get_group_id();
-                $course_id = api_get_course_int_id();
+                $course_id = $this->course['real_id'];
 
                 if (empty($course_id)) {
                     return false;
                 }
 
-                if (api_is_allowed_to_edit(null, true)) {
+                if ($this->getIsAllowedToEdit()) {
 
                     $attributes = array(
                         'title' => $title,
@@ -539,11 +642,25 @@ class Agenda
                         'all_day' => $allDay
                     );
 
+                    $allow = api_get_configuration_value('allow_agenda_event_comment');
+
+                    if ($allow) {
+                        $attributes['comment'] = $comment;
+                    }
+
+                    if ($this->allowEventColoring) {
+                        $attributes['color'] = $color;
+                    }
+
                     Database::update(
                         $this->tbl_course_agenda,
                         $attributes,
                         array(
-                            'id = ? AND c_id = ? AND session_id = ? ' => array($id, $course_id, api_get_session_id())
+                            'id = ? AND c_id = ? AND session_id = ? ' => array(
+                                $id,
+                                $course_id,
+                                $this->sessionId
+                            )
                         )
                     );
 
@@ -557,41 +674,34 @@ class Agenda
                         $groupToAdd = array_diff($sendTo['groups'], $eventInfo['send_to']['groups']);
 
                         if ($sendTo['everyone']) {
-                            // Delete all:
-                            if (!empty($eventInfo['send_to']['groups']) &&
-                                isset($eventInfo['send_to']['groups'])
+
+                            // Delete all from group
+                            if (isset($eventInfo['send_to']['groups']) &&
+                                !empty($eventInfo['send_to']['groups'])
                             ) {
                                 foreach ($eventInfo['send_to']['groups'] as $group) {
-                                    api_item_property_update(
+                                    api_item_property_delete(
                                         $this->course,
                                         TOOL_CALENDAR_EVENT,
                                         $id,
-                                        "delete",
-                                        api_get_user_id(),
-                                        $group,
                                         0,
-                                        $start,
-                                        $end,
+                                        $group,
                                         $this->sessionId
                                     );
                                 }
                             }
 
-                            // storing the selected users
-                            if (!empty($eventInfo['send_to']['users']) &&
-                                isset($eventInfo['send_to']['users'])
+                            // Storing the selected users.
+                            if (isset($eventInfo['send_to']['users']) &&
+                                !empty($eventInfo['send_to']['users'])
                             ) {
                                 foreach ($eventInfo['send_to']['users'] as $userId) {
-                                    api_item_property_update(
+                                    api_item_property_delete(
                                         $this->course,
                                         TOOL_CALENDAR_EVENT,
                                         $id,
-                                        "delete",
-                                        api_get_user_id(),
-                                        $groupId,
                                         $userId,
-                                        $start,
-                                        $end,
+                                        $groupId,
                                         $this->sessionId
                                     );
                                 }
@@ -605,13 +715,24 @@ class Agenda
                                 "visible",
                                 api_get_user_id(),
                                 $groupId,
-                                '',
+                                null,
                                 $start,
                                 $end,
                                 $this->sessionId
                             );
                         } else {
-                            // Groups
+
+                            // Delete "everyone".
+                            api_item_property_delete(
+                                $this->course,
+                                TOOL_CALENDAR_EVENT,
+                                $id,
+                                0,
+                                0,
+                                $this->sessionId
+                            );
+
+                            // Add groups
                             if (!empty($groupToAdd)) {
                                 foreach ($groupToAdd as $group) {
                                     api_item_property_update(
@@ -629,24 +750,21 @@ class Agenda
                                 }
                             }
 
+                            // Delete groups.
                             if (!empty($groupsToDelete)) {
                                 foreach ($groupsToDelete as $group) {
-                                    api_item_property_update(
+                                    api_item_property_delete(
                                         $this->course,
                                         TOOL_CALENDAR_EVENT,
                                         $id,
-                                        "delete",
-                                        api_get_user_id(),
-                                        $group,
                                         0,
-                                        $start,
-                                        $end,
+                                        $group,
                                         $this->sessionId
                                     );
                                 }
                             }
 
-                            // Users.
+                            // Add users.
                             if (!empty($usersToAdd)) {
                                 foreach ($usersToAdd as $userId) {
                                     api_item_property_update(
@@ -664,18 +782,15 @@ class Agenda
                                 }
                             }
 
+                            // Delete users.
                             if (!empty($usersToDelete)) {
                                 foreach ($usersToDelete as $userId) {
-                                    api_item_property_update(
+                                    api_item_property_delete(
                                         $this->course,
                                         TOOL_CALENDAR_EVENT,
                                         $id,
-                                        "delete",
-                                        api_get_user_id(),
-                                        $groupId,
                                         $userId,
-                                        $start,
-                                        $end,
+                                        $groupId,
                                         $this->sessionId
                                     );
                                 }
@@ -684,18 +799,23 @@ class Agenda
                     }
 
                     // Add announcement.
-                    /*if (isset($addAsAnnouncement) && !empty($addAsAnnouncement)) {
-                        $this->store_agenda_item_as_announcement($id);
-                    }*/
+                    if (isset($addAnnouncement) && !empty($addAnnouncement)) {
+                        $this->store_agenda_item_as_announcement($id, $usersToSend);
+                    }
 
                     // Add attachment.
                     if (isset($attachmentArray) && !empty($attachmentArray)) {
-                        $this->updateAttachment(
-                            $id,
-                            $attachmentArray,
-                            $attachmentComment,
-                            $this->course
-                        );
+                        $counter = 0;
+                        foreach ($attachmentArray as $attachmentItem) {
+                            $this->updateAttachment(
+                                $attachmentItem['id'],
+                                $id,
+                                $attachmentItem,
+                                $attachmentCommentList[$counter],
+                                $this->course
+                            );
+                            $counter++;
+                        }
                     }
                 }
                 break;
@@ -737,10 +857,11 @@ class Agenda
                 break;
             case 'course':
                 $course_id = api_get_course_int_id();
+
                 if (!empty($course_id) && api_is_allowed_to_edit(null, true)) {
                     // Delete
+                    $eventInfo = $this->get_event($id);
                     if ($deleteAllItemsFromSerie) {
-                        $eventInfo = $this->get_event($id);
                         /* This is one of the children.
                            Getting siblings and delete 'Em all + the father! */
                         if (isset($eventInfo['parent_event_id']) && !empty($eventInfo['parent_event_id'])) {
@@ -784,6 +905,12 @@ class Agenda
                         $this->table_repeat,
                         array('cal_id = ? AND c_id = ?' => array($id, $course_id))
                     );
+
+                    if (isset($eventInfo['attachment']) && !empty($eventInfo['attachment'])) {
+                        foreach ($eventInfo['attachment'] as $attachment) {
+                            self::deleteAttachmentFile($attachment['id'], $this->course);
+                        }
+                    }
                 }
                 break;
             case 'admin':
@@ -814,14 +941,15 @@ class Agenda
                 $this->get_platform_events($start, $end);
                 break;
             case 'course':
-                $session_id = api_get_session_id();
+                $session_id = $this->sessionId;
                 $courseInfo = api_get_course_info_by_id($course_id);
+                $sessionInfo = api_get_session_info($session_id);
                 $this->get_course_events(
                     $start,
                     $end,
                     $courseInfo,
                     $groupId,
-                    $session_id,
+                    $sessionInfo,
                     $user_id
                 );
                 break;
@@ -837,18 +965,52 @@ class Agenda
                 $my_course_list = array();
 
                 if (!api_is_anonymous()) {
-                    $session_list = SessionManager::get_sessions_by_user(api_get_user_id());
-                    $my_course_list = CourseManager::get_courses_list_by_user_id(api_get_user_id(), true);
+                    $session_list = SessionManager::get_sessions_by_user(
+                        api_get_user_id()
+                    );
+                    $my_course_list = CourseManager::get_courses_list_by_user_id(
+                        api_get_user_id(),
+                        true
+                    );
+                }
+
+                if (api_is_drh()) {
+                    if (api_drh_can_access_all_session_content()) {
+                        $session_list = array();
+                        $sessionList = SessionManager::get_sessions_followed_by_drh(
+                            api_get_user_id(),
+                            null,
+                            null,
+                            null,
+                            true,
+                            false
+                        );
+
+                        if (!empty($sessionList)) {
+                            foreach ($sessionList as $sessionItem) {
+                                $sessionId = $sessionItem['id'];
+                                $courses = SessionManager::get_course_list_by_session_id(
+                                    $sessionId
+                                );
+                                $sessionInfo = array(
+                                    'session_id' => $sessionId,
+                                    'courses' => $courses
+                                );
+                                $session_list[] = $sessionInfo;
+                            }
+                        }
+                    }
                 }
 
                 if (!empty($session_list)) {
                     foreach ($session_list as $session_item) {
                         $my_courses = $session_item['courses'];
                         $my_session_id = $session_item['session_id'];
+                        $sessionInfo = api_get_session_info($my_session_id);
                         if (!empty($my_courses)) {
                             foreach ($my_courses as $course_item) {
                                 $courseInfo = api_get_course_info($course_item['code']);
-                                $this->get_course_events($start, $end, $courseInfo, 0, $my_session_id);
+                                $this->get_course_events($start, $end, $courseInfo, 0, $sessionInfo);
                             }
                         }
                     }
@@ -1008,7 +1170,7 @@ class Agenda
                             $event['parent_info'] = $this->get_event($event['parent_event_id']);
                         }
 
-                        $event['attachment'] = $this->getAttachment($id, $this->course);
+                        $event['attachment'] = $this->getAttachmentList($id, $this->course);
                     }
                 }
                 break;
@@ -1034,12 +1196,23 @@ class Agenda
      */
     public function get_personal_events($start, $end)
     {
-        $start = api_get_utc_datetime(intval($start));
-        $end = api_get_utc_datetime(intval($end));
+        $start = intval($start);
+        $end = intval($end);
+        $startCondition = '';
+        $endCondition = '';
+
+        if ($start !== 0) {
+            $start = api_get_utc_datetime($start);
+            $startCondition = "AND date >= '".$start."'";
+        }
+        if ($start !== 0) {
+            $end = api_get_utc_datetime($end);
+            $endCondition = "AND (enddate <= '".$end."' OR enddate IS NULL)";
+        }
         $user_id = api_get_user_id();
 
         $sql = "SELECT * FROM ".$this->tbl_personal_agenda."
-                WHERE date >= '".$start."' AND (enddate <='".$end."' OR enddate IS NULL) AND user = $user_id";
+                WHERE user = $user_id $startCondition $endCondition";
 
         $result = Database::query($sql);
         $my_events = array();
@@ -1143,7 +1316,7 @@ class Agenda
      * @param int $user_id
      * @return array
      */
-    public function get_course_events($start, $end, $courseInfo, $groupId = 0, $session_id = 0, $user_id = 0)
+    public function get_course_events($start, $end, $courseInfo, $groupId = 0, $sessionInfo = array(), $user_id = 0)
     {
         $start = isset($start) && !empty($start) ? api_get_utc_datetime(intval($start)) : null;
         $end = isset($end) && !empty($end) ? api_get_utc_datetime(intval($end)) : null;
@@ -1151,7 +1324,17 @@ class Agenda
         if (empty($courseInfo)) {
             return array();
         }
+
         $course_id = $courseInfo['real_id'];
+        $session_id = isset($sessionInfo['id']) ? $sessionInfo['id'] : 0;
+
+        $checkStartCalendarDate = isset($sessionInfo['calendar_start_date']) ? $sessionInfo['calendar_start_date'] : '';
+
+        $checkStartCalendarDateCondition = '';
+        if (!empty($checkStartCalendarDate)) {
+            $checkStartCalendarDateCondition = ' AND agenda.start_date > "'.$checkStartCalendarDate.'"';
+        }
+
         if (empty($course_id)) {
             return array();
         }
@@ -1183,6 +1366,7 @@ class Agenda
         $session_id = intval($session_id);
 
         if (is_array($group_memberships) && count($group_memberships) > 0) {
+
             if (api_is_allowed_to_edit()) {
                 if (!empty($groupId)) {
                     $where_condition = "( ip.to_group_id IN (0, ".implode(", ", $group_memberships).") ) ";
@@ -1197,28 +1381,40 @@ class Agenda
                 $where_condition = "( ip.to_user_id = $user_id OR ip.to_group_id IN (0, ".implode(", ", $group_memberships).") ) ";
             }
 
-            $sql = "SELECT DISTINCT agenda.*, ip.visibility, ip.to_group_id, ip.insert_user_id, ip.ref, to_user_id
-                    FROM $tlb_course_agenda agenda INNER JOIN $tbl_property ip
+            $sql = "SELECT DISTINCT
+                        agenda.*,
+                        ip.visibility,
+                        ip.to_group_id,
+                        ip.insert_user_id,
+                        ip.ref,
+                        to_user_id
+                    FROM $tlb_course_agenda agenda
+                    INNER JOIN $tbl_property ip
                     ON (agenda.id = ip.ref AND agenda.c_id = ip.c_id)
                     WHERE
                         ip.tool         ='".TOOL_CALENDAR_EVENT."' AND
                         $where_condition AND
                         ip.visibility   = '1' AND
                         agenda.c_id     = $course_id AND
-                        ip.c_id         = $course_id
+                        ip.c_id         = $course_id AND
+                        agenda.session_id = $session_id AND
+                        ip.id_session = $session_id
+                        $checkStartCalendarDateCondition
                     ";
         } else {
-            $visibilityCondition = "ip.visibility='1' AND";
+            $visibilityCondition = " ip.visibility='1' AND";
+
             if (api_is_allowed_to_edit()) {
                 if ($user_id == 0) {
                     $where_condition = "";
                 } else {
-                    $where_condition = "( ip.to_user_id=".$user_id. ") AND ";
+                    $where_condition = " ( ip.to_user_id = ".$user_id. " OR ip.to_group_id='0' ) AND ";
                 }
                 $visibilityCondition = " (ip.visibility IN ('1', '0')) AND ";
             } else {
-                $where_condition = "( ip.to_user_id=$user_id OR ip.to_group_id='0') AND ";
+                $where_condition = " ( ip.to_user_id = $user_id OR ip.to_group_id='0' ) AND ";
             }
+
             $sql = "SELECT DISTINCT agenda.*, ip.visibility, ip.to_group_id, ip.insert_user_id, ip.ref, to_user_id
                     FROM $tlb_course_agenda agenda INNER JOIN $tbl_property ip
                     ON (agenda.id = ip.ref AND agenda.c_id = ip.c_id)
@@ -1230,22 +1426,31 @@ class Agenda
                         ip.c_id = $course_id AND
                         agenda.session_id = $session_id AND
                         ip.id_session = $session_id
+                        $checkStartCalendarDateCondition
                     ";
         }
 
         $dateCondition = null;
         if (!empty($start)  && !empty($end)) {
-            $dateCondition .= "AND (
-                (agenda.start_date >= '".$start."' OR agenda.start_date IS NULL) AND
-                (agenda.end_date <= '".$end."' OR agenda.end_date IS NULL)
+             $dateCondition .= "AND (
+                 agenda.start_date BETWEEN '".$start."' AND '".$end."' OR
+                 agenda.end_date BETWEEN '".$start."' AND '".$end."' OR
+                 (
+                 agenda.start_date <> '' AND agenda.end_date <> '' AND
+                 YEAR(agenda.start_date) = YEAR(agenda.end_date) AND
+                 MONTH('$start') BETWEEN MONTH(agenda.start_date) AND MONTH(agenda.end_date)
+                 )
             )";
         }
 
         $sql .= $dateCondition;
-
+        $allowComments = api_get_configuration_value('allow_agenda_event_comment');
         $result = Database::query($sql);
         if (Database::num_rows($result)) {
-            $events_added = array();
+            $eventsAdded = array();
+            foreach ($this->events as $eventData) {
+                $eventsAdded[] = $eventData['unique_id'];
+            }
             while ($row = Database::fetch_array($result, 'ASSOC')) {
                 $eventId = $row['ref'];
                 $items = $this->getUsersAndGroupSubscribedToEvent($eventId, $course_id, $this->sessionId);
@@ -1253,22 +1458,24 @@ class Agenda
                 $user_to_array = $items['users'];
                 $event = array();
                 $event['id'] = 'course_'.$row['id'];
+                $event['unique_id']  = 'event_'.$row['id'].'_'.intval($row['session_id']).'_'.$course_id;
 
                 // To avoid doubles
-                if (in_array($row['id'], $events_added)) {
+                if (in_array($event['unique_id'], $eventsAdded)) {
                     continue;
                 }
 
-                $events_added[] = $row['id'];
-                $attachment = $this->getAttachment($row['id'], $courseInfo);
+                $eventsAdded[] = $event['unique_id'];
+                $attachmentList = $this->getAttachmentList($row['id'], $courseInfo);
+                $event['attachment'] = '';
 
-                if (!empty($attachment)) {
-                    $has_attachment = Display::return_icon('attachment.gif', get_lang('Attachment'));
-                    $user_filename = $attachment['filename'];
-                    $url = api_get_path(WEB_CODE_PATH).'calendar/download.php?file='.$attachment['path'].'&course_id='.$course_id.'&'.api_get_cidreq();
-                    $event['attachment'] = $has_attachment.Display::url($user_filename, $url);
-                } else {
-                    $event['attachment'] = '';
+                if (!empty($attachmentList)) {
+                    foreach ($attachmentList as $attachment) {
+                        $has_attachment = Display::return_icon('attachment.gif', get_lang('Attachment'));
+                        $user_filename = $attachment['filename'];
+                        $url = api_get_path(WEB_CODE_PATH).'calendar/download.php?file='.$attachment['path'].'&course_id='.$course_id.'&'.api_get_cidreq();
+                        $event['attachment'] .= $has_attachment.Display::url($user_filename, $url).'<br />';
+                    }
                 }
 
                 $event['title'] = $row['title'];
@@ -1283,6 +1490,12 @@ class Agenda
 
                 if (isset($row['to_group_id']) && !empty($row['to_group_id'])) {
                     $event['borderColor'] = $event['backgroundColor'] = $this->event_group_color;
+                }
+
+                if ($this->allowEventColoring) {
+                    if (isset($row['color']) && !empty($row['color'])) {
+                        $event['borderColor'] = $event['backgroundColor'] = $row['color'];
+                    }
                 }
 
                 $event['editable'] = false;
@@ -1348,9 +1561,16 @@ class Agenda
                 $event['parent_event_id'] = $row['parent_event_id'];
                 $event['has_children'] = $this->hasChildren($row['id'], $course_id) ? 1 : 0;
 
+                if ($allowComments) {
+                    $event['comment'] = isset($row['comment']) ? $row['comment'] : '';
+                } else {
+                    $event['comment'] = null;
+                }
+
                 $this->events[] = $event;
             }
         }
+
         return $this->events;
     }
 
@@ -1364,13 +1584,22 @@ class Agenda
         $start = intval($start);
         $end = intval($end);
 
-        $start = api_get_utc_datetime($start);
-        $end = api_get_utc_datetime($end);
+        $startCondition = '';
+        $endCondition = '';
+
+        if ($start !== 0) {
+            $start = api_get_utc_datetime($start);
+            $startCondition = "AND start_date >= '".$start."'";
+        }
+        if ($start !== 0) {
+            $end = api_get_utc_datetime($end);
+            $endCondition = "AND end_date <= '".$end."'";
+        }
 
         $access_url_id = api_get_current_access_url_id();
 
         $sql = "SELECT * FROM ".$this->tbl_global_agenda."
-               WHERE start_date >= '".$start."' AND end_date <= '".$end."' AND access_url_id = $access_url_id ";
+               WHERE access_url_id = $access_url_id $startCondition $endCondition";
 
         $result = Database::query($sql);
         $my_events = array();
@@ -1621,6 +1850,10 @@ class Agenda
             $url = api_get_self().'?action='.$action.'&id='.$id.'&type='.$this->type;
         }
 
+        if (isset($params['content'])) {
+            $params['content'] = nl2br($params['content']);
+        }
+
         $form = new FormValidator(
             'add_event',
             'post',
@@ -1733,24 +1966,51 @@ class Agenda
         );
 
         if ($this->type == 'course') {
+            $allow = api_get_configuration_value('allow_agenda_event_comment');
 
-            $form->addElement('file', 'user_upload', get_lang('AddAnAttachment'));
-            if ($showAttachmentForm) {
-                if (isset($params['attachment']) && !empty($params['attachment'])) {
-                    $attachment = $params['attachment'];
-                    $params['file_comment'] = $attachment['comment'];
-                    if (!empty($attachment['path'])) {
-                        $form->addElement(
-                            'checkbox',
-                            'delete_attachment',
-                            null,
-                            get_lang('DeleteAttachment').' '.$attachment['filename']
-                        );
-                    }
-                }
+            if ($allow) {
+                $form->addElement('textarea', 'comment', get_lang('Comment'));
             }
 
-            $form->addElement('textarea', 'file_comment', get_lang('Comment'));
+            //$form->addElement('file', 'user_upload', get_lang('AddAnAttachment'));
+
+            $form->addElement('advanced_settings', get_lang('FilesAttachment').'<span id="filepaths">
+                        <div id="filepath_1">
+                            <input type="file" name="attach_1"/><br />
+                            '.get_lang('Description').'&nbsp;&nbsp;<input type="text" name="legend[]" /><br /><br />
+                        </div>
+                    </span>');
+            $form->addElement('advanced_settings','<span id="link-more-attach"><a href="javascript://" onclick="return add_image_form()">'.get_lang('AddOneMoreFile').'</a></span>&nbsp;('.sprintf(get_lang('MaximunFileSizeX'),format_file_size(api_get_setting('message_max_upload_filesize'))).')');
+
+            //if ($showAttachmentForm) {
+
+                if (isset($params['attachment']) && !empty($params['attachment'])) {
+                    $attachmentList = $params['attachment'];
+                    foreach ($attachmentList as $attachment) {
+                        $params['file_comment'] = $attachment['comment'];
+                        if (!empty($attachment['path'])) {
+                            $form->addElement(
+                                'checkbox',
+                                'delete_attachment['.$attachment['id'].']',
+                                null,
+                                get_lang('DeleteAttachment').': '.$attachment['filename']
+                            );
+                        }
+                    }
+
+                }
+           // }
+
+            //$form->addElement('textarea', 'file_comment', get_lang('FileComment'));
+
+            if (!empty($id)) {
+                $form->addElement(
+                    'checkbox',
+                    'add_announcement',
+                    null,
+                    get_lang('AddAnnouncement').'&nbsp('.get_lang('SendMail').')'
+                );
+            }
         }
 
         if (empty($id)) {
@@ -1795,13 +2055,13 @@ class Agenda
 
         $userList = CourseManager::get_user_list_from_course_code(
             api_get_course_id(),
-            api_get_session_id(),
+            $this->sessionId,
             null,
             $order
         );
         $groupList = CourseManager::get_group_list_of_course(
             api_get_course_id(),
-            api_get_session_id()
+            $this->sessionId
         );
 
         $this->setSendToSelect(
@@ -1824,7 +2084,7 @@ class Agenda
      */
     public static function changeVisibility($id, $visibility, $courseInfo, $userId = null)
     {
-        $id = Database::escape_string($id);
+        $id = intval($id);
         if (empty($userId)) {
             $userId = api_get_user_id();
         } else {
@@ -1860,17 +2120,49 @@ class Agenda
      * @param array $courseInfo
      * @return array with the post info
      */
-    public function getAttachment($eventId, $courseInfo)
+    public function getAttachmentList($eventId, $courseInfo)
     {
         $tableAttachment = Database::get_course_table(TABLE_AGENDA_ATTACHMENT);
         $courseId = intval($courseInfo['real_id']);
-        $eventId = Database::escape_string($eventId);
-        $row = array();
+        $eventId = intval($eventId);
+
         $sql = "SELECT id, path, filename, comment
                 FROM $tableAttachment
                 WHERE
                     c_id = $courseId AND
                     agenda_id = $eventId";
+        $result = Database::query($sql);
+        $list = array();
+        if (Database::num_rows($result) != 0) {
+            $list = Database::store_result($result, 'ASSOC');
+        }
+
+        return $list;
+    }
+
+
+    /**
+     * Show a list with all the attachments according to the post's id
+     * @param int $attachmentId
+     * @param int $eventId
+     * @param array $courseInfo
+     * @return array with the post info
+     */
+    public function getAttachment($attachmentId, $eventId, $courseInfo)
+    {
+        $tableAttachment = Database::get_course_table(TABLE_AGENDA_ATTACHMENT);
+        $courseId = intval($courseInfo['real_id']);
+        $eventId = intval($eventId);
+        $attachmentId = intval($attachmentId);
+
+        $row = array();
+        $sql = "SELECT id, path, filename, comment
+                FROM $tableAttachment
+                WHERE
+                    c_id = $courseId AND
+                    agenda_id = $eventId AND
+                    id = $attachmentId
+                ";
         $result = Database::query($sql);
         if (Database::num_rows($result) != 0) {
             $row = Database::fetch_array($result, 'ASSOC');
@@ -1943,16 +2235,17 @@ class Agenda
     }
 
     /**
+     * @param int $attachmentId
      * @param int $eventId
      * @param array $fileUserUpload
      * @param string $comment
      * @param array $courseInfo
      */
-    public function updateAttachment($eventId, $fileUserUpload, $comment, $courseInfo)
+    public function updateAttachment($attachmentId, $eventId, $fileUserUpload, $comment, $courseInfo)
     {
-        $attachment = $this->getAttachment($eventId, $courseInfo);
+        $attachment = $this->getAttachment($attachmentId, $eventId, $courseInfo);
         if (!empty($attachment)) {
-            $this->deleteAttachmentFile($attachment['id'], $courseInfo);
+            $this->deleteAttachmentFile($attachmentId, $courseInfo);
         }
         $this->addAttachment($eventId, $fileUserUpload, $comment, $courseInfo);
     }
@@ -2207,6 +2500,11 @@ class Agenda
                     $freq = $trans[$repeat['FREQ']];
 
                     if (isset($repeat['UNTIL']) && !empty($repeat['UNTIL'])) {
+                        // Check if datetime or just date (strlen == 8)
+                        if (strlen($repeat['UNTIL']) == 8) {
+                            // Fix the datetime format to avoid exception in the next step
+                            $repeat['UNTIL'] .= 'T000000';
+                        }
                         $until = Sabre\VObject\DateTimeParser::parseDateTime($repeat['UNTIL'], new DateTimeZone($currentTimeZone));
                         $until = $until->format('Y-m-d H:i');
                         //$res = agenda_add_repeat_item($courseInfo, $id, $freq, $until, $attendee);
@@ -2250,6 +2548,9 @@ class Agenda
 
         if (!empty($messages)) {
             $messages = implode('<br /> ', $messages);
+        } else {
+            $messages = get_lang('NoAgendaItems');
+
         }
 
         return $messages;
@@ -2284,5 +2585,21 @@ class Agenda
             'users' => array($userId),
             'groups' => array($groupId)
         );
+    }
+
+    /**
+     * @return bool
+     */
+    public function getIsAllowedToEdit()
+    {
+        return $this->isAllowedToEdit;
+    }
+
+    /**
+     * @param bool $isAllowedToEdit
+     */
+    public function setIsAllowedToEdit($isAllowedToEdit)
+    {
+        $this->isAllowedToEdit = $isAllowedToEdit;
     }
 }

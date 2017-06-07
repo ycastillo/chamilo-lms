@@ -6,7 +6,6 @@ $ForumDeleted = "Forum silindi";
 $ForumCategoryDeleted = "Forum kategorisi silindi";
 $Forum = "Forumlar";
 $AddForumCategory = "Forum kategorisi ekle";
-$AddForum = "Forum ekle";
 $Topics = "Konular";
 $Posts = "Mektuplar";
 $LastPosts = "En son mektup";
@@ -36,7 +35,6 @@ $LastPost = "En son mektup";
 $Quoting = "Alıntılama";
 $NotifyByEmail = "Birisi cevaplarsa beni e-posta ile bilgilendir";
 $StickyPost = "Bu yapışkan nottur (her zaman üstte ve özel yapışkan ikonu ile gözükür)";
-$ReplyShort = "Cevap:";
 $DeletePost = "Bu mektubu silmek istediğinize emin misiniz? Bu mektubun silinmesi cevapların da silinmesi demektir. Lütfen thread görüntünden hangi mektupların da silineceğini kontrol ediniz.";
 $Approval = "Onay";
 ?>

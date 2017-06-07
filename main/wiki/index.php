@@ -1,15 +1,12 @@
 <?php
 /* For licensing terms, see /license.txt */
+
 /**
  *	@author Patrick Cool <patrick.cool@UGent.be>, Ghent University, Belgium
  * 	@author Juan Carlos Raña <herodoto@telefonica.net>
  *
  * 	@package chamilo.wiki
  */
-/**
- * Code
- */
-use \ChamiloSession as Session;
 
 // name of the language file that needs to be included
 $language_file = 'wiki';
@@ -77,16 +74,21 @@ event_access_tool(TOOL_WIKI);
 
 if ($groupId) {
     $group_properties = GroupManager::get_group_properties($groupId);
-    $interbreadcrumb[] = array("url" => api_get_path(WEB_CODE_PATH)."group/group.php", "name" => get_lang('Groups'));
     $interbreadcrumb[] = array(
-        "url" => api_get_path(WEB_CODE_PATH)."group/group_space.php?gidReq=".$groupId,
-        "name" => get_lang('GroupSpace').' '.$group_properties['name']
+        "url" => api_get_path(WEB_CODE_PATH)."group/group.php?".api_get_cidreq(),
+        "name" => get_lang('Groups')
+    );
+    $interbreadcrumb[] = array(
+        "url" => api_get_path(WEB_CODE_PATH)."group/group_space.php?".api_get_cidreq(),
+        "name" => get_lang('GroupSpace').' '.Security::remove_XSS($group_properties['name'])
     );
     //ensure this tool in groups whe it's private or deactivated
     if ($group_properties['wiki_state'] == 0) {
         api_not_allowed();
     } elseif ($group_properties['wiki_state']==2) {
-        if (!api_is_allowed_to_edit(false,true) and !GroupManager :: is_user_in_group(api_get_user_id(), api_get_group_id())) {
+        if (!api_is_allowed_to_edit(false,true) and
+            !GroupManager :: is_user_in_group(api_get_user_id(), api_get_group_id())
+        ) {
             api_not_allowed();
         }
     }
@@ -96,8 +98,8 @@ $is_allowed_to_edit = api_is_allowed_to_edit(false, true);
 
 // The page we are dealing with
 $page = isset($_GET['title']) ? $_GET['title']: 'index';
-$action = isset($_GET['action']) ? $_GET['action'] : 'showpage';
-$view = isset($_GET['view']) ? $_GET['view'] : null;
+$action = isset($_GET['action']) ? Security::remove_XSS($_GET['action']) : 'showpage';
+$view = isset($_GET['view']) ? Security::remove_XSS($_GET['view']) : null;
 
 $wiki->page = $page;
 $wiki->action = $action;

@@ -2,18 +2,18 @@
 /* For licensing terms, see /license.txt */
 
 /**
-*	Main page for the group module.
-*	This script displays the general group settings,
-*	and a list of groups with buttons to view, edit...
-*
-*	@author Thomas Depraetere, Hugues Peeters, Christophe Gesche: initial versions
-*	@author Bert Vanderkimpen, improved self-unsubscribe for cvs
-*	@author Patrick Cool, show group comment under the group name
-*	@author Roan Embrechts, initial self-unsubscribe code, code cleaning, virtual course support
-*	@author Bart Mollet, code cleaning, use of Display-library, list of courseAdmin-tools, use of GroupManager
-*	@author Isaac Flores, code cleaning and improvements
-*	@package chamilo.group
-*/
+ *	Main page for the group module.
+ *	This script displays the general group settings,
+ *	and a list of groups with buttons to view, edit...
+ *
+ *	@author Thomas Depraetere, Hugues Peeters, Christophe Gesche: initial versions
+ *	@author Bert Vanderkimpen, improved self-unsubscribe for cvs
+ *	@author Patrick Cool, show group comment under the group name
+ *	@author Roan Embrechts, initial self-unsubscribe code, code cleaning, virtual course support
+ *	@author Bart Mollet, code cleaning, use of Display-library, list of courseAdmin-tools, use of GroupManager
+ *	@author Isaac Flores, code cleaning and improvements
+ *	@package chamilo.group
+ */
 /*		INIT SECTION	*/
 // Name of the language file that needs to be included
 $language_file = 'group';
@@ -168,9 +168,9 @@ if (api_is_allowed_to_edit(false, true)) {
         Display::return_icon('import_csv.png', get_lang('Import'), '', ICON_SIZE_MEDIUM).'</a>';
 
     echo  '<a href="group_overview.php?'.api_get_cidreq().'&action=export_all&type=csv">'.
-        Display::return_icon('export_csv.png', get_lang('Export'), '', ICON_SIZE_MEDIUM).'</a>';
+        Display::return_icon('export_csv.png', get_lang('ExportAsCSV'), '', ICON_SIZE_MEDIUM).'</a>';
 
-    echo  '<a href="group_overview.php?'.api_get_cidreq().'&action=export&type=xls">'.
+    echo  '<a href="group_overview.php?'.api_get_cidreq().'&action=export_all&type=xls">'.
         Display::return_icon('export_excel.png', get_lang('ExportAsXLS'), '', ICON_SIZE_MEDIUM).'</a>';
 
     echo  '<a href="group_overview.php?'.api_get_cidreq().'&action=export_pdf">'.
@@ -189,7 +189,6 @@ $group_cats = GroupManager::get_categories(api_get_course_id());
 echo '</div>';
 
 /*  List all categories */
-
 if (api_get_setting('allow_group_categories') == 'true') {
     foreach ($group_cats as $index => $category) {
         $group_list = GroupManager :: get_group_list($category['id']);
@@ -199,28 +198,40 @@ if (api_get_setting('allow_group_categories') == 'true') {
         if (api_is_allowed_to_edit(false, true)) {
             $actions .= '<a href="group_category.php?'.api_get_cidreq().'&id='.$category['id'].'" title="'.get_lang('Edit').'">'.
                 Display::return_icon('edit.png', get_lang('EditGroup'),'',ICON_SIZE_SMALL).'</a>';
-            $actions .= '<a href="group.php?'.api_get_cidreq().'&action=delete_category&amp;id='.$category['id'].'" onclick="javascript:if(!confirm('."'".addslashes(api_htmlentities(get_lang('ConfirmYourChoice'), ENT_QUOTES))."'".')) return false;" title="'.get_lang('Delete').'">'.
-                Display::return_icon('delete.png', get_lang('Delete'),'',ICON_SIZE_SMALL).'</a>';
+            $actions .=
+                Display::url(
+                    Display::return_icon('delete.png', get_lang('Delete'), '', ICON_SIZE_SMALL),
+                    'group.php?'.api_get_cidreq().'&action=delete_category&id='.$category['id'],
+                    array(
+                        'onclick' => 'javascript:if(!confirm('."'".addslashes(api_htmlentities(get_lang('ConfirmYourChoice'), ENT_QUOTES))."'".')) return false;'
+                    )
+                );
             if ($index != 0) {
-                $actions .=  ' <a href="group.php?'.api_get_cidreq().'&action=swap_cat_order&amp;id1='.$category['id'].'&amp;id2='.$group_cats[$index -1]['id'].'">'.
+                $actions .=  ' <a href="group.php?'.api_get_cidreq().'&action=swap_cat_order&id1='.$category['id'].'&id2='.$group_cats[$index -1]['id'].'">'.
                     Display::return_icon('up.png','&nbsp;','',ICON_SIZE_SMALL).'</a>';
             }
             if ($index != count($group_cats) - 1) {
-                $actions .= ' <a href="group.php?'.api_get_cidreq().'&action=swap_cat_order&amp;id1='.$category['id'].'&amp;id2='.$group_cats[$index +1]['id'].'">'.
+                $actions .= ' <a href="group.php?'.api_get_cidreq().'&action=swap_cat_order&id1='.$category['id'].'&id2='.$group_cats[$index +1]['id'].'">'.
                     Display::return_icon('down.png','&nbsp;','',ICON_SIZE_SMALL).'</a>';
             }
         }
 
-        echo Display::page_header($category['title'].' '. $label.' '.$actions);
-        echo '<p style="margin: 0px;margin-left: 50px;">'.$category['description'].'</p><p/>';
-        GroupManager ::process_groups($group_list, $category['id']);
+        echo Display::page_header(
+            Security::remove_XSS($category['title'].' '. $label.' ').$actions,
+            null,
+            'h2',
+            false
+        );
+
+        echo $category['description'];
+        GroupManager::process_groups($group_list, $category['id']);
     }
 } else {
     $group_list = GroupManager::get_group_list();
     GroupManager::process_groups($group_list);
 }
 
-if (!isset ($_GET['origin']) || $_GET['origin'] != 'learnpath') {
+if (!isset($_GET['origin']) || $_GET['origin'] != 'learnpath') {
     Display::display_footer();
 }
 $_SESSION['_gid'] = 0;

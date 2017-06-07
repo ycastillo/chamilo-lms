@@ -5,9 +5,7 @@
  * @package chamilo.learnpath
  * @author Yannick Warnier <ywarnier@beeznest.org>
  */
-/**
- * Code
- */
+
 // Flag to allow for anonymous user - needs to be set before global.inc.php.
 $use_anonymous = true;
 require_once 'back_compat.inc.php';
@@ -25,19 +23,16 @@ $uncompress = 1;
  * because if the file size exceed the maximum file upload
  * size set in php.ini, all variables from POST are cleared !
  */
-
 $user_file = Request::is_post() ? Request::file('user_file') : array();
 $user_file = $user_file ? $user_file : array();
 $is_error = isset($user_file['error']) ? $user_file['error'] : false;
 if (Request::is_post() && $is_error) {
     return api_failure::set_failure('upload_file_too_big');
-    unset($_FILEs['user_file']);
+    unset($_FILES['user_file']);
 } else if ($_SERVER['REQUEST_METHOD'] == 'POST' && count($_FILES) > 0 && !empty($_FILES['user_file']['name'])) {
 
     // A file upload has been detected, now deal with the file...
-
     // Directory creation.
-
     $stopping_error = false;
 
     $s = $_FILES['user_file']['name'];
@@ -66,11 +61,107 @@ if (Request::is_post() && $is_error) {
             require_once 'scorm.class.php';
             $oScorm = new scorm();
             $manifest = $oScorm->import_package($_FILES['user_file'], $current_dir);
-            if (!$manifest) { //if api_set_failure
+            if (!$manifest) {
+                //if api_set_failure
                 return api_failure::set_failure(api_failure::get_last_failure());
             }
             if (!empty($manifest)) {
                 $oScorm->parse_manifest($manifest);
+                $fixTemplate = api_get_configuration_value('learnpath_fix_xerte_template');
+                $proxyPath = api_get_configuration_value('learnpath_proxy_url');
+                // Check also setting lp_replace_http_to_https
+                if ($fixTemplate && !empty($proxyPath)) {
+                    // Check organisations:
+                    if (isset($oScorm->manifest['organizations'])) {
+                        foreach ($oScorm->manifest['organizations'] as $data) {
+                            if (strpos(strtolower($data), 'xerte') !== false) {
+                                // Check if template.xml exists:
+                                $templatePath = str_replace('imsmanifest.xml', 'template.xml', $manifest);
+                                if (file_exists($templatePath) && is_file($templatePath)) {
+                                    $templateContent = file_get_contents($templatePath);
+                                    $find = array(
+                                        'href="www.',
+                                        'href="https://',
+                                        'href="http://',
+                                        'url="www.',
+                                        'pdfs/download.php?',
+
+                                        "iframe src='https://",
+                                        "iframe src='http://",
+
+                                        'href=&quot;http://',
+                                        'href=&quot;https://',
+
+                                    );
+
+                                    $replace = array(
+                                        'href="http://www.',
+                                        'target = "_blank" href="'.$proxyPath.'?type=link&src=https://',
+                                        'target = "_blank" href="'.$proxyPath.'?type=link&src=http://',
+                                        'url="http://www.',
+                                        'pdfs/download.php&',
+
+                                        "iframe src='".$proxyPath."&#63;type=link&amp;src=https://",
+                                        "iframe src='".$proxyPath."&#63;type=link&amp;src=http://",
+
+                                        'href=&quot;'.$proxyPath.'&#63;type=link&amp;src=http://',
+                                        'href=&quot;'.$proxyPath.'&#63;type=link&amp;src=https://',
+                                    );
+                                    $templateContent = str_replace($find, $replace, $templateContent);
+                                    file_put_contents($templatePath, $templateContent);
+                                }
+
+                                // Fix link generation:
+                                $linkPath = str_replace('imsmanifest.xml', 'models_html5/links.html', $manifest);
+
+                                if (file_exists($linkPath) && is_file($linkPath)) {
+                                    $linkContent = file_get_contents($linkPath);
+                                    $find = array(
+                                        ':this.getAttribute("url")'
+                                    );
+                                    $replace = array(
+                                        ':"'.$proxyPath.'?type=link&src=" + this.getAttribute("url")'
+                                    );
+                                    $linkContent = str_replace($find, $replace, $linkContent);
+                                    file_put_contents($linkPath, $linkContent);
+                                }
+
+                                // Fix iframe generation
+                                $framePath = str_replace('imsmanifest.xml', 'models_html5/embedDiv.html', $manifest);
+
+                                if (file_exists($framePath) && is_file($framePath)) {
+                                    $content = file_get_contents($framePath);
+                                    $find = array(
+                                        '$iFrameHolder.html(iFrameTag);',
+                                        '$iFrameHolder.html(pageSrc);'
+                                    );
+                                    $replace = array(
+                                        'iFrameTag = \'<a target ="_blank" href="'.$proxyPath.'?type=link&src=\'+ pageSrc + \'">Open website. <img src="'.api_get_path(WEB_CODE_PATH).'img/link-external.png"></a>\'; $iFrameHolder.html(iFrameTag); ',
+                                        'var html = $.parseHTML(pageSrc); var data = "";  if (html[0]) {  data = html[0].getAttribute("src");  data = \'<br /><a target ="_blank" href="\'+ data + \'"> Open website. <img src="'.api_get_path(WEB_CODE_PATH).'img/link-external.png">\'; } $iFrameHolder.html(data+ pageSrc);'
+                                    );
+                                    $content = str_replace($find, $replace, $content);
+                                    file_put_contents($framePath, $content);
+                                }
+
+                                // Fix new window generation
+                                $newWindowPath = str_replace('imsmanifest.xml', 'models_html5/newWindow.html', $manifest);
+
+                                if (file_exists($newWindowPath) && is_file($newWindowPath)) {
+                                    $content = file_get_contents($newWindowPath);
+                                    $find = array(
+                                        'var src = x_currentPageXML'
+                                    );
+                                    $replace = array(
+                                        'var src = "'.$proxyPath.'?type=link&src=" + x_currentPageXML'
+                                    );
+                                    $content = str_replace($find, $replace, $content);
+                                    file_put_contents($newWindowPath, $content);
+                                }
+                            }
+                        }
+                    }
+                }
+
                 $oScorm->import_manifest(api_get_course_id(), $_REQUEST['use_max_score']);
             } else {
                 // Show error message stored in $oScrom->error_msg.
@@ -109,13 +200,9 @@ if (Request::is_post() && $is_error) {
     }
 } elseif ($_SERVER['REQUEST_METHOD'] == 'POST') {
     // end if is_uploaded_file
-
-    // If file name given to get in claroline/upload/, try importing this way.
-
+    // If file name given to get in /upload/, try importing this way.
     // A file upload has been detected, now deal with the file...
-
     // Directory creation.
-
     $stopping_error = false;
 
     // Escape path with basename so it can only be directly into the claroline/upload directory.
@@ -132,7 +219,6 @@ if (Request::is_post() && $is_error) {
     $result = learnpath::verify_document_size($s);
     if ($result == true) {
         return api_failure::set_failure('upload_file_too_big');
-
     }
     $type = learnpath::get_package_type($s, basename($s));
 

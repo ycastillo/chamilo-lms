@@ -19,7 +19,7 @@ $this_section = SECTION_PLATFORM_ADMIN;
 api_protect_admin_script(true);
 
 // setting breadcrumbs
-$interbreadcrumb[]=array('url' => 'index.php','name' => get_lang('PlatformAdmin'));
+$interbreadcrumb[] = array('url' => 'index.php','name' => get_lang('PlatformAdmin'));
 
 $form = new FormValidator('archive_cleanup_form');
 $form->addElement('style_submit_button','proceed', get_lang('ArchiveDirCleanupProceedButton'),'class="save"');
@@ -28,8 +28,8 @@ $message = null;
 
 if ($form->validate()) {
 	$archive_path = api_get_path(SYS_ARCHIVE_PATH);
-	$htaccess 	  = @file_get_contents($archive_path.'.htaccess');
-	$result 	  = rmdirr($archive_path, true);
+	$htaccess = @file_get_contents($archive_path.'.htaccess');
+	$result = rmdirr($archive_path, true, true);
 
 	if (!empty($htaccess)) {
 		@file_put_contents($archive_path.'/.htaccess', $htaccess);

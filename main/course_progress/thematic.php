@@ -53,8 +53,12 @@ if ($action == 'thematic_list') {
 	$table->display();
 	
 } elseif ($action == 'thematic_details') {
-	
-	if ($last_id) {
+    
+    if (isset($_GET['thematic_plan_save_message']) && $_GET['thematic_plan_save_message'] == 'ok') {
+        Display::display_confirmation_message(get_lang('ThematicSectionHasBeenCreatedSuccessfull'));
+    }
+
+	if (isset($last_id) && $last_id) {
 		$link_to_thematic_plan = '<a href="index.php?'.api_get_cidreq().'&action=thematic_plan_list&thematic_id='.$last_id.'">'.Display::return_icon('lesson_plan.png', get_lang('ThematicPlan'), array('style'=>'vertical-align:middle;float:none;'),ICON_SIZE_SMALL).'</a>';
 		$link_to_thematic_advance = '<a href="index.php?'.api_get_cidreq().'&action=thematic_advance_list&thematic_id='.$last_id.'">'.Display::return_icon('lesson_plan_calendar.png', get_lang('ThematicAdvance'), array('style'=>'vertical-align:middle;float:none;'),ICON_SIZE_SMALL).'</a>';
 		Display::display_confirmation_message(get_lang('ThematicSectionHasBeenCreatedSuccessfull').'<br />'.sprintf(get_lang('NowYouShouldAddThematicPlanXAndThematicAdvanceX'),$link_to_thematic_plan, $link_to_thematic_advance), false);
@@ -163,7 +167,7 @@ if ($action == 'thematic_list') {
 					
 					$edit_link = '';
 					if (api_is_allowed_to_edit(null, true)) {
-						$edit_link   = '<a class="thickbox" href="index.php?'.api_get_cidreq().'&action=thematic_advance_edit&thematic_id='.$thematic['id'].'&thematic_advance_id='.$thematic_advance['id'].'" >'.Display::return_icon('edit.png',get_lang('EditThematicAdvance'),array(),ICON_SIZE_SMALL).'</a>';
+						$edit_link   = '<a class="thickbox" href="index.php?'.api_get_cidreq().'&action=thematic_advance_edit&thematic_id='.$thematic['id'].'&thematic_advance_id='.$thematic_advance['id'].'&display=no_header" >'.Display::return_icon('edit.png',get_lang('EditThematicAdvance'),array(),ICON_SIZE_SMALL).'</a>';
 						$edit_link  .= '<a onclick="javascript:if(!confirm(\''.get_lang('AreYouSureToDelete').'\')) return false;" href="index.php?'.api_get_cidreq().'&action=thematic_advance_delete&thematic_id='.$thematic['id'].'&thematic_advance_id='.$thematic_advance['id'].'">'.
                                         Display::return_icon('delete.png',get_lang('Delete'),'',ICON_SIZE_SMALL).'</a></center>';
 						

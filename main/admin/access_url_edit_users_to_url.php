@@ -24,6 +24,7 @@ $this_section = SECTION_PLATFORM_ADMIN;
 
 // Access restrictions
 api_protect_global_admin_script();
+
 if (!api_get_multiple_access_url()) {
     header('Location: index.php');
     exit;
@@ -52,10 +53,8 @@ if (isset($_REQUEST['access_url_id']) && $_REQUEST['access_url_id'] != '') {
 
 $xajax->processRequests();
 $htmlHeadXtra[] = $xajax->getJavascript('../inc/lib/xajax/');
-$htmlHeadXtra[] = '
-<script type="text/javascript">
+$htmlHeadXtra[] = '<script>
 function add_user_to_url(code, content) {
-
 	document.getElementById("user_to_add").value = "";
 	document.getElementById("ajax_list_users").innerHTML = "";
 
@@ -67,7 +66,6 @@ function add_user_to_url(code, content) {
 }
 
 function send() {
-
 	if (document.formulaire.access_url_id.value!=0) {
 		document.formulaire.form_sent.value=0;
 		document.formulaire.add_type.value=\'' . $add_type . '\';
@@ -75,8 +73,7 @@ function send() {
 	}
 }
 
-function remove_item(origin)
-{
+function remove_item(origin) {
 	for(var i = 0 ; i<origin.options.length ; i++) {
 		if(origin.options[i].selected) {
 			origin.options[i]=null;
@@ -159,6 +156,7 @@ api_display_tool_title($tool_name);
 
 if (isset($_GET['action']) && $_GET['action'] == 'show_message') {
     Display :: display_normal_message(Security::remove_XSS(stripslashes($_GET['message'])));
+}
 
 $nosessionUsersList = $sessionUsersList = array();
 $ajax_search = $add_type == 'unique' ? true : false;
@@ -365,7 +363,6 @@ function loadUsersInSelect(select) {
 	else  // XMLHttpRequest non supporté par le navigateur
 	alert("Votre navigateur ne supporte pas les objets XMLHTTPRequest...");
 
-	//xhr_object.open("GET", "loadUsersInSelect.ajax.php?id_session=<?php echo $id_session ?>&letter="+select.options[select.selectedIndex].text, false);
 	xhr_object.open("POST", "loadUsersInSelect.ajax.php");
 	xhr_object.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
 	nosessionUsers = makepost(document.getElementById('origin_users'));
@@ -373,11 +370,9 @@ function loadUsersInSelect(select) {
 	nosessionClasses = makepost(document.getElementById('origin_classes'));
 	sessionClasses = makepost(document.getElementById('destination_classes'));
 	xhr_object.send("nosessionusers="+nosessionUsers+"&sessionusers="+sessionUsers+"&nosessionclasses="+nosessionClasses+"&sessionclasses="+sessionClasses);
-
 	xhr_object.onreadystatechange = function() {
-		if(xhr_object.readyState == 4) {
+		if (xhr_object.readyState == 4) {
 			document.getElementById('content_source').innerHTML = result = xhr_object.responseText;
-			//alert(xhr_object.responseText);
 		}
 	}
 }

@@ -1,14 +1,12 @@
 <?php
 /* For licensing terms, see /license.txt */
+
 /**
 *	Exercise preview
 *
 *	@package chamilo.exercise
 * 	@author Julio Montoya <gugli100@gmail.com>
 */
-/**
- * Code
- */
 
 use \ChamiloSession as Session;
 
@@ -19,7 +17,7 @@ require_once 'exercise.lib.php';
 $current_course_tool  = TOOL_QUIZ;
 
 // Clear the exercise session just in case
-if (isset ($_SESSION['objExercise'])) {
+if (isset($_SESSION['objExercise'])) {
 	Session::erase('objExercise');
 }
 
@@ -27,7 +25,7 @@ $this_section = SECTION_COURSES;
 
 // Notice for unauthorized people.
 api_protect_course_script(true);
-
+$sessionId = api_get_session_id();
 $exercise_id = isset($_REQUEST['exerciseId']) ? intval($_REQUEST['exerciseId']) : 0;
 
 $objExercise = new Exercise();
@@ -36,13 +34,13 @@ if (!$result) {
 	api_not_allowed(true);
 }
 
-$gradebook 			= isset($_GET['gradebook'])             ? Security :: remove_XSS($_GET['gradebook']) : null;
-$learnpath_id       = isset($_REQUEST['learnpath_id']) 		? intval($_REQUEST['learnpath_id']) : null;
-$learnpath_item_id  = isset($_REQUEST['learnpath_item_id']) ? intval($_REQUEST['learnpath_item_id']) : null;
-$origin  			= isset($_REQUEST['origin']) 			? Security::remove_XSS($_REQUEST['origin']) : null;
+$gradebook = isset($_GET['gradebook']) ? Security :: remove_XSS($_GET['gradebook']) : null;
+$learnpath_id = isset($_REQUEST['learnpath_id']) ? intval($_REQUEST['learnpath_id']) : null;
+$learnpath_item_id = isset($_REQUEST['learnpath_item_id']) ? intval($_REQUEST['learnpath_item_id']) : null;
+$origin = isset($_REQUEST['origin']) ? Security::remove_XSS($_REQUEST['origin']) : null;
 
-$interbreadcrumb[] = array ("url" => "exercice.php?gradebook=$gradebook", "name" => get_lang('Exercices'));
-$interbreadcrumb[] = array ("url" => "#","name" => $objExercise->name);
+$interbreadcrumb[] = array("url" => "exercice.php?gradebook=$gradebook", "name" => get_lang('Exercices'));
+$interbreadcrumb[] = array("url" => "#", "name" => $objExercise->name);
 
 $time_control = false;
 $clock_expired_time = get_session_time_control_key($objExercise->id, $learnpath_id, $learnpath_item_id);
@@ -66,20 +64,28 @@ if ($time_control) {
 if ($origin != 'learnpath') {
 	Display::display_header();
 } else {
+    $htmlHeadXtra[] = "
+    <style>
+    body { background: none;}
+    </style>
+    ";
 	Display::display_reduced_header();
 }
 
 $html = '';
 $message = '';
 
-$is_allowed_to_edit = api_is_allowed_to_edit(null,true);
+$is_allowed_to_edit = api_is_allowed_to_edit(null, true);
 $edit_link = '';
-if ($is_allowed_to_edit ) {
-	$edit_link = Display::url(Display::return_icon('edit.png', get_lang('Edit'), array(), ICON_SIZE_SMALL), api_get_path(WEB_CODE_PATH).'exercice/admin.php?'.api_get_cidreq().'&id_session='.api_get_session_id().'&exerciseId='.$objExercise->id);
+if ($is_allowed_to_edit && $objExercise->sessionId == $sessionId) {
+	$edit_link = Display::url(
+        Display::return_icon('edit.png', get_lang('Edit'), array(), ICON_SIZE_SMALL),
+        api_get_path(WEB_CODE_PATH).'exercice/admin.php?'.api_get_cidreq().'&id_session='.api_get_session_id().'&exerciseId='.$objExercise->id
+    );
 }
 
-//Exercise name
-$html .= Display::page_header( $objExercise->name.' '.$edit_link);
+// Exercise name.
+$html .= Display::page_header($objExercise->name.' '.$edit_link);
 
 //Exercise description
 if (!empty($objExercise->description)) {
@@ -98,31 +104,29 @@ if (isset($exercise_stat_info['exe_id'])) {
 }
 
 //1. Check if this is a new attempt or a previous
-$countNotFinished = isset($exercise_stat_info['num_exe']) ? $exercise_stat_info['num_exe'] : null;
 $label = get_lang('StartTest');
 if ($time_control && !empty($clock_expired_time) || !empty($attempt_list)) {
 	$label = get_lang('ContinueTest');
-}
-
-if ($countNotFinished >= $objExercise->selectAttempts() && !api_is_allowed_to_edit()) {
-    $message = Display::display_warning_message(sprintf(get_lang('ReachedMaxAttempts'),$objExercise->selectTitle(),$objExercise->selectAttempts()).' '.get_lang('YouTriedToResolveThisExerciseEarlier'));
-} elseif ($countNotFinished >= $objExercise->selectAttempts() && api_is_allowed_to_edit()) {
-    $message = Display::display_warning_message(get_lang('ReachedMaxAttemptsAdmin'));
 }
 
 if (!empty($attempt_list)) {
 	$message = Display::return_message(get_lang('YouTriedToResolveThisExerciseEarlier'));
 }
 
-//2. Exercise button
-//Notice we not add there the lp_item_view_id because is not already generated
+// 2. Exercise button
+// Notice we not add there the lp_item_view_id because is not already generated
 $exercise_url = api_get_path(WEB_CODE_PATH).'exercice/exercise_submit.php?'.api_get_cidreq().'&exerciseId='.$objExercise->id.'&origin='.$origin.'&learnpath_id='.$learnpath_id.'&learnpath_item_id='.$learnpath_item_id.$extra_params;
 $exercise_url_button = Display::url($label, $exercise_url, array('class'=>'btn btn-primary btn-large'));
 
 //3. Checking visibility of the exercise (overwrites the exercise button)
-$visible_return = $objExercise->is_visible($learnpath_id, $learnpath_item_id, null, false);
+$visible_return = $objExercise->is_visible(
+    $learnpath_id,
+    $learnpath_item_id,
+    null,
+    false
+);
 
-//Exercise is not visible remove the button
+// Exercise is not visible remove the button
 if ($visible_return['value'] == false) {
     if ($is_allowed_to_edit) {
         $message = Display::return_message(get_lang('ThisItemIsInvisibleForStudentsButYouHaveAccessAsTeacher'), 'warning');
@@ -130,9 +134,21 @@ if ($visible_return['value'] == false) {
         $message = $visible_return['message'];
         $exercise_url_button = null;
     }
+} else {
+    if ($visible_return['message'] != "") {
+        $message = $visible_return['message'];
+    }
 }
 
-$attempts = get_exercise_results_by_user(api_get_user_id(), $objExercise->id, api_get_course_id(), api_get_session_id(), $learnpath_id, $learnpath_item_id, 'desc');
+$attempts = get_exercise_results_by_user(
+    api_get_user_id(),
+    $objExercise->id,
+    api_get_course_id(),
+    api_get_session_id(),
+    $learnpath_id,
+    $learnpath_item_id,
+    'desc'
+);
 $counter = count($attempts);
 
 $my_attempt_array = array();
@@ -144,7 +160,7 @@ require_once api_get_path(LIBRARY_PATH).'browser/Browser.php';
 $browser = new Browser();
 $current_browser = $browser->getBrowser();
 $url_suffix = '';
-$btn_class = 'ajax ';
+$btn_class = ' ';
 if ($current_browser == 'Internet Explorer') {
     $url_suffix = '&amp;show_headers=1';
     $btn_class = '';
@@ -152,32 +168,56 @@ if ($current_browser == 'Internet Explorer') {
 
 if (!empty($attempts)) {
     $i = $counter;
-	foreach ($attempts as $attempt_result) {
+    foreach ($attempts as $attempt_result) {
 
-		$score = show_score($attempt_result['exe_result'], $attempt_result['exe_weighting']);
-		$attempt_url 	= api_get_path(WEB_CODE_PATH).'exercice/result.php?'.api_get_cidreq().'&amp;id='.$attempt_result['exe_id'].'&amp;id_session='.api_get_session_id().'&amp;height=500&amp;width=950'.$url_suffix;
-		$attempt_link 	= Display::url(get_lang('Show'), $attempt_url, array('class'=>$btn_class.'btn'));
+        $score = show_score(
+            $attempt_result['exe_result'],
+            $attempt_result['exe_weighting']
+        );
+        $attempt_url = api_get_path(WEB_CODE_PATH) . 'exercice/result.php?show_headers=1&' . api_get_cidreq() . '&amp;id=' . $attempt_result['exe_id'] . '&amp;id_session=' . api_get_session_id() . '&amp;height=500&amp;width=950' . $url_suffix;
+        $attempt_link = Display::url(
+            get_lang('Show'),
+            $attempt_url,
+            array('class' => $btn_class . 'btn')
+        );
 
-		$teacher_revised = Display::label(get_lang('Validated'), 'success');
-			//$attempt_link = get_lang('NoResult');
-			//$attempt_link = Display::return_icon('quiz_na.png', get_lang('NoResult'), array(), ICON_SIZE_SMALL);
-		if ($attempt_result['attempt_revised'] == 0) {
-			$teacher_revised = Display::label(get_lang('NotValidated'), 'info');
-		}
-		$row = array('count'	 	=> $i,
-					 'date'	 		=> api_convert_and_format_date($attempt_result['start_date'], DATE_TIME_FORMAT_LONG)
-				);
-		$attempt_link .= "&nbsp;&nbsp;&nbsp;".$teacher_revised;
+        $teacher_revised = Display::label(get_lang('Validated'), 'success');
+        //$attempt_link = get_lang('NoResult');
+        //$attempt_link = Display::return_icon('quiz_na.png', get_lang('NoResult'), array(), ICON_SIZE_SMALL);
+        if ($attempt_result['attempt_revised'] == 0) {
+            $teacher_revised = Display::label(get_lang('NotValidated'), 'info');
+        }
+        $row = array(
+            'count' => $i,
+            'date' => api_convert_and_format_date(
+                $attempt_result['start_date'],
+                DATE_TIME_FORMAT_LONG
+            )
+        );
+        $attempt_link .= "&nbsp;&nbsp;&nbsp;" . $teacher_revised;
 
-		if (in_array($objExercise->results_disabled, array(RESULT_DISABLE_SHOW_SCORE_AND_EXPECTED_ANSWERS, RESULT_DISABLE_SHOW_SCORE_ONLY, RESULT_DISABLE_SHOW_FINAL_SCORE_ONLY_WITH_CATEGORIES))) {
-			$row['result'] = $score;
-		}
+        if (in_array(
+            $objExercise->results_disabled,
+            array(
+                RESULT_DISABLE_SHOW_SCORE_AND_EXPECTED_ANSWERS,
+                RESULT_DISABLE_SHOW_SCORE_ONLY,
+                RESULT_DISABLE_SHOW_FINAL_SCORE_ONLY_WITH_CATEGORIES
+            )
+        )) {
+            $row['result'] = $score;
+        }
 
-		if (in_array($objExercise->results_disabled, array(RESULT_DISABLE_SHOW_SCORE_AND_EXPECTED_ANSWERS, RESULT_DISABLE_SHOW_FINAL_SCORE_ONLY_WITH_CATEGORIES))
+        if (in_array(
+                $objExercise->results_disabled,
+                array(
+                    RESULT_DISABLE_SHOW_SCORE_AND_EXPECTED_ANSWERS,
+                    RESULT_DISABLE_SHOW_FINAL_SCORE_ONLY_WITH_CATEGORIES
+                )
+            )
             || ($objExercise->results_disabled == RESULT_DISABLE_SHOW_SCORE_ONLY && $objExercise->feedback_type == EXERCISE_FEEDBACK_TYPE_END)) {
-			$row['attempt_link'] = $attempt_link;
-		}
-		$my_attempt_array[] = $row;
+            $row['attempt_link'] = $attempt_link;
+        }
+        $my_attempt_array[] = $row;
         $i--;
 	}
 
@@ -224,9 +264,6 @@ if (!empty($attempts)) {
 }
 
 if ($objExercise->selectAttempts()) {
-	if ($is_allowed_to_edit) {
-		//$options.= Display::div(get_lang('ExerciseAttempts').' '.$objExercise->selectAttempts(), array('class'=>'right_option'));
-	}
     $attempt_message = get_lang('Attempts').' '.$counter.' / '.$objExercise->selectAttempts();
 
 	if ($counter == $objExercise->selectAttempts()) {
@@ -237,17 +274,22 @@ if ($objExercise->selectAttempts()) {
     if ($visible_return['value'] == true) {
         $message .=   $attempt_message;
     }
-	//$options.= $attempt_message; //Display::div($attempt_message, array('class'=>"offset2 span2"));
 }
 
 if ($time_control) {
     $html.= $objExercise->return_time_left_div();
 }
 
-$html .=  $message;
+$html .= $message;
 
-if (!empty($exercise_url_button) && ($countNotFinished == 0 || api_is_allowed_to_edit())) {
-    $html .=  Display::div(Display::div($exercise_url_button, array('class'=>'exercise_overview_options span12')), array('class'=>' row'));
+if (!empty($exercise_url_button)) {
+    $html .= Display::div(
+        Display::div(
+            $exercise_url_button,
+            array('class' => 'exercise_overview_options span12')
+        ),
+        array('class' => ' row')
+    );
 }
 
 $html .= $table_content;

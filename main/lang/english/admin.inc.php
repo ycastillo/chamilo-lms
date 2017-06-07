@@ -2,7 +2,21 @@
 /*
 for more information: see languages.txt in the lang folder.
 */
-$SearchSessions = "Session Search";
+$HumanResourcesManagerShouldNotBeRegisteredToCourses = "Human resources managers should not be registered to courses. The corresponding users you selected have not been subscribed.";
+$CleanAndUpdateCourseCoaches = "Clean and update course coaches";
+$NoPDFFoundAtRoot = "No PDF found at root: please make sure that the PDFs are at the root of your zip file (no intermediate folder)";
+$PDFsMustLookLike = "PDFs must look like:";
+$ImportZipFileLocation = "Location of import zip file";
+$YouMustImportAZipFile = "You must import a zip file";
+$ImportPDFIntroToCourses = "Import PDF introductions into courses";
+$SubscribeTeachersToSession = "Subscribe teachers to session(s)";
+$SubscribeStudentsToSession = "Subscribe students to session(s)";
+$ManageCourseCategories = "Manage course categories";
+$CourseCategoryListInX = "Course categories in %s site:";
+$CourseCategoryInPlatform = "Course categories available";
+$UserGroupBelongURL = "The group now belongs to the selected site";
+$AtLeastOneUserGroupAndOneURL = "You need to select at least one group and one site";
+$ClassIdDoesntExists = "Class ID does not exist";
 $DeleteUsersNotInList = "Unsubscribe students which are not in the imported list";
 $IfSessionExistsUpdate = "If a session exists, update it";
 $SearchCourseBySession = "Search course by session";
@@ -187,7 +201,6 @@ $langTechnicalTools = "Technical";
 $langConfig = "System config";
 $langLogIdentLogoutComplete = "Login list (extended)";
 $langLimitUsersListDefaultMax = "Maximum users showing in scroll list";
-$NoTimeLimits = "No time limits";
 $GeneralCoach = "General coach";
 $GeneralProperties = "General properties";
 $CourseCoach = "Course coach";
@@ -574,8 +587,8 @@ $FtpPassword = "FTP password";
 $PathToLzx = "Path to LZX files";
 $WCAGContent = "Text";
 $SubscribeCoursesToSession = "Add courses to this session";
-$DateStartSession = "Start date";
-$DateEndSession = "End date";
+$DateStartSession = "Start date (available from 00:00:00 on this date)";
+$DateEndSession = "End date (until 23:59:59 on this date)";
 $EditSession = "Edit this session";
 $VideoConferenceUrl = "Path to live conferencing";
 $VideoClassroomUrl = "Path to classroom live conferencing";

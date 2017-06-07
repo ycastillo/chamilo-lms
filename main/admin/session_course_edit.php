@@ -5,14 +5,14 @@
  * @package chamilo.admin
  */
 // name of the language file that needs to be included
-$language_file='admin';
-$cidReset=true;
+$language_file = 'admin';
+$cidReset = true;
 
 require_once '../inc/global.inc.php';
 
 $id_session = intval($_GET['id_session']);
 SessionManager::protect_session_edit($id_session);
-$course_code = Database::escape_string($_GET['course_code']);
+$course_code = $_GET['course_code'];
 
 $formSent=0;
 $errorMsg='';
@@ -24,28 +24,30 @@ $tbl_session		= Database::get_main_table(TABLE_MAIN_SESSION);
 $tbl_session_course	= Database::get_main_table(TABLE_MAIN_SESSION_COURSE);
 $tbl_session_rel_course_rel_user = Database::get_main_table(TABLE_MAIN_SESSION_COURSE_USER);
 
-$course_info=api_get_course_info($_REQUEST['course_code']);
-$tool_name=$course_info['name'];
+$course_info = api_get_course_info($_REQUEST['course_code']);
+$tool_name = $course_info['name'];
 
-$interbreadcrumb[]=array('url' => 'index.php',"name" => get_lang('PlatformAdmin'));
-$interbreadcrumb[]=array('url' => "session_list.php","name" => get_lang("SessionList"));
-$interbreadcrumb[]=array('url' => "resume_session.php?id_session=".$id_session,"name" => get_lang('SessionOverview'));
-$interbreadcrumb[]=array('url' => "session_course_list.php?id_session=$id_session","name" =>api_htmlentities($session_name,ENT_QUOTES,$charset));
-
-$result = Database::query("SELECT s.name, c.title FROM $tbl_session_course sc,$tbl_session s,$tbl_course c WHERE sc.id_session=s.id AND sc.course_code=c.code AND sc.id_session='$id_session' AND sc.course_code='".addslashes($course_code)."'");
+$result = Database::query("SELECT s.name, c.title FROM $tbl_session_course sc,$tbl_session s,$tbl_course c
+WHERE sc.id_session=s.id AND sc.course_code=c.code AND sc
+.id_session='$id_session' AND sc.course_code='".Database::escape_string($course_code)."'");
 
 if (!list($session_name,$course_title)=Database::fetch_row($result)) {
 	header('Location: session_course_list.php?id_session='.$id_session);
 	exit();
 }
 
+$interbreadcrumb[]=array('url' => 'index.php',"name" => get_lang('PlatformAdmin'));
+$interbreadcrumb[]=array('url' => "session_list.php","name" => get_lang("SessionList"));
+$interbreadcrumb[]=array('url' => "resume_session.php?id_session=".$id_session,"name" => get_lang('SessionOverview'));
+$interbreadcrumb[]=array('url' => "session_course_list.php?id_session=$id_session","name" =>api_htmlentities($session_name,ENT_QUOTES,$charset));
+
 $arr_infos = array();
-if ($_POST['formSent']) {
+if (isset($_POST['formSent']) && $_POST['formSent']) {
 	$formSent=1;
 
 	// get all tutor by course_code in the session
 	$sql = "SELECT id_user FROM $tbl_session_rel_course_rel_user
-	        WHERE id_session = '$id_session' AND course_code = '$course_code' AND status = 2";
+	        WHERE id_session = '$id_session' AND course_code = '".Database::escape_string($course_code)."' AND status = 2";
 	$rs_coachs = Database::query($sql);
 
 	$coachs_course_session = array();
@@ -68,7 +70,12 @@ if ($_POST['formSent']) {
 		$array_intersect = array_diff($coachs_course_session,$id_coachs);
 
 		foreach ($array_intersect as $nocoach_user_id) {
-			$rs2 = SessionManager::set_coach_to_course_session($nocoach_user_id, $id_session, $course_code,true);
+			$rs2 = SessionManager::set_coach_to_course_session(
+				$nocoach_user_id,
+				$id_session,
+				$course_code,
+				true
+			);
 		}
 
 		header('Location: '.Security::remove_XSS($_GET['page']).'?id_session='.$id_session);
@@ -77,7 +84,7 @@ if ($_POST['formSent']) {
 	}
 } else {
 	$sql = "SELECT id_user FROM $tbl_session_rel_course_rel_user
-	        WHERE id_session = '$id_session' AND course_code = '$course_code' AND status = 2 ";
+	        WHERE id_session = '$id_session' AND course_code = '".Database::escape_string($course_code)."' AND status = 2 ";
 	$rs = Database::query($sql);
 
 	if (Database::num_rows($rs) > 0) {

@@ -26,10 +26,6 @@ if (isset($rows)) {
         }
 
         echo "<div ".$style."><table class=\"data_table\">";
-        // the style depends on the status of the message: approved or not
-        //echo 'dd'.$row['status'];
-
-
         if ($row['visible']=='0') {
             $titleclass='forum_message_post_title_2_be_approved';
             $messageclass='forum_message_post_text_2_be_approved';
@@ -61,19 +57,20 @@ if (isset($rows)) {
         echo "</tr>";
 
         // The check if there is an attachment
-        $attachment_list=get_attachment($row['post_id']);
+        $attachment_list=getAllAttachment($row['post_id']);
 
         if (!empty($attachment_list)) {
-            echo '<tr ><td height="50%">';
-            $realname=$attachment_list['path'];
-            $user_filename=$attachment_list['filename'];
-
-            echo Display::return_icon('attachment.gif',get_lang('Attachment'));
-            echo '<a href="download.php?file=';
-            echo $realname;
-            echo ' "> '.$user_filename.' </a>';
-            echo '<span class="forum_attach_comment" >'.$attachment_list['comment'].'</span><br />';
-            echo '</td></tr>';
+            foreach ($attachment_list as $attachment) {
+                echo '<tr ><td height="50%">';
+                $realname=$attachment['path'];
+                $user_filename=$attachment['filename'];
+                echo Display::return_icon('attachment.gif',get_lang('Attachment'));
+                echo '<a href="download.php?file=';
+                echo $realname;
+                echo ' "> '.$user_filename.' </a>';
+                echo '<span class="forum_attach_comment" >'.$attachment['comment'].'</span><br />';
+                echo '</td></tr>';
+            }
         }
 
         // The post has been displayed => it can be removed from the what's new array
@@ -87,13 +84,13 @@ if (isset($rows)) {
 }
 
 $userid = (int)$_GET['user_id'];
-$userinf=api_get_user_info($userid);
+$userinf = api_get_user_info($userid);
 $current_thread = get_thread_information($_GET['thread']);
 $threadid = $current_thread['thread_id'];
 $qualify = (int)$_POST['idtextqualify'];
 //return Max qualify thread
-$max_qualify=show_qualify('2', $userid,$threadid);
-$current_qualify_thread=show_qualify('1',$userid,$threadid);
+$max_qualify = show_qualify('2', $userid, $threadid);
+$current_qualify_thread = show_qualify('1', $userid, $threadid);
 if (isset($_POST['idtextqualify'])) {
     store_theme_qualify($userid,$threadid,$qualify,$_SESSION['_user']['user_id'],date('Y-m-d H:i:s'),'');
 }

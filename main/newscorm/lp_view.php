@@ -12,11 +12,10 @@
 * @author Isthvan Mandak, several new features
 * @author Roan Embrechts, code improvements and refactoring
 */
-/**
- * Code
- */
 
 use \ChamiloSession as Session;
+
+$use_anonymous = true;
 
 $_SESSION['whereami'] = 'lp/view';
 $this_section = SECTION_COURSES;
@@ -39,12 +38,24 @@ api_protect_course_script();
 $lp_id = intval($_GET['lp_id']);
 
 // Check if the learning path is visible for student - (LP requisites)
-if (!api_is_allowed_to_edit(null, true) && !learnpath::is_lp_visible_for_student($lp_id, api_get_user_id())) {
-    api_not_allowed(true);
+
+if (!api_is_platform_admin()) {
+    if (!api_is_allowed_to_edit(null, true) &&
+        !learnpath::is_lp_visible_for_student($lp_id, api_get_user_id())
+    ) {
+        api_not_allowed(true);
+    }
 }
 
-//Checking visibility (eye icon)
-$visibility = api_get_item_visibility(api_get_course_info(), TOOL_LEARNPATH, $lp_id, $action, api_get_user_id(), api_get_session_id());
+// Checking visibility (eye icon)
+$visibility = api_get_item_visibility(
+    api_get_course_info(),
+    TOOL_LEARNPATH,
+    $lp_id,
+    $action,
+    api_get_user_id(),
+    api_get_session_id()
+);
 if (!api_is_allowed_to_edit(false, true, false, false) && intval($visibility) == 0) {
     api_not_allowed(true);
 }
@@ -61,14 +72,20 @@ if ($debug) {
 
 $_SESSION['oLP']->error = '';
 $lp_item_id = $_SESSION['oLP']->get_current_item_id();
-$lp_type    = $_SESSION['oLP']->get_type();
+$lp_type = $_SESSION['oLP']->get_type();
 
-$course_code    = api_get_course_id();
-$course_id      = api_get_course_int_id();
-$user_id        = api_get_user_id();
-$platform_theme = api_get_setting('stylesheets'); // Plataform's css.
-$my_style       = $platform_theme;
+$course_code = api_get_course_id();
+$course_id = api_get_course_int_id();
+$user_id = api_get_user_id();
+$platform_theme = api_get_setting('stylesheets'); // Platform's css.
+$my_style = $platform_theme;
 
+$htmlHeadXtra[] = '<script type="text/javascript">
+<!--
+var jQueryFrameReadyConfigPath = \''.api_get_path(WEB_LIBRARY_PATH).'javascript/jquery.min.js\';
+-->
+</script>';
+$htmlHeadXtra[] = '<script type="text/javascript" src="'.api_get_path(WEB_LIBRARY_PATH).'javascript/jquery.frameready.js"></script>';
 $htmlHeadXtra[] = '<script src="'.api_get_path(WEB_LIBRARY_PATH).'javascript/jquery.lp_minipanel.js" type="text/javascript" language="javascript"></script>';
 $htmlHeadXtra[] = '<script>
 $(document).ready(function() {
@@ -132,9 +149,8 @@ if ($debug) {
 
 $get_toc_list = $_SESSION['oLP']->get_toc();
 $type_quiz = false;
-
 foreach ($get_toc_list as $toc) {
-    if ($toc['id'] == $lp_item_id && ($toc['type']=='quiz')) {
+    if ($toc['id'] == $lp_item_id && $toc['type'] == 'quiz') {
         $type_quiz = true;
     }
 }
@@ -152,9 +168,14 @@ if (!isset($src)) {
                 // Prevents FF 3.6 + Adobe Reader 9 bug see BT#794 when calling a pdf file in a LP.
                 $file_info = parse_url($src);
                 $file_info = pathinfo($file_info['path']);
-                if (api_strtolower(substr($file_info['extension'], 0, 3) == 'pdf')) {
+                if (isset($file_info['extension']) &&
+                    api_strtolower(substr($file_info['extension'], 0, 3) == 'pdf')
+                ) {
                     $src = api_get_path(WEB_CODE_PATH).'newscorm/lp_view_item.php?lp_item_id='.$lp_item_id.'&'.api_get_cidreq();
                 }
+
+                $src = $_SESSION['oLP']->fixBlockedLinks($src);
+
                 $_SESSION['oLP']->start_current_item(); // starts time counter manually if asset
             } else {
                 $src = 'blank.php?error=prerequisites';
@@ -199,21 +220,26 @@ if ($debug) {
     error_log('$_GET[lp_item_id]: '.intval($_GET['lp_item_id']));
 }
 
-if ($type_quiz && !empty($_REQUEST['exeId']) && isset($lp_id) && isset($_GET['lp_item_id'])) {
+if (!empty($_REQUEST['exeId']) &&
+    isset($lp_id) &&
+    isset($_GET['lp_item_id'])
+) {
     global $src;
-
     $_SESSION['oLP']->items[$_SESSION['oLP']->current]->write_to_db();
 
-    $TBL_TRACK_EXERCICES    = Database::get_statistic_table(TABLE_STATISTIC_TRACK_E_EXERCICES);
-    $TBL_LP_ITEM_VIEW       = Database::get_course_table(TABLE_LP_ITEM_VIEW);
-    $TBL_LP_ITEM            = Database::get_course_table(TABLE_LP_ITEM);
-    $safe_item_id           = intval($_GET['lp_item_id']);
-    $safe_id                = $lp_id;
-    $safe_exe_id            = intval($_REQUEST['exeId']);
+    $TBL_TRACK_EXERCICES = Database::get_statistic_table(TABLE_STATISTIC_TRACK_E_EXERCICES);
+    $TBL_LP_ITEM_VIEW = Database::get_course_table(TABLE_LP_ITEM_VIEW);
+    $TBL_LP_ITEM = Database::get_course_table(TABLE_LP_ITEM);
+    $safe_item_id = intval($_GET['lp_item_id']);
+    $safe_id = $lp_id;
+    $safe_exe_id = intval($_REQUEST['exeId']);
 
-    if ($safe_id == strval(intval($safe_id)) && $safe_item_id == strval(intval($safe_item_id))) {
-
-        $sql = 'SELECT start_date, exe_date, exe_result, exe_weighting FROM ' . $TBL_TRACK_EXERCICES . ' WHERE exe_id = '.$safe_exe_id;
+    if ($safe_id == strval(intval($safe_id)) &&
+        $safe_item_id == strval(intval($safe_item_id))
+    ) {
+        $sql = 'SELECT start_date, exe_date, exe_result, exe_weighting
+                FROM ' . $TBL_TRACK_EXERCICES . '
+                WHERE exe_id = '.$safe_exe_id;
         $res = Database::query($sql);
         $row_dates = Database::fetch_array($res);
 
@@ -224,23 +250,36 @@ if ($type_quiz && !empty($_REQUEST['exeId']) && isset($lp_id) && isset($_GET['lp
         $score 		= (float)$row_dates['exe_result'];
         $max_score 	= (float)$row_dates['exe_weighting'];
 
-        $sql_upd_max_score = "UPDATE $TBL_LP_ITEM SET max_score = '$max_score' WHERE c_id = $course_id AND id = '".$safe_item_id."'";
-        Database::query($sql_upd_max_score);
+        $sql = "UPDATE $TBL_LP_ITEM SET
+                    max_score = '$max_score'
+                WHERE c_id = $course_id AND id = '".$safe_item_id."'";
+        Database::query($sql);
 
-        $sql_last_attempt = "SELECT id FROM $TBL_LP_ITEM_VIEW  WHERE c_id = $course_id AND lp_item_id = '$safe_item_id' AND lp_view_id = '".$_SESSION['oLP']->lp_view_id."' order by id desc limit 1";
-        $res_last_attempt = Database::query($sql_last_attempt);
+        $sql = "SELECT id FROM $TBL_LP_ITEM_VIEW
+                WHERE
+                    c_id = $course_id AND
+                    lp_item_id = '$safe_item_id' AND
+                    lp_view_id = '".$_SESSION['oLP']->lp_view_id."'
+                ORDER BY id DESC
+                LIMIT 1";
+        $res_last_attempt = Database::query($sql);
 
         if (Database::num_rows($res_last_attempt)) {
         	$row_last_attempt = Database::fetch_row($res_last_attempt);
         	$lp_item_view_id  = $row_last_attempt[0];
-            $sql_upd_score = "UPDATE $TBL_LP_ITEM_VIEW SET status = 'completed' , score = $score, total_time = $mytime
-                              WHERE id='".$lp_item_view_id."' AND c_id = $course_id ";
+            $sql = "UPDATE $TBL_LP_ITEM_VIEW SET
+                        status = 'completed' ,
+                        score = $score,
+                        total_time = $mytime
+                    WHERE id='".$lp_item_view_id."' AND c_id = $course_id ";
 
-            if ($debug) error_log($sql_upd_score);
-            Database::query($sql_upd_score);
+            if ($debug) error_log($sql);
+            Database::query($sql);
 
-            $update_query = "UPDATE $TBL_TRACK_EXERCICES SET orig_lp_item_view_id = $lp_item_view_id  WHERE exe_id = ".$safe_exe_id;
-            Database::query($update_query);
+            $sql = "UPDATE $TBL_TRACK_EXERCICES SET
+                        orig_lp_item_view_id = $lp_item_view_id
+                    WHERE exe_id = ".$safe_exe_id;
+            Database::query($sql);
         }
     }
     if (intval($_GET['fb_type']) > 0) {
@@ -254,7 +293,7 @@ if ($type_quiz && !empty($_REQUEST['exeId']) && isset($lp_id) && isset($_GET['lp
 }
 
 $_SESSION['oLP']->set_previous_item($lp_item_id);
-$nameTools = Security :: remove_XSS($_SESSION['oLP']->get_name());
+$nameTools = Security::remove_XSS($_SESSION['oLP']->get_name());
 
 $save_setting = api_get_setting('show_navigation_menu');
 global $_setting;
@@ -280,7 +319,7 @@ if (isset($_SESSION['status']) && $_SESSION['status'][$course_code] == 5) {
 $_SESSION['loaded_lp_view'] = true;
 
 $display_none = '';
-$margin_left = '305px';
+$margin_left = '340px';
 
 //Media player code
 
@@ -295,58 +334,66 @@ if (!empty ($lp_theme_css) && !empty ($mycourselptheme) && $mycourselptheme != -
     $lp_theme_css = $my_style;
 }
 
-$progress_bar   = $_SESSION['oLP']->get_progress_bar('', -1, '', true);
+$progress_bar   = $_SESSION['oLP']->getProgressBar();
 $navigation_bar = $_SESSION['oLP']->get_navigation_bar();
 $mediaplayer    = $_SESSION['oLP']->get_mediaplayer($autostart);
-
 $tbl_lp_item    = Database::get_course_table(TABLE_LP_ITEM);
 $show_audioplayer = false;
 // Getting all the information about the item.
-$sql = "SELECT audio FROM " . $tbl_lp_item . " WHERE c_id = $course_id AND lp_id = '" . $_SESSION['oLP']->lp_id."'";
+$sql = "SELECT audio FROM " . $tbl_lp_item . "
+        WHERE c_id = $course_id AND lp_id = '" . $_SESSION['oLP']->lp_id."'";
 $res_media= Database::query($sql);
 
 if (Database::num_rows($res_media) > 0) {
-    while ($row_media= Database::fetch_array($res_media)) {
+    while ($row_media = Database::fetch_array($res_media)) {
         if (!empty($row_media['audio'])) {
             $show_audioplayer = true;
             break;
         }
     }
 }
+
 echo '<div id="learning_path_main" style="width:100%;height:100%;">';
-$is_allowed_to_edit = api_is_allowed_to_edit(null, true, false, false);
+$is_allowed_to_edit = api_is_allowed_to_edit(false, true, true, false);
+
 if ($is_allowed_to_edit) {
     echo '<div id="learning_path_breadcrumb_zone">';
     global $interbreadcrumb;
     $interbreadcrumb[] = array('url' => 'lp_controller.php?action=list&isStudentView=false', 'name' => get_lang('LearningPaths'));
     $interbreadcrumb[] = array('url' => api_get_self()."?action=add_item&type=step&lp_id=".$_SESSION['oLP']->lp_id."&isStudentView=false", 'name' => $_SESSION['oLP']->get_name());
     $interbreadcrumb[] = array('url' => '#', 'name' => get_lang('Preview'));
-    //$interbreadcrumb[] = array('type' => 'right', 'url' => api_get_self()."?action=add_item&type=step&lp_id=".$_SESSION['oLP']->lp_id."&isStudentView=false", 'name' => get_lang('Edit'), 'class' => 'btn btn-mini btn-warning');
-
     echo return_breadcrumb($interbreadcrumb, null, null);
     echo '</div>';
 }
     echo '<div id="learning_path_left_zone" style="'.$display_none.'"> ';
-    echo '<div id="header">
-            <table>
-                <tr>
-                    <td>';
-                        echo '<a href="lp_controller.php?action=return_to_course_homepage&'.api_get_cidreq().'" target="_self" onclick="javascript: window.parent.API.save_asset();">
-                            <img src="../img/btn_home.png" />
-                        </a>
-                    </td>
-                    <td>';
-                         if ($is_allowed_to_edit) {
-                            echo '<a class="link no-border" href="lp_controller.php?isStudentView=false&action=return_to_course_homepage&'.api_get_cidreq().'" target="_self" onclick="javascript: window.parent.API.save_asset();">';
-                         } else {
-                            echo '<a class="link no-border" href="lp_controller.php?action=return_to_course_homepage&'.api_get_cidreq().'" target="_self" onclick="javascript: window.parent.API.save_asset();">';
-                         }
-                        echo get_lang('CourseHomepageLink').'
-                        </a>
-                    </td>
-                </tr>
-            </table>
-        </div>';
+    echo '<div id="header">';
+    //echo '<a href="lp_controller.php?action=return_to_course_homepage&'.api_get_cidreq().'" target="_self" onclick="javascript: window.parent.API.save_asset();"></a>';
+
+    // Return to course home.
+    if ($is_allowed_to_edit) {
+        $url = 'lp_controller.php?isStudentView=false&action=return_to_course_homepage&' . api_get_cidreq();
+    } else {
+        $url = 'lp_controller.php?action=return_to_course_homepage&' . api_get_cidreq();
+    }
+
+    $name = get_lang('CourseHomepageLink');
+    // Return to lp list
+    if (api_get_course_setting('lp_return_link') == 1) {
+        $url .= '&redirectTo=lp_list';
+        $name = get_lang('LearningPathList');
+    }
+
+    echo Display::url(
+        $name,
+        $url,
+        array(
+            'class' => 'home btn btn-small btn-info',
+            'target' => '_self',
+            'onclick' => 'javascript: window.parent.API.save_asset();'
+        )
+    );
+
+    echo '</div>';
 ?>
         <!-- end header -->
 
@@ -378,7 +425,7 @@ if ($is_allowed_to_edit) {
         <!-- end image preview Layout -->
 
         <div id="author_name">
-            <?php echo $_SESSION['oLP']->get_author(); ?> 
+            <?php echo $_SESSION['oLP']->get_author(); ?>
         </div>
 
         <!-- media player layout -->
@@ -407,9 +454,9 @@ if ($is_allowed_to_edit) {
         // hub 26-05-2010 Fullscreen or not fullscreen
         $height = '100%';
         if ($_SESSION['oLP']->mode == 'fullscreen') {
-            echo '<iframe id="content_id_blank" name="content_name_blank" src="blank.php" border="0" frameborder="0" style="width:100%;height:'.$height.'" ></iframe>';
+            echo '<iframe id="content_id_blank" name="content_name_blank" src="blank.php" border="0" frameborder="0" allowfullscreen="true" webkitallowfullscreen="true" mozallowfullscreen="true" style="width:100%;height:'.$height.'" ></iframe>';
         } else {
-            echo '<iframe id="content_id" name="content_name" src="'.$src.'" border="0" frameborder="0" style="display: block; width:100%;height:'.$height.'"></iframe>';
+            echo '<iframe id="content_id" name="content_name" src="'.$src.'" border="0" frameborder="0" allowfullscreen="true" webkitallowfullscreen="true" mozallowfullscreen="true" style="display: block; width:100%;height:'.$height.'"></iframe>';
         }
     ?>
     </div>
@@ -421,34 +468,39 @@ if ($is_allowed_to_edit) {
     function updateContentHeight() {
         document.body.style.overflow = 'hidden';
         var IE = window.navigator.appName.match(/microsoft/i);
-        var hauteurHeader = document.getElementById('header').offsetHeight;
-        var hauteurAuthorImg = document.getElementById('author_image').offsetHeight;
-        var hauteurAuthorName = document.getElementById('author_name').offsetHeight;
-        var heightBreadcrumb = document.getElementById('learning_path_breadcrumb_zone').offsetHeight;
-        var control = document.getElementById('control');
-        var heightControl = (control)? control.offsetHeight : 0;
+        var heightHeader = ($('#header').height())? $('#header').height() : 0 ;
+        var heightAuthorImg = ($('#author_image').height())? $('#author_image').height() : 0 ;
+        var heightAuthorName = ($('#author_name').height())? $('#author_name').height() : 0 ;
+        var heightBreadcrumb = ($('#learning_path_breadcrumb_zone').height())? $('#learning_path_breadcrumb_zone').height() : 0 ;
+        var heightControl = ($('#control').is(':visible'))? $('#control').height() : 0 ;
+        var heightMedia = ($('#lp_media_file').length != 0)? $('#lp_media_file').height() : 0 ;
+        var heightTitle = ($('#scorm_title').height())? $('#scorm_title').height() : 0 ;
+        var heightAction = ($('#actions_lp').height())? $('#actions_lp').height() : 0 ;
 
-        var hauteurMedia = 0;
-        if ($("#lp_media_file").length != 0) {
-            hauteurMedia = document.getElementById('lp_media_file').offsetHeight;
-        }
-
-        var hauteurTitre = document.getElementById('scorm_title').offsetHeight;
-        var hauteurAction = 0;
-        if (document.getElementById('actions_lp')) hauteurAction = document.getElementById('actions_lp').offsetHeight;
-        var hauteurHaut = hauteurHeader+hauteurAuthorImg+hauteurAuthorName+hauteurMedia+hauteurTitre+hauteurAction;
-        var innerHauteur = (IE) ? document.body.clientHeight : window.innerHeight ;
-        var debugsize = 0;
+        var heightTop = heightHeader + heightAuthorImg + heightAuthorName + heightMedia + heightTitle + heightAction + 100;
+        heightTop = (heightTop < 300)? heightTop : 300;
+        var innerHeight = (IE) ? document.body.clientHeight : window.innerHeight ;
         // -40 is a static adjustement for margin, spaces on the page
-        <?php if (!empty($_SESSION['oLP']->scorm_debug)) echo 'debugsize = 150;' ?>
-        document.getElementById('inner_lp_toc').style.height = innerHauteur - hauteurHaut - 40 - debugsize + "px";
-        if (document.getElementById('content_id')) {
-            document.getElementById('content_id').style.height = innerHauteur - debugsize - heightBreadcrumb - heightControl + "px";
+
+        $('#inner_lp_toc').css('height', innerHeight - heightTop - heightBreadcrumb - heightControl + "px");
+        if ($('#content_id')) {
+            $('#content_id').css('height', innerHeight - heightBreadcrumb - heightControl + "px");
+        }
+        if ($('#hide_bar')) {
+            $('#hide_bar').css('height', innerHeight - heightBreadcrumb - heightControl + "px");
         }
 
     // Loads the glossary library.
     <?php
-      if (api_get_setting('show_glossary_in_extra_tools') == 'true') {
+    $glossaryExtraTools = api_get_setting('show_glossary_in_extra_tools');
+    $fixLinkSetting = api_get_configuration_value('lp_fix_embed_content');
+
+    $fixLink = '';
+    if ($fixLinkSetting) {
+        $fixLink = '{type:"script", id:"_fr10", src:"'.api_get_path(WEB_LIBRARY_PATH).'javascript/fixlinks.js"}';
+    }
+
+    if (in_array($glossaryExtraTools, array('true', 'lp', 'exercise_and_lp'))) {
            if (api_get_setting('show_glossary_in_documents') == 'ismanual') {
                 ?>
             $.frameReady(function(){
@@ -458,7 +510,8 @@ if ($is_allowed_to_edit) {
                   {type:"script", id:"_fr1", src:"<?php echo api_get_path(WEB_LIBRARY_PATH); ?>javascript/jquery.min.js"},
                   {type:"script", id:"_fr4", src:"<?php echo api_get_path(WEB_LIBRARY_PATH); ?>javascript/jquery-ui/smoothness/jquery-ui-1.8.21.custom.min.js"},
                   {type:"stylesheet", id:"_fr5", src:"<?php echo api_get_path(WEB_LIBRARY_PATH); ?>javascript/jquery-ui/smoothness/jquery-ui-1.8.21.custom.css"},
-                  {type:"script", id:"_fr2", src:"<?php echo api_get_path(WEB_LIBRARY_PATH); ?>javascript/jquery.highlight.js"}
+                  {type:"script", id:"_fr2", src:"<?php echo api_get_path(WEB_LIBRARY_PATH); ?>javascript/jquery.highlight.js"},
+                  <?php echo $fixLink; ?>
 
           ] }
           );
@@ -474,18 +527,43 @@ if ($is_allowed_to_edit) {
           {type:"script", id:"_fr1", src:"<?php echo api_get_path(WEB_LIBRARY_PATH); ?>javascript/jquery.min.js"},
           {type:"script", id:"_fr4", src:"<?php echo api_get_path(WEB_LIBRARY_PATH); ?>javascript/jquery-ui/smoothness/jquery-ui-1.8.21.custom.min.js"},
           {type:"stylesheet", id:"_fr5", src:"<?php echo api_get_path(WEB_LIBRARY_PATH); ?>javascript/jquery-ui/smoothness/jquery-ui-1.8.21.custom.css"},
-          {type:"script", id:"_fr2", src:"<?php echo api_get_path(WEB_LIBRARY_PATH); ?>javascript/jquery.highlight.js"}
+          {type:"script", id:"_fr2", src:"<?php echo api_get_path(WEB_LIBRARY_PATH); ?>javascript/jquery.highlight.js"},
+          <?php echo $fixLink; ?>
       ]}
       );
   <?php
        }
+  } else {
+        $fixLinkSetting = api_get_configuration_value('lp_fix_embed_content');
+      if ($fixLinkSetting) {
+       ?>
+          $(document).ready(function() {
+            $.frameReady(function(){
+                //  $("<div>I am a div courses</div>").prependTo("body");
+                },
+                "top.content_name",
+                {
+                load: [
+                    {type:"script", id:"_fr4", src:"<?php echo api_get_path(WEB_LIBRARY_PATH); ?>javascript/jquery-ui/smoothness/jquery-ui-1.8.21.custom.min.js"},
+                    {type:"stylesheet", id:"_fr5", src:"<?php echo api_get_path(WEB_LIBRARY_PATH); ?>javascript/jquery-ui/smoothness/jquery-ui-1.8.21.custom.css"},
+                    <?php echo $fixLink; ?>
+                ]}
+            );
+         });
+            <?php
+      }
   }
   ?>}
+
     $(document).ready(function() {
         updateContentHeight();
+        $('#hide_bar').children().click(function(){
+            updateContentHeight();
+        });
         $(window).resize(function() {
             updateContentHeight();
         });
+
     });
     window.onload = updateContentHeight();
     window.onresize = updateContentHeight();

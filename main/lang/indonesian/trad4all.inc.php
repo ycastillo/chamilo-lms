@@ -2,6 +2,9 @@
 /*
 for more information: see languages.txt in the lang folder.
 */
+$AddForum = "Tambah sebuah forum baru";
+$ReplyShort = "Re:";
+$NoTimeLimits = "Tanpa batas waktu";
 $Title = "Judul";
 $UsersOnline = "User Online";
 $Remove = "Hapus";
@@ -309,6 +312,7 @@ $CourseAdminRoleDescription = "Admin Mata Kuliah";
 $h = "h";
 $CreateNewGlobalRole = "Buat role/peran global baru";
 $CreateNewLocalRole = "Buat role/peran lokal baru";
+$NextWeek = "Minggu Berikutnya";
 $GeneralDescription = "Deskripsi Umum";
 $GeneralDescriptionQuestions = "Dimana tempat mata kuliah dalam program? Adakah pra-syarat? Bagaimana keterkaitan mata kulliah ini dengan mata kuliah lain?";
 $GeneralDescriptionInformation = "Deskripsi mata kuliah (jumlah jam, kode resmi, ruang ...) dan pengajar (nama,  kantor, telp., email ...).";
@@ -330,4 +334,5 @@ $HumanAndTechnicalResourcesInformation = "Deskripsi singkat identitas contact pe
 $Assessment = "Evaluasi";
 $AssessmentQuestions = "Bagaimana user akan divaluasi? Adakah strategi yang dikembangkan untuk menguasai topik tsb?";
 $AssessmentInformation = "Contoh pertanyaan ujian. Kreteria sukses. Tips dan trik.";
+$UploadADocument = "Upload dokumen";
 ?>

@@ -48,7 +48,6 @@ function advanced_parameters() {
     if(document.getElementById(\'id_qualify\').style.display == \'none\') {
         document.getElementById(\'id_qualify\').style.display = \'block\';
         document.getElementById(\'img_plus_and_minus\').innerHTML=\'&nbsp;'.Display::return_icon('div_hide.gif',get_lang('Hide'),array('style'=>'vertical-align:middle')).'&nbsp;'.get_lang('AdvancedParameters').'\';
-
     } else {
         document.getElementById(\'id_qualify\').style.display = \'none\';
         document.getElementById(\'img_plus_and_minus\').innerHTML=\'&nbsp;'.Display::return_icon('div_show.gif',get_lang('Show'),array('style'=>'vertical-align:middle')).'&nbsp;'.get_lang('AdvancedParameters').'\';
@@ -92,6 +91,7 @@ if ($current_forum['forum_of_group'] != 0) {
 }
 
 /* Breadcrumbs */
+
 $gradebook = null;
 if (isset($_SESSION['gradebook'])){
     $gradebook = Security::remove_XSS($_SESSION['gradebook']);
@@ -138,27 +138,34 @@ if ($origin == 'learnpath') {
     // The last element of the breadcrumb navigation is already set in interbreadcrumb, so give an empty string.
     Display :: display_header('');
 }
-
 /* Action links */
 
 if ($origin != 'learnpath') {
     echo '<div class="actions">';
     echo '<span style="float:right;">'.search_link().'</span>';
-    echo '<a href="viewthread.php?forum='.Security::remove_XSS($_GET['forum']).'&amp;gradebook='.$gradebook.'&amp;thread='.Security::remove_XSS($_GET['thread']).'&amp;origin='.$origin.'">'.Display::return_icon('back.png', get_lang('BackToThread'), '', ICON_SIZE_MEDIUM).'</a>';
+    echo '<a href="viewthread.php?'.api_get_cidreq().'&forum='.Security::remove_XSS($_GET['forum']).'&amp;gradebook='.$gradebook.'&amp;thread='.Security::remove_XSS($_GET['thread']).'&amp;origin='.$origin.'">'.
+        Display::return_icon('back.png', get_lang('BackToThread'), '', ICON_SIZE_MEDIUM).'</a>';
     echo '</div>';
 } else {
     echo '<div style="height:15px">&nbsp;</div>';
 }
-
+/*New display forum div*/
+echo '<div class="row">';
+echo '<div class="span12">';
+echo '<div class="forum_title">';
+echo '<h1><a href="viewforum.php?&amp;origin='.$origin.'&amp;forum='.$current_forum['forum_id'].'" '.class_visible_invisible($current_forum['visibility']).'>'.prepare4display($current_forum['forum_title']).'</a></h1>';
+echo '<p class="forum_description">'.prepare4display($current_forum['forum_comment']).'</p>';
+echo '</div></div></div>';
+/* End new display forum */
 // The form for the reply
 $my_action   = isset($_GET['action']) ? Security::remove_XSS($_GET['action']) : '';
 $my_post     = isset($_GET['post']) ?   Security::remove_XSS($_GET['post']) : '';
 $my_elements = isset($_SESSION['formelements']) ? $_SESSION['formelements'] : '';
-
-$values      = show_add_post_form($my_action, $my_post, $my_elements); // Note: This has to be cleaned first.
-
+echo '<div class="row"><div class="span12">';
+    $values = show_add_post_form($current_forum, $forum_setting, $my_action, $my_post, $my_elements);
+echo '</div></div>';
 if (!empty($values) AND isset($_POST['SubmitPost'])) {
-    $result = store_reply($values);
+    $result = store_reply($current_forum, $values);
     //@todo split the show_add_post_form function
 
     $url = 'viewthread.php?forum='.$current_thread['forum_id'].'&gradebook='.$gradebook.'&thread='.intval($_GET['thread']).'&gidReq='.api_get_group_id().'&origin='.$origin.'&msg='.$result['msg'].'&type='.$result['type'];
@@ -166,6 +173,16 @@ if (!empty($values) AND isset($_POST['SubmitPost'])) {
     <script>
     window.location = "'.$url.'";
     </script>';
+} else {
+    // Only show Forum attachment ajax form when do not pass form submit
+    echo '<div class="row"><div class="span12">';
+    $attachmentAjaxForm = getAttachmentAjaxForm(
+        $current_forum['forum_id'],
+        $current_thread['thread_id'],
+        0
+    );
+    echo $attachmentAjaxForm;
+    echo '</div></div>';
 }
 
 if ($origin != 'learnpath') {

@@ -28,17 +28,14 @@
 *	@package chamilo.course_home
 */
 
-/* 		INIT SECTION		*/
-
-
 use \ChamiloSession as Session;
 
 // Name of the language file that needs to be included.
-$language_file = array('course_home','courses');
+$language_file = array('course_home', 'courses');
 $use_anonymous = true;
 
 // Inlcuding the global initialization file.
-require dirname(__FILE__).'/../inc/global.inc.php';
+require_once dirname(__FILE__).'/../inc/global.inc.php';
 
 // Delete LP sessions - commented out after seeing that normal
 // users in their first learnpath step (1st SCO of a SCORM)
@@ -48,6 +45,20 @@ require dirname(__FILE__).'/../inc/global.inc.php';
 //unset($_SESSION['lpobject']);
 
 $htmlHeadXtra[] ='<script>
+/* option show/hide thematic-block */
+$(document).ready(function(){
+    $("#thematic-show").click(function(){
+        $(".btn-hide-thematic").hide();
+        $(".btn-show-thematic").show(); //show using class
+        $("#pross").fadeToggle(); //Not working collapse for Chrome
+    });
+    $("#thematic-hide").click(function(){
+        $(".btn-show-thematic").hide(); //show using class
+        $(".btn-hide-thematic").show();
+        $("#pross").fadeToggle(); //Not working collapse for Chrome
+    });
+});
+
 $(document).ready(function() {
 	$(".make_visible_and_invisible").attr("href", "javascript:void(0);");
 	$(".make_visible_and_invisible > img").click(function () {
@@ -102,13 +113,6 @@ $(document).ready(function() {
 	});
 });
 
-/* toogle for post-it in course home */
-$(function() {
-	$(".thematic-postit-head").click(function() {
-		$(".thematic-postit-center").slideToggle("fast");
-	});
-});
-
 </script>';
 
 // The section for the tabs
@@ -116,24 +120,24 @@ $this_section = SECTION_COURSES;
 
 /*	Constants */
 
-define('TOOL_PUBLIC',                   'Public');
-define('TOOL_PUBLIC_BUT_HIDDEN',        'PublicButHide');
-define('TOOL_COURSE_ADMIN',             'courseAdmin');
-define('TOOL_PLATFORM_ADMIN',           'platformAdmin');
-define('TOOL_AUTHORING',                'toolauthoring');
-define('TOOL_INTERACTION',              'toolinteraction');
-define('TOOL_COURSE_PLUGIN',            'toolcourseplugin'); //all plugins that can be enabled in courses
-define('TOOL_ADMIN',                    'tooladmin');
-define('TOOL_ADMIN_PLATFORM',           'tooladminplatform');
+define('TOOL_PUBLIC', 'Public');
+define('TOOL_PUBLIC_BUT_HIDDEN', 'PublicButHide');
+define('TOOL_COURSE_ADMIN', 'courseAdmin');
+define('TOOL_PLATFORM_ADMIN', 'platformAdmin');
+define('TOOL_AUTHORING', 'toolauthoring');
+define('TOOL_INTERACTION', 'toolinteraction');
+define('TOOL_COURSE_PLUGIN', 'toolcourseplugin'); //all plugins that can be enabled in courses
+define('TOOL_ADMIN', 'tooladmin');
+define('TOOL_ADMIN_PLATFORM', 'tooladminplatform');
+define('TOOL_DRH', 'tool_drh');
+define('TOOL_STUDENT_VIEW', 'toolstudentview');
+define('TOOL_ADMIN_VISIBLE', 'tooladminvisible');
 
-define('TOOL_STUDENT_VIEW',              'toolstudentview');
-define('TOOL_ADMIN_VISIBLE',             'tooladminvisible');
-
-$user_id 		= api_get_user_id();
-$course_code 	= api_get_course_id();
+$user_id = api_get_user_id();
+$course_code = api_get_course_id();
 $show_message = '';
 
-//Deleting group session
+// Deleting group session
 Session::erase('toolgroup');
 Session::erase('_gid');
 
@@ -142,7 +146,9 @@ $is_speacialcourse = CourseManager::is_special_course($course_code);
 if ($is_speacialcourse) {
     $autoreg = Security::remove_XSS($_GET['autoreg']);
     if ($autoreg == 1) {
-        CourseManager::subscribe_user($user_id, $course_code, $status = STUDENT);
+        if (CourseManager::subscribe_user($user_id, $course_code, $status = STUDENT)) {
+            Session::write('is_allowed_in_course', true);
+        }
     }
 }
 if (isset($_GET['action']) && $_GET['action'] == 'subscribe') {
@@ -231,7 +237,6 @@ $reqdate = "&reqdate=$temps";
 /*	MAIN CODE */
 
 /*	Introduction section (editable by course admins) */
-
 $content = Display::return_introduction_section(TOOL_COURSE_HOMEPAGE, array(
 		'CreateDocumentWebDir' => api_get_path(WEB_COURSE_PATH).api_get_course_path().'/document/',
 		'CreateDocumentDir'    => 'document/',
@@ -243,12 +248,15 @@ $content = Display::return_introduction_section(TOOL_COURSE_HOMEPAGE, array(
 	the setting homepage_view is adjustable through
 	the platform administration section */
 
-require_once api_get_path(LIBRARY_PATH).'course_home.lib.php';
-
 if ($show_autolunch_lp_warning) {
-    $show_message .= Display::return_message(get_lang('TheLPAutoLaunchSettingIsONStudentsWillBeRedirectToAnSpecificLP'),'warning');
+    $show_message .= Display::return_message(
+        get_lang('TheLPAutoLaunchSettingIsONStudentsWillBeRedirectToAnSpecificLP'),
+        'warning'
+    );
 }
-if (api_get_setting('homepage_view') == 'activity' || api_get_setting('homepage_view') == 'activity_big') {
+if (api_get_setting('homepage_view') == 'activity' ||
+    api_get_setting('homepage_view') == 'activity_big'
+) {
 	require 'activity.php';
 } elseif (api_get_setting('homepage_view') == '2column') {
 	require '2column.php';
@@ -262,8 +270,12 @@ $tpl = new Template(null);
 $tpl->assign('message', $show_message);
 $tpl->assign('content', $content);
 
-// direct login to course
+// Direct login to course
 $tpl->assign('course_code', $course_code);
 
 $tpl->display_one_col_template();
 Session::erase('_gid');
+// Deleting the objects
+Session::erase('oLP');
+Session::erase('lpobject');
+DocumentManager::removeGeneratedAudioTempFile();

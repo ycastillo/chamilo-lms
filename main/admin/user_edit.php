@@ -6,9 +6,7 @@
 
 // Language files that should be included
 $language_file = array('admin', 'registration');
-
 $cidReset = true;
-
 require_once '../inc/global.inc.php';
 
 $this_section = SECTION_PLATFORM_ADMIN;
@@ -21,11 +19,12 @@ api_protect_super_admin($user_id, null, true);
 
 $is_platform_admin = api_is_platform_admin() ? 1 : 0;
 
+$userInfo = api_get_user_info($user_id);
+
 $htmlHeadXtra[] = '<script src="'.api_get_path(WEB_LIBRARY_PATH).'javascript/tag/jquery.fcbkcomplete.js" type="text/javascript" language="javascript"></script>';
 $htmlHeadXtra[] = '<link  href="'.api_get_path(WEB_LIBRARY_PATH).'javascript/tag/style.css" rel="stylesheet" type="text/css" />';
 $htmlHeadXtra[] = '
 <script>
-
 var is_platform_id = "'.$is_platform_admin.'";
 
 <!--
@@ -64,6 +63,14 @@ function show_image(image,width,height) {
 	height = parseInt(height) + 20;
 	window_x = window.open(image,\'windowX\',\'width=\'+ width + \', height=\'+ height + \' , resizable=0\');
 }
+
+function confirmation(name) {
+    if (confirm("'.get_lang('AreYouSureToDelete', '').' " + name + " ?")) {
+            document.forms["profile"].submit();
+    } else {
+        return false;
+    }
+}
 //-->
 </script>';
 
@@ -83,8 +90,8 @@ $table_admin = Database::get_main_table(TABLE_MAIN_ADMIN);
 $sql = "SELECT u.*, a.user_id AS is_admin FROM $table_user u LEFT JOIN $table_admin a ON a.user_id = u.user_id WHERE u.user_id = '".$user_id."'";
 $res = Database::query($sql);
 if (Database::num_rows($res) != 1) {
-	header('Location: user_list.php');
-	exit;
+    header('Location: user_list.php');
+    exit;
 }
 
 $user_data = Database::fetch_array($res, 'ASSOC');
@@ -171,28 +178,35 @@ if (api_get_setting('login_is_email') != 'true') {
     $form->addRule('username', get_lang('UserTaken'), 'username_available', $user_data['username']);
 }
 
+if (isset($extAuthSource) && !empty($extAuthSource) && count($extAuthSource) > 0) {
+    $form->addLabel(get_lang('ExternalAuthentication'), $userInfo['auth_source']);
+}
+
 // Password
 $form->addElement('radio', 'reset_password', get_lang('Password'), get_lang('DontResetPassword'), 0);
 $nb_ext_auth_source_added = 0;
-if (count($extAuthSource) > 0) {
-	$auth_sources = array();
-	foreach($extAuthSource as $key => $info) {
-	    // @todo : make uniform external authentification configuration (ex : cas and external_login ldap)
-	    // Special case for CAS. CAS is activated from Chamilo > Administration > Configuration > CAS
-	    // extAuthSource always on for CAS even if not activated
-	    // same action for file user_add.php
-	    if (($key == CAS_AUTH_SOURCE && api_get_setting('cas_activate') === 'true') || ($key != CAS_AUTH_SOURCE)) {
-    		$auth_sources[$key] = $key;
-    		$nb_ext_auth_source_added++;
-	    }
-	}
-	if ($nb_ext_auth_source_added > 0) {
-	    // @todo check the radio button for external authentification and select the external authentification in the menu
-	    $group[] =$form->createElement('radio', 'reset_password', null, get_lang('ExternalAuthentication').' ', 3);
-	    $group[] =$form->createElement('select', 'auth_source', null, $auth_sources);
-	    $group[] =$form->createElement('static', '', '', '<br />');
-	    $form->addGroup($group, 'password', null, '', false);
-	}
+
+if (isset($extAuthSource) && !empty($extAuthSource) && count($extAuthSource) > 0) {
+    $auth_sources = array();
+    $auth_sources[] = PLATFORM_AUTH_SOURCE;
+
+    foreach ($extAuthSource as $key => $info) {
+        // @todo : make uniform external authentification configuration (ex : cas and external_login ldap)
+        // Special case for CAS. CAS is activated from Chamilo > Administration > Configuration > CAS
+        // extAuthSource always on for CAS even if not activated
+        // same action for file user_add.php
+        if (($key == CAS_AUTH_SOURCE && api_get_setting('cas_activate') === 'true') || ($key != CAS_AUTH_SOURCE)) {
+            $auth_sources[$key] = $key;
+            $nb_ext_auth_source_added++;
+        }
+    }
+    if ($nb_ext_auth_source_added > 0) {
+        // @todo check the radio button for external authentification and select the external authentification in the menu
+        $group[] = $form->createElement('radio', 'reset_password', null, get_lang('ExternalAuthentication').' ', 3);
+        $group[] = $form->createElement('select', 'auth_source', null, $auth_sources);
+        $group[] = $form->createElement('static', '', '', '<br />');
+        $form->addGroup($group, 'password', null, '', false);
+    }
 }
 $form->addElement('radio', 'reset_password', null, get_lang('AutoGeneratePassword'), 1);
 $group = array();
@@ -246,15 +260,14 @@ $form->addElement('select_language', 'language', get_lang('Language'));
 
 // Send email
 $group = array();
-$group[] =$form->createElement('radio', 'send_mail', null, get_lang('Yes'), 1);
-$group[] =$form->createElement('radio', 'send_mail', null, get_lang('No'), 0);
+$group[] = $form->createElement('radio', 'send_mail', null, get_lang('Yes'), 1);
+$group[] = $form->createElement('radio', 'send_mail', null, get_lang('No'), 0);
 $form->addGroup($group, 'mail', get_lang('SendMailToNewUser'), '&nbsp;', false);
 
 // Registration User and Date
 $creatorInfo = api_get_user_info($user_data['creator_id']);
 $date = sprintf(get_lang('CreatedByXYOnZ'), 'user_information.php?user_id='.$user_data['creator_id'], $creatorInfo['username'], $user_data['registration_date']);
 $form->addElement('html', '<div class="control-group"><label class="control-label">'.get_lang('RegistrationDate').'</label><div class="controls">'.$date.'</div></div>');
-
 
 if (!$user_data['platform_admin']) {
 	// Expiration Date
@@ -268,7 +281,6 @@ if (!$user_data['platform_admin']) {
 	$form->addElement('radio', 'active', get_lang('ActiveAccount'), get_lang('Active'), 1);
 	$form->addElement('radio', 'active', '', get_lang('Inactive'), 0);
 }
-
 
 // EXTRA FIELDS
 $return_params = UserManager::set_extra_fields_in_form($form, $extra_data, 'user_edit', true, $user_id);
@@ -311,8 +323,7 @@ $form->setDefaults($user_data);
 $error_drh = false;
 // Validate form
 if ($form->validate()) {
-
-	$user = $form->getSubmitValues();
+	$user = $form->getSubmitValues(1);
 	$is_user_subscribed_in_course = CourseManager::is_user_subscribed_in_course($user['user_id']);
 
 	if ($user['status'] == DRH && $is_user_subscribed_in_course) {
@@ -322,7 +333,7 @@ if ($form->validate()) {
 		$picture = $picture_element->getValue();
 
 		$picture_uri = $user_data['picture_uri'];
-		if ($user['delete_picture']) {
+		if (isset($user['delete_picture']) && $user['delete_picture']) {
 			$picture_uri = UserManager::delete_user_picture($user_id);
 		} elseif (!empty($picture['name'])) {
 			$picture_uri = UserManager::update_user_picture($user_id, $_FILES['picture']['name'], $_FILES['picture']['tmp_name']);
@@ -331,18 +342,18 @@ if ($form->validate()) {
 		$lastname = $user['lastname'];
 		$firstname = $user['firstname'];
         $password = $user['password'];
-        $auth_source = $user['auth_source'];
-
+        $auth_source = isset($user['auth_source']) ? $user['auth_source'] : $userInfo['auth_source'];
 		$official_code = $user['official_code'];
 		$email = $user['email'];
 		$phone = $user['phone'];
-		$username = $user['username'];
+		$username = isset($user['username']) ? $user['username'] : $userInfo['username'];
 		$status = intval($user['status']);
 		$platform_admin = intval($user['platform_admin']);
 		$send_mail = intval($user['send_mail']);
 		$reset_password = intval($user['reset_password']);
-		$hr_dept_id = intval($user['hr_dept_id']);
+		$hr_dept_id = isset($user['hr_dept_id']) ? intval($user['hr_dept_id']) : null;
 		$language = $user['language'];
+
 		if ($user['radio_expiration_date'] == '1' && !$user_data['platform_admin']) {
             $expiration_date = return_datetime_from_array($user['expiration_date']);
 		} else {
@@ -359,12 +370,35 @@ if ($form->validate()) {
         if (api_get_setting('login_is_email') == 'true') {
             $username = $email;
         }
-		UserManager::update_user($user_id, $firstname, $lastname, $username, $password, $auth_source, $email, $status, $official_code, $phone, $picture_uri, $expiration_date, $active, null, $hr_dept_id, null, $language, null, $send_mail, $reset_password);
+
+        UserManager::update_user(
+            $user_id,
+            $firstname,
+            $lastname,
+            $username,
+            $password,
+            $auth_source,
+            $email,
+            $status,
+            $official_code,
+            $phone,
+            $picture_uri,
+            $expiration_date,
+            $active,
+            null,
+            $hr_dept_id,
+            null,
+            $language,
+            null,
+            $send_mail,
+            $reset_password
+        );
 
 		if (api_get_setting('openid_authentication') == 'true' && !empty($user['openid'])) {
 			$up = UserManager::update_openid($user_id,$user['openid']);
 		}
-		if ($user_id != $_SESSION['_uid']) {
+        $currentUserId = api_get_user_id();
+		if ($user_id != $currentUserId) {
 			if ($platform_admin == 1) {
                 UserManager::add_user_as_admin($user_id);
 			} else {
@@ -387,8 +421,28 @@ if ($form->validate()) {
                         $value = date('Y-m-d',$time);
                     }
                 }
-				UserManager::update_extra_field_value($user_id, substr($key, 6), $value);
-			}
+                // For array $value -> if exists key 'tmp_name' then must not be empty
+                // This avoid delete from user field value table when doesn't upload a file
+                if (is_array($value)) {
+                    if (array_key_exists('tmp_name', $value) && empty($value['tmp_name'])) {
+                        //Nothing to do
+                    } else {
+                        if (array_key_exists('tmp_name', $value)) {
+                            $value['tmp_name'] = Security::filter_filename($value['tmp_name']);
+                        }
+                        if (array_key_exists('name', $value)) {
+                            $value['name'] = Security::filter_filename($value['name']);
+                        }
+                        UserManager::update_extra_field_value($user_id, substr($key, 6), $value);
+                    }
+                } else {
+                    UserManager::update_extra_field_value($user_id, substr($key, 6), $value);
+                }
+            } elseif (strpos($key, 'remove_extra') !== false) {
+                $extra_value = Security::filter_filename(urldecode(key($value)));
+                // To remove from user_field_value and folder
+                UserManager::update_extra_field_value($user_id, substr($key,13), $extra_value);
+            }
 		}
 		$tok = Security::get_token();
 		header('Location: user_list.php?action=show_message&message='.urlencode(get_lang('UserUpdated')).'&sec_token='.$tok);

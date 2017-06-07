@@ -57,10 +57,18 @@ define('TABLE_MAIN_GRADEBOOK_LINK',         'gradebook_link');
 define('TABLE_MAIN_GRADEBOOK_SCORE_DISPLAY','gradebook_score_display');
 define('TABLE_MAIN_GRADEBOOK_CERTIFICATE',  'gradebook_certificate');
 
-//Profiling
+// Profiling
 define('TABLE_MAIN_USER_FIELD',         'user_field');
 define('TABLE_MAIN_USER_FIELD_OPTIONS', 'user_field_options');
 define('TABLE_MAIN_USER_FIELD_VALUES',  'user_field_values');
+
+define('TABLE_MAIN_LP_FIELD',         'lp_field');
+define('TABLE_MAIN_LP_FIELD_OPTIONS', 'lp_field_options');
+define('TABLE_MAIN_LP_FIELD_VALUES',  'lp_field_values');
+
+define('TABLE_MAIN_CALENDAR_EVENT_FIELD', 'calendar_event_field');
+define('TABLE_MAIN_CALENDAR_EVENT_OPTIONS', 'calendar_event_options');
+define('TABLE_MAIN_CALENDAR_EVENT_VALUES', 'calendar_event_values');
 
 //User tags
 define('TABLE_MAIN_TAG',                'tag');
@@ -204,6 +212,7 @@ define('TABLE_QUIZ_TEST_QUESTION',          'quiz_rel_question');
 define('TABLE_QUIZ_QUESTION_OPTION',        'quiz_question_option');
 define('TABLE_QUIZ_QUESTION_CATEGORY',      'quiz_question_category');
 define('TABLE_QUIZ_QUESTION_REL_CATEGORY',  'quiz_question_rel_category');
+define('TABLE_QUIZ_REL_CATEGORY',           'quiz_rel_category');
 
 // Linked resource table
 //@todo table exists?

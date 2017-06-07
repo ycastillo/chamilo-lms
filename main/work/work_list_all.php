@@ -3,7 +3,14 @@
 
 use ChamiloSession as Session;
 
-$language_file = array('exercice', 'work', 'document', 'admin', 'gradebook');
+$language_file = array(
+    'exercice',
+    'work',
+    'document',
+    'admin',
+    'gradebook',
+    'tracking'
+);
 
 require_once '../inc/global.inc.php';
 $current_course_tool  = TOOL_STUDENTPUBLICATION;
@@ -15,7 +22,7 @@ require_once 'work.lib.php';
 $this_section = SECTION_COURSES;
 
 $workId = isset($_GET['id']) ? intval($_GET['id']) : null;
-$is_allowed_to_edit = api_is_allowed_to_edit();
+$is_allowed_to_edit = api_is_allowed_to_edit() || api_is_coach();
 
 if (empty($workId)) {
     api_not_allowed(true);
@@ -28,14 +35,22 @@ if (empty($my_folder_data)) {
 
 $work_data = get_work_assignment_by_id($workId);
 
-if (!api_is_allowed_to_edit()) {
+$isDrhOfCourse = CourseManager::isUserSubscribedInCourseAsDrh(
+    api_get_user_id(),
+    api_get_course_info()
+);
+
+if (!($is_allowed_to_edit || $isDrhOfCourse)) {
     api_not_allowed(true);
 }
 
 $tool_name = get_lang('StudentPublications');
 $group_id = api_get_group_id();
 $courseInfo = api_get_course_info();
+$courseCode = $courseInfo['code'];
+$sessionId = api_get_session_id();
 $htmlHeadXtra[] = api_get_jqgrid_js();
+$user_id = api_get_user_id();
 
 if (!empty($group_id)) {
     $group_properties  = GroupManager :: get_group_properties($group_id);
@@ -45,73 +60,110 @@ if (!empty($group_id)) {
         $show_work = true;
     } else {
         // you are not a teacher
-        $show_work = GroupManager::user_has_access($user_id, $group_id, GroupManager::GROUP_TOOL_WORK);
+        $show_work = GroupManager::user_has_access(
+            $user_id,
+            $group_id,
+            GroupManager::GROUP_TOOL_WORK
+        );
     }
 
     if (!$show_work) {
         api_not_allowed();
     }
 
-    $interbreadcrumb[] = array('url' => '../group/group.php', 'name' => get_lang('Groups'));
-    $interbreadcrumb[] = array('url' => '../group/group_space.php?gidReq='.$group_id, 'name' => get_lang('GroupSpace').' '.$group_properties['name']);
+    $interbreadcrumb[] = array(
+        'url' => api_get_path(WEB_CODE_PATH).'group/group.php?'.api_get_cidreq(),
+        'name' => get_lang('Groups')
+    );
+
+    $interbreadcrumb[] = array(
+        'url' => api_get_path(WEB_CODE_PATH).'group/group_space.php?'.api_get_cidreq(),
+        'name' => get_lang('GroupSpace').' '.$group_properties['name']
+    );
 }
 
-$interbreadcrumb[] = array('url' => api_get_path(WEB_CODE_PATH).'work/work.php?'.api_get_cidreq(), 'name' => get_lang('StudentPublications'));
-$interbreadcrumb[] = array('url' => api_get_path(WEB_CODE_PATH).'work/work_list_all.php?'.api_get_cidreq().'&id='.$workId, 'name' =>  $my_folder_data['title']);
+$interbreadcrumb[] = array(
+    'url' => api_get_path(WEB_CODE_PATH).'work/work.php?'.api_get_cidreq(),
+    'name' => get_lang('StudentPublications')
+);
+$interbreadcrumb[] = array(
+    'url' => api_get_path(WEB_CODE_PATH).'work/work_list_all.php?'.api_get_cidreq().'&id='.$workId,
+    'name' =>  $my_folder_data['title']
+);
 
 $error_message = null;
 
+$action = isset($_REQUEST['action']) ? $_REQUEST['action'] : null;
+$itemId = isset($_REQUEST['item_id']) ? intval($_REQUEST['item_id']) : null;
+$message = null;
+
+switch ($action) {
+    case 'delete':
+        /*	Delete document */
+        if ($itemId) {
+            $fileDeleted = deleteWorkItem($itemId, $courseInfo);
+            if (!$fileDeleted) {
+                $message = Display::return_message(get_lang('YouAreNotAllowedToDeleteThisDocument'), 'error');
+            } else {
+                $message = Display::return_message(get_lang('TheDocumentHasBeenDeleted'), 'confirmation');
+            }
+        }
+        break;
+    case 'make_visible':
+        /*	Visible */
+        if ($is_allowed_to_edit) {
+            if (!empty($itemId)) {
+                if (isset($itemId) && $itemId == 'all') {
+                } else {
+                    makeVisible($itemId, $courseInfo);
+                    $message = Display::return_message(get_lang('FileVisible'), 'confirmation');
+                }
+            }
+        }
+        break;
+    case 'make_invisible':
+        /*	Invisible */
+        if (!empty($itemId)) {
+            if (isset($itemId) && $itemId == 'all') {
+            } else {
+                makeInvisible($itemId, $courseInfo);
+                $message = Display::return_message(get_lang('FileInvisible'), 'confirmation');
+            }
+        }
+        break;
+    case 'export_pdf':
+        exportAllStudentWorkFromPublication(
+            $workId,
+            $courseInfo,
+            $sessionId,
+            'pdf'
+        );
+        break;
+}
+
 Display :: display_header(null);
 
-$action = isset($_REQUEST['action']) ? $_REQUEST['action'] : null;
-$item_id = isset($_REQUEST['item_id']) ? intval($_REQUEST['item_id']) : null;
-
-/*	Delete document */
-if ($action == 'delete' && $item_id) {
-    $file_deleted = deleteWorkItem($item_id, $_course);
-    if (!$file_deleted) {
-        Display::display_error_message(get_lang('YouAreNotAllowedToDeleteThisDocument'));
-    } else {
-        Display::display_confirmation_message(get_lang('TheDocumentHasBeenDeleted'));
-    }
-}
-
-/*	Visible */
-if ($is_allowed_to_edit && $action == 'make_visible') {
-    if (!empty($item_id)) {
-        if (isset($item_id) && $item_id == 'all') {
-        } else {
-            makeVisible($item_id, $courseInfo);
-            Display::display_confirmation_message(get_lang('FileVisible'));
-        }
-    }
-}
-
-if ($is_allowed_to_edit && $action == 'make_invisible') {
-
-    /*	Invisible */
-    if (!empty($item_id)) {
-        if (isset($item_id) && $item_id == 'all') {
-        } else {
-            makeInvisible($item_id, $courseInfo);
-            Display::display_confirmation_message(get_lang('FileInvisible'));
-        }
-    }
-}
+echo $message;
 
 $documentsAddedInWork = getAllDocumentsFromWorkToString($workId, $courseInfo);
 
 echo '<div class="actions">';
-echo '<a href="'.api_get_path(WEB_CODE_PATH).'work/work.php?'.api_get_cidreq().'">'.Display::return_icon('back.png', get_lang('BackToWorksList'),'',ICON_SIZE_MEDIUM).'</a>';
-if (api_is_allowed_to_session_edit(false, true) && !empty($workId)) {
+echo '<a href="'.api_get_path(WEB_CODE_PATH).'work/work.php?'.api_get_cidreq().'">'.
+    Display::return_icon('back.png', get_lang('BackToWorksList'), '', ICON_SIZE_MEDIUM).'</a>';
+
+if (api_is_allowed_to_session_edit(false, true) && !empty($workId) && !$isDrhOfCourse) {
     /*echo '<a href="'.api_get_path(WEB_CODE_PATH).'work/upload.php?'.api_get_cidreq().'&id='.$workId.'">';
     echo Display::return_icon('upload_file.png', get_lang('UploadADocument'), '', ICON_SIZE_MEDIUM).'</a>';*/
+
     if (ADD_DOCUMENT_TO_WORK) {
         echo '<a href="'.api_get_path(WEB_CODE_PATH).'work/add_document.php?'.api_get_cidreq().'&id='.$workId.'">';
         echo Display::return_icon('new_document.png', get_lang('AddDocument'), '', ICON_SIZE_MEDIUM).'</a>';
 
         echo '<a href="'.api_get_path(WEB_CODE_PATH).'work/add_user.php?'.api_get_cidreq().'&id='.$workId.'">';
         echo Display::return_icon('user.png', get_lang('AddUsers'), '', ICON_SIZE_MEDIUM).'</a>';
+
+        echo '<a href="'.api_get_path(WEB_CODE_PATH).'work/work_list_all.php?'.api_get_cidreq().'&id='.$workId.'&action=export_pdf">';
+        echo Display::return_icon('pdf.png', get_lang('Export'), '', ICON_SIZE_MEDIUM).'</a>';
     }
 
     $display_output = '<a href="'.api_get_path(WEB_CODE_PATH).'work/work_missing.php?'.api_get_cidreq().'&amp;id='.$workId.'&amp;list=without">'.
@@ -122,7 +174,6 @@ if (api_is_allowed_to_session_edit(false, true) && !empty($workId)) {
             Display::return_icon('save_pack.png', get_lang('Save'), array('style' => 'float:right;'), ICON_SIZE_MEDIUM).'</a>';
     }
     echo $display_output;
-
 
     echo '<a href="'.api_get_path(WEB_CODE_PATH).'work/edit_work.php?'.api_get_cidreq().'&id='.$workId.'">';
     echo Display::return_icon('edit.png', get_lang('Edit'), '', ICON_SIZE_MEDIUM).'</a>';
@@ -140,12 +191,15 @@ if (!empty($error_message)) {
 }
 
 if (!empty($my_folder_data['description'])) {
-    echo '<p><div><strong>'.get_lang('Description').':</strong><p>'.Security::remove_XSS($my_folder_data['description']).'</p></div></p>';
+    echo '<p><div><strong>'.get_lang('Description').':</strong><p>'.
+        Security::remove_XSS($my_folder_data['description']).'</p></div></p>';
 }
 
 $check_qualification = intval($my_folder_data['qualification']);
 
-if (!empty($work_data['enable_qualification']) && !empty($check_qualification)) {
+if (!empty($work_data['enable_qualification']) &&
+    !empty($check_qualification)
+) {
     $type = 'simple';
 
     $columns = array(
@@ -153,12 +207,26 @@ if (!empty($work_data['enable_qualification']) && !empty($check_qualification)) 
         get_lang('FirstName'),
         get_lang('LastName'),
         get_lang('Title'),
-        get_lang('Qualification'),
+        get_lang('Score'),
         get_lang('Date'),
         get_lang('Status'),
         get_lang('Actions')
     );
-    $column_model   = array (
+
+    if (ALLOW_USER_COMMENTS) {
+        $columns = array(
+            get_lang('Type'),
+            get_lang('FirstName'),
+            get_lang('LastName'),
+            get_lang('Title'),
+            get_lang('Feedback'),
+            get_lang('Date'),
+            get_lang('Status'),
+            get_lang('Actions')
+        );
+    }
+
+    $column_model = array(
         array('name'=>'type',           'index'=>'file',            'width'=>'8',   'align'=>'left', 'search' => 'false', 'sortable' => 'false'),
         array('name'=>'firstname',      'index'=>'firstname',       'width'=>'35',   'align'=>'left', 'search' => 'true'),
         array('name'=>'lastname',		'index'=>'lastname',        'width'=>'35',   'align'=>'left', 'search' => 'true'),
@@ -180,24 +248,43 @@ if (!empty($work_data['enable_qualification']) && !empty($check_qualification)) 
         get_lang('Actions')
     );
 
-    $column_model   = array (
-        array('name'=>'type',           'index'=>'file',            'width'=>'8',   'align'=>'left', 'search' => 'false', 'sortable' => 'false'),
-        array('name'=>'firstname',      'index'=>'firstname',       'width'=>'35',   'align'=>'left', 'search' => 'true'),
-        array('name'=>'lastname',		'index'=>'lastname',        'width'=>'35',   'align'=>'left', 'search' => 'true'),
-        array('name'=>'title',          'index'=>'title',           'width'=>'40',   'align'=>'left', 'search' => 'false', 'wrap_cell' => "true"),
-        array('name'=>'sent_date',      'index'=>'sent_date',      'width'=>'45',   'align'=>'left', 'search' => 'true', 'wrap_cell' => 'true'),
-        array('name'=>'actions',        'index'=>'actions',         'width'=>'40',   'align'=>'left', 'search' => 'false', 'sortable'=>'false', 'wrap_cell' => 'true')
+    $column_model = array(
+        array('name'=>'type',      'index'=>'file',      'width'=>'8',  'align'=>'left', 'search' => 'false', 'sortable' => 'false'),
+        array('name'=>'firstname', 'index'=>'firstname', 'width'=>'35', 'align'=>'left', 'search' => 'true'),
+        array('name'=>'lastname',  'index'=>'lastname',  'width'=>'35', 'align'=>'left', 'search' => 'true'),
+        array('name'=>'title',     'index'=>'title',     'width'=>'40', 'align'=>'left', 'search' => 'false', 'wrap_cell' => "true"),
+        array('name'=>'sent_date', 'index'=>'sent_date', 'width'=>'45', 'align'=>'left', 'search' => 'true', 'wrap_cell' => 'true'),
+        array('name'=>'actions',   'index'=>'actions',   'width'=>'40', 'align'=>'left', 'search' => 'false', 'sortable'=>'false', 'wrap_cell' => 'true')
     );
+
+    if (ALLOW_USER_COMMENTS) {
+        $columns = array(
+            get_lang('Type'),
+            get_lang('FirstName'),
+            get_lang('LastName'),
+            get_lang('Title'),
+            get_lang('Feedback'),
+            get_lang('Date'),
+            get_lang('Actions')
+        );
+
+        $column_model = array(
+            array('name'=>'type',      'index'=>'file',      'width'=>'8',  'align'=>'left', 'search' => 'false', 'sortable' => 'false'),
+            array('name'=>'firstname', 'index'=>'firstname', 'width'=>'35', 'align'=>'left', 'search' => 'true'),
+            array('name'=>'lastname',  'index'=>'lastname',  'width'=>'35', 'align'=>'left', 'search' => 'true'),
+            array('name'=>'title',     'index'=>'title',     'width'=>'40', 'align'=>'left', 'search' => 'false', 'wrap_cell' => "true"),
+            array('name'=>'qualification',  'index'=>'qualification',  'width'=>'25', 'align'=>'left', 'search' => 'true'),
+            array('name'=>'sent_date', 'index'=>'sent_date', 'width'=>'45', 'align'=>'left', 'search' => 'true', 'wrap_cell' => 'true'),
+            array('name'=>'actions',   'index'=>'actions',   'width'=>'40', 'align'=>'left', 'search' => 'false', 'sortable'=>'false', 'wrap_cell' => 'true')
+        );
+    }
 }
 
-$extra_params = array();
-
-// Auto-width
-$extra_params['autowidth'] = 'true';
-
-// height auto
-$extra_params['height'] = 'auto';
-$extra_params['sortname'] = 'firstname';
+$extra_params = array(
+    'autowidth' =>  'true',
+    'height' =>  'auto',
+    'sortname' => 'firstname'
+);
 
 $url = api_get_path(WEB_AJAX_PATH).'model.ajax.php?a=get_work_user_list_all&work_id='.$workId.'&type='.$type;
 ?>

@@ -2,6 +2,7 @@
 /*
 for more information: see languages.txt in the lang folder.
 */
+$NoTimeLimits = "Žádné časové omezení";
 $Title = "Nadpis";
 $UsersOnline = "Uživatel online";
 $Remove = "Odstranit";
@@ -322,4 +323,5 @@ $UserOnlineListSession = "Seznam studentů aktualně přihlášených - Výuka";
 $From = "Od";
 $To = "Komu";
 $NoUsersInCourse = "Žádný uživatelé v kurzu";
+$UploadADocument = "Uložit dokument na server";
 ?>

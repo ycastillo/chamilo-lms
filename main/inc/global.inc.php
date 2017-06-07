@@ -114,13 +114,15 @@ if (empty($_configuration['statistics_database']) && $already_installed) {
 }
 global $database_connection;
 // Connect to the server database and select the main chamilo database.
+// When $_configuration['db_persistent_connection'] is set, it is expected to be a boolean type.
 if (!($conn_return = @Database::connect(
     array(
         'server'        => $_configuration['db_host'],
         'username'      => $_configuration['db_user'],
         'password'      => $_configuration['db_password'],
-        'persistent'    => $_configuration['db_persistent_connection'] // When $_configuration['db_persistent_connection'] is set, it is expected to be a boolean type.
-    )))) {
+        'persistent'    => $_configuration['db_persistent_connection']
+    )))
+) {
     $global_error_code = 3;
     // The database server is not available or credentials are invalid.
     require $includePath.'/global_error_message.inc.php';
@@ -143,24 +145,25 @@ if (!empty($_configuration['multiple_access_urls'])) {
     $pos = strpos($root_rel,'/');
     $root_rel = substr($root_rel,0,$pos);
     $protocol = ((!empty($_SERVER['HTTPS']) && strtoupper($_SERVER['HTTPS']) != 'OFF') ? 'https' : 'http').'://';
-    //urls with subdomains
-    $request_url_root_1 = $protocol.$_SERVER['SERVER_NAME'].'/';
-    $request_url_root_2 = $protocol.$_SERVER['HTTP_HOST'].'/';
+    //urls with subdomains (HTTP_HOST is preferred - see #6764)
+    $request_url_root = $protocol.$_SERVER['HTTP_HOST'].'/';
+    if (empty($request_url_root)) {
+        $request_url_root = $protocol.$_SERVER['SERVER_NAME'].'/';
+    }
     //urls with subdirs
-    $request_url_sub_1 = $request_url_root_1.$root_rel.'/';
-    $request_url_sub_2 = $request_url_root_2.$root_rel.'/';
+    $request_url_sub = $request_url_root.$root_rel.'/';
 
     // You can use subdirs as multi-urls, but in this case none of them can be
     // the root dir. The admin portal should be something like https://host/adm/
     // At this time, subdirs will still hold a share cookie, so not ideal yet
     // see #6510
     foreach ($access_urls as $details) {
-        if ($request_url_sub_1 == $details['url'] or $request_url_sub_2 == $details['url']) {
+        if ($request_url_sub == $details['url']) {
             $_configuration['access_url'] = $details['id'];
             break; //found one match with subdir, get out of foreach
         }
         // Didn't find any? Now try without subdirs
-        if ($request_url_root_1 == $details['url'] or $request_url_root_2 == $details['url']) {
+        if ($request_url_root == $details['url']) {
             $_configuration['access_url'] = $details['id'];
             break; //found one match, get out of foreach
         }
@@ -179,7 +182,7 @@ if (!Database::select_db($_configuration['main_database'], $database_connection)
     die();
 }
 
-/*   Initialization of the default encodings */
+/* Initialization of the default encodings */
 // The platform's character set must be retrieved at this early moment.
 $sql = "SELECT selected_value FROM settings_current WHERE variable = 'platform_charset';";
 $result = Database::query($sql);
@@ -314,20 +317,9 @@ if (file_exists($mail_conf)) {
 	require_once $mail_conf;
 }
 
-// ===== "who is logged in?" module section =====
-
-
-
-// check and modify the date of user in the track.e.online table
-if (!$x = strpos($_SERVER['PHP_SELF'], 'whoisonline.php')) {
-    LoginCheck(isset($_user['user_id']) ? $_user['user_id'] : '');
-}
-
-// ===== end "who is logged in?" module section =====
-
 if (api_get_setting('server_type') == 'test') {
-    //error_reporting(E_ALL & ~E_NOTICE & ~E_DEPRECATED);
     ini_set('display_errors', '1');
+    ini_set('log_errors', '1');
     error_reporting(-1);
 } else {
     /*
@@ -372,12 +364,21 @@ if (api_get_setting('server_type') == 'test') {
 // if we use the javascript version (without go button) we receive a get
 // if we use the non-javascript version (with the go button) we receive a post
 $user_language = '';
+$browser_language = '';
 if (!empty($_GET['language'])) {
     $user_language = $_GET['language'];
 }
 
 if (!empty($_POST['language_list'])) {
     $user_language = str_replace('index.php?language=', '', $_POST['language_list']);
+}
+
+if (empty($user_language) && !empty($_SERVER['HTTP_ACCEPT_LANGUAGE']) && !isset($_SESSION['_user'])) {
+    require_once __DIR__.'/../admin/sub_language.class.php';
+    $l = subLanguageManager::getLanguageFromBrowserPreference($_SERVER['HTTP_ACCEPT_LANGUAGE']);
+    if (!empty($l)) {
+        $user_language = $browser_language = $l;
+    }
 }
 
 // Include all files (first english and then current interface language)
@@ -457,8 +458,10 @@ if (!empty($valid_languages)) {
     $language_priority3 = api_get_setting('languagePriority3');
     $language_priority4 = api_get_setting('languagePriority4');
 
-    if (in_array($user_language, $valid_languages['folder']) && (isset($_GET['language']) || isset($_POST['language_list']))) {
-        $user_selected_language = $user_language; // $_GET['language'];
+    if (in_array($user_language, $valid_languages['folder']) &&
+        (isset($_GET['language']) || isset($_POST['language_list']) || !empty($browser_language))
+    ) {
+        $user_selected_language = $user_language; // $_GET['language']; or HTTP_ACCEPT_LANGUAGE
         $_SESSION['user_language_choice'] = $user_selected_language;
         $platformLanguage = $user_selected_language;
     }
@@ -561,6 +564,17 @@ $charset = $charset_initial_value;
 // For determing text direction correspondent to the current language we use now information from the internationalization library.
 $text_dir = api_get_text_direction();
 
+// ===== "who is logged in?" module section =====
+
+// check and modify the date of user in the track.e.online table
+if (!$x = strpos($_SERVER['PHP_SELF'], 'whoisonline.php')) {
+    preventMultipleLogin($_user["user_id"]);
+    LoginCheck(isset($_user['user_id']) ? $_user['user_id'] : '');
+}
+
+// ===== end "who is logged in?" module section =====
+
+
 //Update of the logout_date field in the table track_e_login (needed for the calculation of the total connection time)
 
 if (!isset($_SESSION['login_as']) && isset($_user)) {
@@ -616,3 +630,6 @@ if (empty($default_quota)) {
     $default_quota = 100000000;
 }
 define('DEFAULT_DOCUMENT_QUOTA', $default_quota);
+
+// Sets the ascii_math plugin see #7134
+$_SESSION['ascii_math_loaded'] = false;

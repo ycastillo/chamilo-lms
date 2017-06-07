@@ -381,6 +381,11 @@ function & get_language_folder_list() {
                 continue;
             }
             if (is_dir($dirname.$entries)) {
+                if (is_file($dirname.$entries.'/install_disabled')) {
+                    // Skip all languages that have this file present, just for
+                    // the install process (languages incomplete)
+                    continue;
+                }
                 $result[$entries] = ucwords(str_replace($search, $replace_with, $entries));
             }
         }
@@ -1029,7 +1034,7 @@ function display_language_selection_box($name = 'language_list', $default_langua
  * can be done in the language of the user
  */
 function display_language_selection() { ?>
-    <h2><?php get_lang('WelcomeToTheDokeosInstaller'); ?></h2>
+    <h2><?php get_lang('WelcomeToTheChamiloInstaller'); ?></h2>
     <div class="RequirementHeading">
         <h2><?php echo display_step_sequence(); ?><?php echo get_lang('InstallationLanguage'); ?></h2>
         <p><?php echo get_lang('PleaseSelectInstallationProcessLanguage'); ?>:</p>
@@ -1038,6 +1043,10 @@ function display_language_selection() { ?>
         <button type="submit" name="step1" class="btn next" value="<?php echo get_lang('Next'); ?>"><?php echo get_lang('Next'); ?></button>
         <input type="hidden" name="is_executable" id="is_executable" value="-" />
         </form>
+        <br /><br />
+    </div>
+    <div class="RequirementHeading">
+        <?php echo get_lang('YourLanguageNotThereContactUs'); ?>
     </div>
 <?php
 }
@@ -1270,12 +1279,30 @@ function display_requirements($installType, $badUpdatePath, $updatePath = '', $u
     @rmdir($course_dir);
 
     $_SESSION['permissions_for_new_directories'] = $_setting['permissions_for_new_directories'] = $dir_perm_verified;
-    $_SESSION['permissions_for_new_files']       = $_setting['permissions_for_new_files'] = $fil_perm_verified;
+    $_SESSION['permissions_for_new_files'] = $_setting['permissions_for_new_files'] = $fil_perm_verified;
 
     $dir_perm = Display::label('0'.decoct($dir_perm_verified), 'info');
     $file_perm = Display::label('0'.decoct($fil_perm_verified), 'info');
 
-    $course_test_was_created  = ($course_test_was_created == true && $file_course_test_was_created == true) ? Display::label(get_lang('Yes'), 'success') : Display::label(get_lang('No'), 'important');
+    $courseTestLabel = Display::label(get_lang('No'), 'important');
+
+    if ($course_test_was_created && $file_course_test_was_created) {
+        $courseTestLabel = Display::label(get_lang('Yes'), 'success');
+    }
+
+    if ($course_test_was_created && !$file_course_test_was_created) {
+        $courseTestLabel = Display::label(
+            sprintf(
+                get_lang('InstallWarningCouldNotInterpretPHP'),
+                api_get_path(WEB_COURSE_PATH).$course_attempt_name.'/test.php'
+            ),
+            'warning'
+        );
+    }
+
+    if (!$course_test_was_created && !$file_course_test_was_created) {
+        $courseTestLabel = Display::label(get_lang('No'), 'important');
+    }
 
     echo '<table class="table">
             <tr>
@@ -1300,7 +1327,7 @@ function display_requirements($installType, $badUpdatePath, $updatePath = '', $u
             </tr>
             <tr>
                 <td class="requirements-item">'.get_lang('CourseTestWasCreated').'</td>
-                <td class="requirements-value">'.$course_test_was_created.' </td>
+                <td class="requirements-value">'.$courseTestLabel.' </td>
             </tr>
             <tr>
                 <td class="requirements-item">'.get_lang('PermissionsForNewDirs').'</td>
@@ -1401,10 +1428,9 @@ function display_requirements($installType, $badUpdatePath, $updatePath = '', $u
             @chmod($checked_writable, $perm);
         }
 
-        if ($course_test_was_created == false || $file_course_test_was_created == false) {
+        if ($course_test_was_created == false) {
             $error = true;
         }
-
 
         $checked_writable = api_get_path(SYS_PATH).'home/';
         if (!is_writable($checked_writable)) {
@@ -1446,7 +1472,7 @@ function display_requirements($installType, $badUpdatePath, $updatePath = '', $u
         ?>
         <p align="center" style="padding-top:15px">
         <button type="submit" name="step1" class="back" onclick="javascript: window.location='index.php'; return false;" value="&lt; <?php echo get_lang('Previous'); ?>" ><?php echo get_lang('Previous'); ?></button>
-        <button type="submit" name="step2_install" class="add" value="<?php echo get_lang("NewInstallation"); ?>" <?php if ($error) echo 'disabled="disabled"'; ?> ><?php echo get_lang('NewInstallation'); ?></button>
+        <button type="submit" name="step2_install" class="plus" value="<?php echo get_lang("NewInstallation"); ?>" <?php if ($error) echo 'disabled="disabled"'; ?> ><?php echo get_lang('NewInstallation'); ?></button>
         <input type="hidden" name="is_executable" id="is_executable" value="-" />
         <?php
         // Real code
@@ -2168,6 +2194,13 @@ function check_course_script_interpretation($course_dir, $course_attempt_name, $
                 $parsed_url = parse_url($url);
                 //$scheme = isset($parsedUrl['scheme']) ? $parsedUrl['scheme'] : ''; //http
                 $host = isset($parsed_url['host']) ? $parsed_url['host'] : '';
+                // Patch if the host is the default host and is used through
+                // the IP address (sometimes the host is not taken correctly
+                // in this case)
+                if (empty($host) && !empty($_SERVER['HTTP_HOST'])) {
+                    $host = $_SERVER['HTTP_HOST'];
+                    $url = preg_replace('#:///#', '://'.$host.'/', $url);
+                }
                 $path = isset($parsed_url['path']) ? $parsed_url['path'] : '/';
                 $port = isset($parsed_url['port']) ? $parsed_url['port'] : '80';
 

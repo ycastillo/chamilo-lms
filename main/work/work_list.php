@@ -22,7 +22,12 @@ if (empty($workId)) {
 }
 
 $my_folder_data = get_work_data_by_id($workId);
+
 if (empty($my_folder_data)) {
+    api_not_allowed(true);
+}
+
+if ($my_folder_data['active'] != 1) {
     api_not_allowed(true);
 }
 
@@ -44,15 +49,19 @@ if (!empty($group_id)) {
         $show_work = true;
     } else {
         // you are not a teacher
-        $show_work = GroupManager::user_has_access($user_id, $group_id, GroupManager::GROUP_TOOL_WORK);
+        $show_work = GroupManager::user_has_access(
+            $user_id,
+            $group_id,
+            GroupManager::GROUP_TOOL_WORK
+        );
     }
 
     if (!$show_work) {
         api_not_allowed();
     }
 
-    $interbreadcrumb[] = array ('url' => '../group/group.php', 'name' => get_lang('Groups'));
-    $interbreadcrumb[] = array ('url' => '../group/group_space.php?gidReq='.$group_id, 'name' => get_lang('GroupSpace').' '.$group_properties['name']);
+    $interbreadcrumb[] = array ('url' => api_get_path(WEB_CODE_PATH).'group/group.php', 'name' => get_lang('Groups'));
+    $interbreadcrumb[] = array ('url' => api_get_path(WEB_CODE_PATH).'group/group_space.php?gidReq='.$group_id, 'name' => get_lang('GroupSpace').' '.$group_properties['name']);
 }
 
 $interbreadcrumb[] = array ('url' => api_get_path(WEB_CODE_PATH).'work/work.php?'.api_get_cidreq(), 'name' => get_lang('StudentPublications'));
@@ -89,9 +98,9 @@ $item_id = isset($_REQUEST['item_id']) ? intval($_REQUEST['item_id']) : null;
 
 switch ($action) {
     case 'delete':
-        $file_deleted = deleteWorkItem($item_id, $courseInfo);
+        $fileDeleted = deleteWorkItem($item_id, $courseInfo);
 
-        if (!$file_deleted) {
+        if (!$fileDeleted) {
             Display::display_error_message(get_lang('YouAreNotAllowedToDeleteThisDocument'));
         } else {
             Display::display_confirmation_message(get_lang('TheDocumentHasBeenDeleted'));
@@ -115,7 +124,7 @@ if (!empty($work_data['enable_qualification']) && !empty($check_qualification)) 
         get_lang('Actions')
     );
 
-    $column_model   = array (
+    $column_model = array(
         array('name'=>'type', 'index'=>'file', 'width'=>'5',   'align'=>'left', 'search' => 'false', 'sortable' => 'false'),
         array('name'=>'title', 'index'=>'title', 'width'=>'40',   'align'=>'left', 'search' => 'false', 'wrap_cell' => 'true'),
         array('name'=>'qualification',	'index'=>'qualification', 'width'=>'10',   'align'=>'left', 'search' => 'true'),
@@ -126,39 +135,54 @@ if (!empty($work_data['enable_qualification']) && !empty($check_qualification)) 
 } else {
     $type = 'complex';
 
-    $columns  = array(
+    $columns = array(
         get_lang('Type'),
         get_lang('Title'),
         get_lang('Date'),
         get_lang('Actions')
     );
 
-    $column_model   = array (
-        array('name'=>'type',           'index'=>'file',            'width'=>'5',   'align'=>'left', 'search' => 'false', 'sortable' => 'false'),
-        array('name'=>'title',          'index'=>'title',           'width'=>'60',   'align'=>'left', 'search' => 'false', 'wrap_cell' => "true"),
-        array('name'=>'sent_date',       'index'=>'sent_date',      'width'=>'30',   'align'=>'left', 'search' => 'true', 'wrap_cell' => 'true', 'sortable'=>'false'),
-        array('name'=>'actions',        'index'=>'actions',         'width'=>'20',   'align'=>'left', 'search' => 'false', 'sortable'=>'false')
+    $column_model = array(
+        array('name'=>'type',      'index'=>'file',      'width'=>'5',  'align'=>'left', 'search' => 'false', 'sortable' => 'false'),
+        array('name'=>'title',     'index'=>'title',     'width'=>'60', 'align'=>'left', 'search' => 'false', 'wrap_cell' => "true"),
+        array('name'=>'sent_date', 'index'=>'sent_date', 'width'=>'30', 'align'=>'left', 'search' => 'true', 'wrap_cell' => 'true', 'sortable'=>'false'),
+        array('name'=>'actions',   'index'=>'actions',   'width'=>'20', 'align'=>'left', 'search' => 'false', 'sortable'=>'false')
     );
+
+    if (ALLOW_USER_COMMENTS) {
+        $columns = array(
+            get_lang('Type'),
+            get_lang('Title'),
+            get_lang('Feedback'),
+            get_lang('Date'),
+            get_lang('Actions')
+        );
+
+        $column_model = array(
+            array('name'=>'type',      'index'=>'file',      'width'=>'5',  'align'=>'left', 'search' => 'false', 'sortable' => 'false'),
+            array('name'=>'title',     'index'=>'title',     'width'=>'60', 'align'=>'left', 'search' => 'false', 'wrap_cell' => "true"),
+            array('name'=>'qualification',	'index'=>'qualification', 'width'=>'10',   'align'=>'left', 'search' => 'true'),
+            array('name'=>'sent_date', 'index'=>'sent_date', 'width'=>'30', 'align'=>'left', 'search' => 'true', 'wrap_cell' => 'true', 'sortable'=>'false'),
+            array('name'=>'actions',   'index'=>'actions',   'width'=>'20', 'align'=>'left', 'search' => 'false', 'sortable'=>'false')
+        );
+    }
 }
 
-$extra_params = array();
+$extra_params = array(
+    'autowidth' =>  'true',
+    'height' =>  'auto',
+    'sortname' => 'firstname'
+);
 
-// Auto width
-$extra_params['autowidth'] = 'true';
-
-// Height
-$extra_params['height'] = 'auto';
-
-$extra_params['sortname'] = 'firstname';
 $url = api_get_path(WEB_AJAX_PATH).'model.ajax.php?a=get_work_user_list&work_id='.$workId.'&type='.$type;
 ?>
-<script>
-$(function() {
-    <?php
-    echo Display::grid_js('results', $url, $columns, $column_model, $extra_params);
-?>
-});
-</script>
+    <script>
+        $(function() {
+            <?php
+            echo Display::grid_js('results', $url, $columns, $column_model, $extra_params);
+        ?>
+        });
+    </script>
 <?php
 echo Display::grid_html('results');
 

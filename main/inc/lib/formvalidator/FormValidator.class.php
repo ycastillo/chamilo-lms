@@ -18,7 +18,7 @@ define('TEACHER_HTML_FULLPAGE', 5);
  */
 class FormValidator extends HTML_QuickForm
 {
-
+    public $with_progress_bar = false;
     /**
      * Create a form validator based on an array of form data:
      *
@@ -47,10 +47,11 @@ class FormValidator extends HTML_QuickForm
      *             )
      *         );
      *
-     * @param array form_data
+     * @param array $form_data
+     *
      * @return FormValidator
      */
-    static function create($form_data)
+    public static function create($form_data)
     {
         if (empty($form_data)) {
             return null;
@@ -98,10 +99,9 @@ class FormValidator extends HTML_QuickForm
             }
         }
         $result->setDefaults($defaults);
+
         return $result;
     }
-
-    var $with_progress_bar = false;
 
     /**
      * Constructor
@@ -113,7 +113,7 @@ class FormValidator extends HTML_QuickForm
      * @param bool $track_submit (optional)		Whether to track if the form was
      * submitted by adding a special hidden field (default = true)
      */
-    function __construct($form_name, $method = 'post', $action = '', $target = '', $attributes = null, $track_submit = true)
+    public function __construct($form_name, $method = 'post', $action = '', $target = '', $attributes = null, $track_submit = true)
     {
         // Default form class.
         if (is_array($attributes) && !isset($attributes['class']) || empty($attributes)) {
@@ -124,13 +124,12 @@ class FormValidator extends HTML_QuickForm
 
         // Load some custom elements and rules
         $dir = api_get_path(LIBRARY_PATH) . 'formvalidator/';
-        $this->registerElementType('html_editor', $dir . 'Element/html_editor.php', 'HTML_QuickForm_html_editor');
 
+        $this->registerElementType('html_editor', $dir . 'Element/html_editor.php', 'HTML_QuickForm_html_editor');
         $this->registerElementType('date_range_picker', $dir . 'Element/DateRangePicker.php', 'DateRangePicker');
         $this->registerElementType('date_time_picker', $dir . 'Element/DateTimePicker.php', 'DateTimePicker');
         $this->registerElementType('date_picker', $dir . 'Element/DatePicker.php', 'DatePicker');
-
-        $this->registerElementType('datepicker', $dir . 'Element/datepicker.php', 'HTML_QuickForm_datepicker');
+        $this->registerElementType('datepicker', $dir . 'Element/datepicker_old.php', 'HTML_QuickForm_datepicker');
         $this->registerElementType('datepickerdate', $dir . 'Element/datepickerdate.php', 'HTML_QuickForm_datepickerdate');
         $this->registerElementType('receivers', $dir . 'Element/receivers.php', 'HTML_QuickForm_receivers');
         $this->registerElementType('select_language', $dir . 'Element/select_language.php', 'HTML_QuickForm_Select_Language');
@@ -143,6 +142,7 @@ class FormValidator extends HTML_QuickForm
         $this->registerElementType('CAPTCHA_Image', 'HTML/QuickForm/CAPTCHA/Image.php', 'HTML_QuickForm_CAPTCHA_Image');
 
         $this->registerRule('date', null, 'HTML_QuickForm_Rule_Date', $dir . 'Rule/Date.php');
+        $this->registerRule('datetime', null, 'DateTimeRule', $dir . 'Rule/DateTimeRule.php');
         $this->registerRule('date_compare', null, 'HTML_QuickForm_Rule_DateCompare', $dir . 'Rule/DateCompare.php');
         $this->registerRule('html', null, 'HTML_QuickForm_Rule_HTML', $dir . 'Rule/HTML.php');
         $this->registerRule('username_available', null, 'HTML_QuickForm_Rule_UsernameAvailable', $dir . 'Rule/UsernameAvailable.php');
@@ -150,6 +150,7 @@ class FormValidator extends HTML_QuickForm
         $this->registerRule('filetype', null, 'HTML_QuickForm_Rule_Filetype', $dir . 'Rule/Filetype.php');
         $this->registerRule('multiple_required', 'required', 'HTML_QuickForm_Rule_MultipleRequired', $dir . 'Rule/MultipleRequired.php');
         $this->registerRule('url', null, 'HTML_QuickForm_Rule_Url', $dir . 'Rule/Url.php');
+        $this->registerRule('mobile_phone_number', null, 'HTML_QuickForm_Rule_Mobile_Phone_Number', $dir . 'Rule/MobilePhoneNumber.php');
         $this->registerRule('compare_fields', null, 'HTML_QuickForm_Compare_Fields', $dir . 'Rule/CompareFields.php');
         $this->registerRule('CAPTCHA', 'rule', 'HTML_QuickForm_Rule_CAPTCHA', 'HTML/QuickForm/Rule/CAPTCHA.php');
 
@@ -170,7 +171,7 @@ class FormValidator extends HTML_QuickForm
         if (isset($attributes['class']) && $attributes['class'] == 'well form-inline') {
             $element_template = ' {label}  {element} ';
             $renderer->setElementTemplate($element_template);
-        } elseif (isset($attributes['class']) && $attributes['class'] == 'form-search') {
+        } elseif (isset($attributes['class']) && ($attributes['class'] == 'form-search' || $attributes['class'] == 'form-search pull-right')) {
             $element_template = ' {label}  {element} ';
             $renderer->setElementTemplate($element_template);
         } else {
@@ -256,8 +257,12 @@ EOT;
     }
 
     /**
-     * date_range_picker element creates 2 hidden fields
-     * elementName + "_start" elementName "_end"
+     * The "date_range_picker" element creates 2 hidden fields
+     * "elementName" + "_start"  and "elementName" + "_end"
+     * For example if the name is "range", you will have 2 new fields
+     * when executing $form->getSubmitValues()
+     * "range_start" and "range_end"
+     *
      * @param string $name
      * @param string $label
      * @param bool $required
@@ -275,6 +280,25 @@ EOT;
     }
 
     /**
+     * @param string $label
+     * @param string $text
+     *
+     * @return HTML_QuickForm_label
+     */
+    public function addLabel($label, $text)
+    {
+        return $this->addElement('label', $label, $text);
+    }
+
+    /**
+     * @param string $text
+     */
+    public function addHeader($text)
+    {
+        $this->addElement('header', $text);
+    }
+
+    /**
      * @param string $name
      * @param string $value
      */
@@ -283,22 +307,22 @@ EOT;
         $this->addElement('hidden', $name, $value);
     }
 
-    function add_textarea($name, $label, $attributes = array())
+    public function add_textarea($name, $label, $attributes = array())
     {
         $this->addElement('textarea', $name, $label, $attributes);
     }
 
-    function add_button($name, $label, $attributes = array())
+    public function add_button($name, $label, $attributes = array())
     {
         $this->addElement('button', $name, $label, $attributes);
     }
 
-    function add_checkbox($name, $label, $trailer = '', $attributes = array())
+    public function add_checkbox($name, $label, $trailer = '', $attributes = array())
     {
         $this->addElement('checkbox', $name, $label, $trailer, $attributes);
     }
 
-    function add_radio($name, $label, $options = '')
+    public function add_radio($name, $label, $options = '')
     {
         $group = array();
         foreach ($options as $key => $value) {
@@ -307,27 +331,27 @@ EOT;
         $this->addGroup($group, $name, $label);
     }
 
-    function add_select($name, $label, $options = '', $attributes = array())
+    public function add_select($name, $label, $options = '', $attributes = array())
     {
         $this->addElement('select', $name, $label, $options, $attributes);
     }
 
-    function add_label($label, $text)
+    public function add_label($label, $text)
     {
         $this->addElement('label', $label, $text);
     }
 
-    function add_header($text)
+    public function add_header($text)
     {
         $this->addElement('header', $text);
     }
 
-    function add_file($name, $label, $attributes = array())
+    public function add_file($name, $label, $attributes = array())
     {
         $this->addElement('file', $name, $label, $attributes);
     }
 
-    function add_html($snippet)
+    public function add_html($snippet)
     {
         $this->addElement('html', $snippet);
     }
@@ -337,8 +361,8 @@ EOT;
      * A trim-filter is attached to the field.
      * A HTML-filter is attached to the field (cleans HTML)
      * A rule is attached to check for unwanted HTML
+     * @param string $name
      * @param string $label						The label for the form-element
-     * @param string $name						The element name
      * @param boolean $required	(optional)		Is the form-element required (default=true)
      * @param boolean $full_page (optional)		When it is true, the editor loads completed html code for a full page.
      * @param array $editor_config (optional)	Configuration settings for the online editor.
@@ -384,6 +408,7 @@ EOT;
      * A rule is added to check if the date is a valid one
      * @param string $label						The label for the form-element
      * @param string $name						The element name
+     * @deprecated
      */
     function add_datepicker($name, $label)
     {
@@ -393,12 +418,13 @@ EOT;
     }
 
     /**
-     * Adds a datepickerdate element to the form
+     * Adds a date picker date element to the form
      * A rule is added to check if the date is a valid one
      * @param string $label						The label for the form-element
      * @param string $name						The element name
+     * @deprecated
      */
-    function add_datepickerdate($name, $label)
+    public function add_datepickerdate($name, $label)
     {
         $this->addElement('datepickerdate', $name, $label, array('form_name' => $this->getAttribute('name')));
         $this->_elements[$this->_elementIndex[$name]]->setLocalOption('minYear', 1900); // TODO: Now - 9 years
@@ -411,8 +437,9 @@ EOT;
      * before the second one.
      * @param string $label						The label for the form-element
      * @param string $name						The element name
+     * @deprecated
      */
-    function add_timewindow($name_1, $name_2, $label_1, $label_2)
+    public function add_timewindow($name_1, $name_2, $label_1, $label_2)
     {
         $this->add_datepicker($name_1, $label_1);
         $this->add_datepicker($name_2, $label_2);
@@ -421,6 +448,7 @@ EOT;
 
     /**
      * Adds a button to the form to add resources.
+     * @deprecated
      */
     function add_resource_button()
     {
@@ -437,11 +465,11 @@ EOT;
      * displayed. The progress bar will disappear once the page has been
      * reloaded.
      *
-     * @param int $delay (optional)				The number of seconds between the moment the user
-     * @param string $label (optional)			Custom label to be shown
+     * @param int $delay (optional)                The number of seconds between the moment the user
+     * @param string $label (optional)            Custom label to be shown
      * submits the form and the start of the progress bar.
      */
-    function add_progress_bar($delay = 2, $label = '')
+    public function add_progress_bar($delay = 2, $label = '')
     {
         if (empty($label)) {
             $label = get_lang('PleaseStandBy');
@@ -459,7 +487,7 @@ EOT;
      * @param int $delay (optional)						The frequency of the xajax call
      * @param bool $wait_after_upload (optional)
      */
-    function add_real_progress_bar($upload_id, $element_after, $delay = 2, $wait_after_upload = false)
+    public function add_real_progress_bar($upload_id, $element_after, $delay = 2, $wait_after_upload = false)
     {
         if (!function_exists('uploadprogress_get_info')) {
             $this->add_progress_bar($delay);
@@ -520,8 +548,8 @@ EOT;
     /**
      * This function has been created for avoiding changes directly within QuickForm class.
      * When we use it, the element is threated as 'required' to be dealt during validation.
-     * @param array $element					The array of elements
-     * @param string $message					The message displayed
+     * @param array $element The array of elements
+     * @param string $message The message displayed
      */
     function add_multiple_required_rule($elements, $message)
     {
@@ -534,9 +562,14 @@ EOT;
      * If an element in the form didn't validate, an error message is showed
      * asking the user to complete the form.
      */
-    function display()
+    public function display()
     {
         echo $this->return_form();
+    }
+
+    public function returnForm()
+    {
+        return $this->return_form();
     }
 
     /**
@@ -547,15 +580,22 @@ EOT;
      * @return string $return_value HTML code of the form
      *
      * @author Patrick Cool <patrick.cool@UGent.be>, Ghent University, august 2006
+     * @author Julio Montoya
      */
-    function return_form()
+    public function return_form()
     {
         $error = false;
         $addDateLibraries = false;
-        $dateElementTypes = array('date_range_picker', 'date_time_picker', 'date_picker', 'datepicker', 'datetimepicker');
+        $dateElementTypes = array(
+            'date_range_picker',
+            'date_time_picker',
+            'date_picker',
+            'datepicker',
+            'datetimepicker'
+        );
         /** @var HTML_QuickForm_element $element */
         foreach ($this->_elements as $element) {
-            if (in_array($element->getType(),$dateElementTypes)) {
+            if (in_array($element->getType(), $dateElementTypes)) {
                 $addDateLibraries = true;
             }
             if (!is_null(parent::getElementError($element->getName()))) {
@@ -566,20 +606,22 @@ EOT;
         $return_value = '';
         $js = null;
         if ($addDateLibraries) {
-            $js = api_get_js('jquery-ui/jquery-ui-i18n.min.js');
+
+            $js .= '<script src="'.api_get_path(WEB_LIBRARY_PATH).'javascript/daterange/moment.min.js" type="text/javascript"></script>';
             $js .= '<script src="'.api_get_path(WEB_LIBRARY_PATH).'javascript/datetimepicker/jquery-ui-timepicker-addon.js" type="text/javascript"></script>';
             $js .= '<link href="'.api_get_path(WEB_LIBRARY_PATH).'javascript/datetimepicker/jquery-ui-timepicker-addon.css" rel="stylesheet" type="text/css" />';
-            $js .= '<script src="'.api_get_path(WEB_LIBRARY_PATH).'javascript/daterange/moment.min.js" type="text/javascript"></script>';
             $js .= '<script src="'.api_get_path(WEB_LIBRARY_PATH).'javascript/daterange/daterangepicker.js" type="text/javascript"></script>';
             $js .= '<link href="'.api_get_path(WEB_LIBRARY_PATH).'javascript/daterange/daterangepicker-bs2.css" rel="stylesheet" type="text/css" />';
 
-            $isocode = api_get_language_isocode();
-            if ($isocode != 'en') {
-                $js .= '<script src="'.api_get_path(WEB_LIBRARY_PATH).'javascript/datetimepicker/i18n/jquery-ui-timepicker-'.$isocode.'.js" type="text/javascript"></script>';
+            $isoCode = api_get_language_isocode();
+
+            if ($isoCode != 'en') {
+                $js .= api_get_js('jquery-ui/jquery-ui-i18n.min.js');
+                $js .= '<script src="'.api_get_path(WEB_LIBRARY_PATH).'javascript/datetimepicker/i18n/jquery-ui-timepicker-'.$isoCode.'.js" type="text/javascript"></script>';
                 $js .= '<script>
                 $(function(){
-                    $.datepicker.setDefaults($.datepicker.regional["'.$isocode.'"]);
-                     moment.lang("'.$isocode.'");
+                    moment.lang("'.$isoCode.'");
+                    $.datepicker.setDefaults($.datepicker.regional["'.$isoCode.'"]);
                 });
                 </script>';
             }
@@ -596,6 +638,27 @@ EOT;
             $return_value .= '<div id="dynamic_div" style="display:block; margin-left:40%; margin-top:10px; height:50px;"></div>';
         }
         return $return_value;
+    }
+
+    /**
+     * @param string $snippet
+     */
+    public function addHtml($snippet)
+    {
+        $this->addElement('html', $snippet);
+    }
+
+    /**
+     * @param string $name
+     * @param string $label
+     * @param string $text
+     * @param array  $attributes
+     *
+     * @return HTML_QuickForm_checkbox
+     */
+    public function addCheckBox($name, $label, $text = '', $attributes = array())
+    {
+        return $this->addElement('checkbox', $name, $label, $text, $attributes);
     }
 }
 
@@ -631,4 +694,15 @@ function html_filter_teacher_fullpage($html)
 function html_filter_student_fullpage($html)
 {
     return html_filter($html, STUDENT_HTML_FULLPAGE);
+}
+
+/**
+ * Cleans mobile phone number text
+ * @param string $mobilePhoneNumber     Mobile phone number to clean
+ * @return string                       The cleaned mobile phone number
+ */
+function mobile_phone_number_filter($mobilePhoneNumber)
+{
+    $mobilePhoneNumber = str_replace(array('+', '(', ')'), '', $mobilePhoneNumber);
+    return ltrim($mobilePhoneNumber,'0');
 }

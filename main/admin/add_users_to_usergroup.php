@@ -87,7 +87,7 @@ function change_select(val) {
 $form_sent  = 0;
 $errorMsg   = '';
 
-$extra_field_list= UserManager::get_extra_fields();
+$extra_field_list = UserManager::get_extra_fields();
 $new_field_list = array();
 if (is_array($extra_field_list)) {
     foreach ($extra_field_list as $extra_field) {
@@ -121,6 +121,24 @@ if (isset($_POST['form_sent']) && $_POST['form_sent']) {
         //added a parameter to send emails when registering a user
         $usergroup->subscribe_users_to_usergroup($id, $elements_posted);
         header('Location: usergroups.php');
+        exit;
+    }
+}
+
+if (isset($_GET['action']) && $_GET['action'] == 'export') {
+    $groupInfo = $usergroup->get($id);
+    $users = $usergroup->getUserListByUserGroup($id);
+    if (!empty($users)) {
+        require_once api_get_path(LIBRARY_PATH) . 'export.lib.inc.php';
+
+        $data = array(
+            array('UserName', 'ClassName')
+        );
+        foreach ($users as $user) {
+            $data[] = array($user['username'], $groupInfo['name']);
+        }
+        $filename = 'export_user_class_' . api_get_local_time();
+        Export::export_table_csv($data, $filename);
         exit;
     }
 }
@@ -182,13 +200,20 @@ if ($searchForm->validate()) {
     $filterData = $searchForm->getSubmitValues();
 }
 
-$data       = $usergroup->get($id);
-$list_in    = $usergroup->get_users_by_usergroup($id);
-$list_all   = $usergroup->get_users_by_usergroup();
+$data = $usergroup->get($id);
+$list_in = $usergroup->get_users_by_usergroup($id);
+$list_all = $usergroup->get_users_by_usergroup();
 
 $order = array('lastname');
 if (api_is_western_name_order()) {
     $order = array('firstname');
+}
+
+global $_configuration;
+if (isset($_configuration['order_user_list_by_official_code']) &&
+    $_configuration['order_user_list_by_official_code']
+) {
+    $order = array('official_code', 'lastname');
 }
 
 $conditions = array();
@@ -224,10 +249,22 @@ if (!empty($complete_user_list)) {
         }
 
         if (in_array($item['user_id'], $list_in)) {
+            $officialCode = !empty($item['official_code']) ? ' - '.$item['official_code'] : null;
             $person_name = api_get_person_name(
                 $item['firstname'],
                 $item['lastname']
-            ).' ('.$item['username'].') '.$item['official_code'];
+            ).' ('.$item['username'].') '.$officialCode;
+
+            if (isset($_configuration['order_user_list_by_official_code']) &&
+                $_configuration['order_user_list_by_official_code']
+            ) {
+                $officialCode = !empty($item['official_code']) ? $item['official_code'].' - ' : '? - ';
+                $person_name = $officialCode.api_get_person_name(
+                        $item['firstname'],
+                        $item['lastname']
+                    ).' ('.$item['username'].') ';
+            }
+
             $elements_in[$item['user_id']] = $person_name;
         }
     }
@@ -255,11 +292,27 @@ if (!empty($user_list)) {
                 continue;
             }
         }
-        if ($item['status'] == 6 ) continue; //avoid anonymous users
+
+        // Avoid anonymous users
+        if ($item['status'] == 6) {
+            continue;
+        }
+        $officialCode = !empty($item['official_code']) ? ' - '.$item['official_code'] : null;
         $person_name = api_get_person_name(
             $item['firstname'],
             $item['lastname']
-        ).' ('.$item['username'].') '.$item['official_code'];
+        ).' ('.$item['username'].') '.$officialCode;
+
+        if (isset($_configuration['order_user_list_by_official_code']) &&
+            $_configuration['order_user_list_by_official_code']
+        ) {
+            $officialCode = !empty($item['official_code']) ? $item['official_code'].' - ' : '? - ';
+            $person_name = $officialCode.api_get_person_name(
+                    $item['firstname'],
+                    $item['lastname']
+                ).' ('.$item['username'].') ';
+        }
+
         if (in_array($item['user_id'], $list_in)) {
             //$elements_in[$item['user_id']] = $person_name;
         } else {
@@ -280,6 +333,9 @@ echo Display::url(get_lang('AdvancedSearch'), '#', array('class' => 'advanced_op
 
 echo '<a href="usergroup_user_import.php">'.
     Display::return_icon('import_csv.png', get_lang('Import'), array(), ICON_SIZE_MEDIUM).'</a>';
+
+echo '<a href="'.api_get_self().'?id='.$id.'&action=export">'.
+    Display::return_icon('export_csv.png', get_lang('Export'), array(), ICON_SIZE_MEDIUM).'</a>';
 echo '</div>';
 
 echo '<div id="advanced_search_options" style="display:none">';

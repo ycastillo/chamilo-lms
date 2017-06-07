@@ -29,20 +29,30 @@
             </td>
             <td style="width:50%">
                 {{ event.title }}
-                <p>{{ event.description}}</p>
+
+                {% if event.description %}
+                    <p>{{ event.description}}</p>
+                {% endif %}
+
+                {% if event.comment %}
+                    <p>{{ event.comment}}</p>
+                {% endif %}
+
                 {{ event.attachment }}
             </td>
 
             {% if is_allowed_to_edit %}
                 <td>
                     {% if event.visibility == 1 %}
-                        <a class="btn" href="{{ url }}&action=change_visibility&visibility=0&id={{ event.real_id }}">
+                        <a class="btn" href="{% if url %}{{ url }}{% else %}{{ event.url }}{% endif %}&action=change_visibility&visibility=0&id={{ event.real_id }}">
                             <img title="{{ 'Invisible' }}" src="{{'visible.png'|icon(32)}} ">
                         </a>
                     {% else %}
-                        <a class="btn" href="{{ url }}&action=change_visibility&visibility=1&id={{ event.real_id }}">
-                            <img title="{{ 'Visible' }}" src="{{'invisible.png'|icon(32)}} ">
-                        </a>
+                        {% if event.type == 'course' or event.type == 'session' %}
+                            <a class="btn" href="{% if url %}{{ url }}{% else %}{{ event.url }}{% endif %}&action=change_visibility&visibility=1&id={{ event.real_id }}">
+                                <img title="{{ 'Visible' }}" src="{{'invisible.png'|icon(32)}} ">
+                            </a>
+                        {% endif %}
                     {% endif %}
                 </td>
             {% endif %}

@@ -1,18 +1,15 @@
 <?php
 /* For licensing terms, see /license.txt */
-/**
- * This class provides methods for the UserGroup management.
- * Include/require it in your code to use its features.
- * @package chamilo.library
- */
-/**
- * Code
- */
+
 require_once 'model.lib.php';
 
 /**
- * Class
+ * Class UserGroup
+ *
+ * This class provides methods for the UserGroup management.
+ * Include/require it in your code to use its features.
  * @package chamilo.library
+ *
  */
 class UserGroup extends Model
 {
@@ -103,7 +100,6 @@ class UserGroup extends Model
             }
 
             return 0;
-
         } else {
             $row = Database::select(
                 'count(*) as count',
@@ -153,7 +149,7 @@ class UserGroup extends Model
 
     /**
      * Gets a list of course ids by user group
-     * @param int user group id
+     * @param int $id user group id
      * @param array $loadCourseData
      * @return  array
      */
@@ -285,9 +281,7 @@ class UserGroup extends Model
                     LEFT OUTER JOIN {$this->usergroup_rel_course_table} urc
                     ON (u.id = urc.usergroup_id AND course_id = $course_id)
             ";
-
         } else {
-
             $sql = "SELECT DISTINCT u.id, name
                     FROM {$this->table} u
                     LEFT OUTER JOIN {$this->usergroup_rel_course_table} urc
@@ -337,6 +331,7 @@ class UserGroup extends Model
                 $array[] = $row['usergroup_id'];
             }
         }
+
         return $array;
     }
 
@@ -352,15 +347,17 @@ class UserGroup extends Model
             $this->usergroup_rel_course_table,
             array('where' => array('course_id = ? AND usergroup_id = ?' => array($course_id, $usergroup_id)))
         );
+
         if (empty($results)) {
             return false;
         }
+
         return true;
     }
 
     /**
      * Gets a list of session ids by user group
-     * @param   int     user group id
+     * @param   int  $id   user group id
      * @return  array
      */
     public function get_sessions_by_usergroup($id)
@@ -377,12 +374,13 @@ class UserGroup extends Model
                 $array[] = $row['session_id'];
             }
         }
+
         return $array;
     }
 
     /**
      * Gets a list of user ids by user group
-     * @param   int     user group id
+     * @param   int    $id user group id
      * @return  array   with a list of user ids
      */
     public function get_users_by_usergroup($id = null)
@@ -399,12 +397,13 @@ class UserGroup extends Model
                 $array[] = $row['user_id'];
             }
         }
+
         return $array;
     }
 
     /**
      * Gets the usergroup id list by user id
-     * @param   int user id
+     * @param   int $userId user id
      * @return array
      */
     public function get_usergroup_by_user($userId)
@@ -430,13 +429,14 @@ class UserGroup extends Model
                 $array[] = $row['usergroup_id'];
             }
         }
+
         return $array;
     }
 
     /**
      * Subscribes sessions to a group  (also adding the members of the group in the session and course)
-     * @param   int     usergroup id
-     * @param   array   list of session ids
+     * @param   int   $usergroup_id  usergroup id
+     * @param   array  $list list of session ids
      */
     public function subscribe_sessions_to_usergroup($usergroup_id, $list)
     {
@@ -489,8 +489,8 @@ class UserGroup extends Model
 
     /**
      * Subscribes courses to a group (also adding the members of the group in the course)
-     * @param   int     usergroup id
-     * @param   array   list of course ids (integers)
+     * @param int   $usergroup_id  usergroup id
+     * @param array $list  list of course ids (integers)
      * @param bool $delete_groups
      */
     public function subscribe_courses_to_usergroup($usergroup_id, $list, $delete_groups = true)
@@ -550,15 +550,18 @@ class UserGroup extends Model
                         CourseManager::unsubscribe_user($user_id, $course_info['code']);
                     }
                 }
-                Database::delete($this->usergroup_rel_course_table, array('usergroup_id = ? AND course_id = ?' => array($usergroup_id, $course_id)));
+                Database::delete(
+                    $this->usergroup_rel_course_table,
+                    array('usergroup_id = ? AND course_id = ?' => array($usergroup_id, $course_id))
+                );
             }
         }
     }
 
     /**
      * Subscribe users to a group
-     * @param int     usergroup id
-     * @param array   list of user ids
+     * @param int     $usergroup_id usergroup id
+     * @param array   $list list of user ids
      * @param bool $delete_users_not_present_in_list
      */
     public function subscribe_users_to_usergroup($usergroup_id, $list, $delete_users_not_present_in_list = true)
@@ -704,16 +707,36 @@ class UserGroup extends Model
      * @param array $options
      * @return array
      */
-    public function get_all_for_export($options = null)
+    public function getDataToExport($options = array())
     {
         if ($this->useMultipleUrl) {
             $urlId = api_get_current_access_url_id();
-            $from = $this->table." u INNER JOIN {$this->access_url_rel_usergroup} a ON (u.id = a.usergroup_id)";
+            $from = $this->table." u INNER JOIN {$this->access_url_rel_usergroup} a
+                    ON (u.id = a.usergroup_id)";
             $options = array('where' => array('access_url_id = ? ' => $urlId));
-            return Database::select('name, description', $from, $options);
+            $classes = Database::select('a.id, name, description', $from, $options);
         } else {
-            return Database::select('name, description', $this->table, $options);
+            $classes = Database::select('id, name, description', $this->table, $options);
         }
+
+        $result = array();
+        if (!empty($classes)) {
+            foreach ($classes as $data) {
+                $users = self::getUserListByUserGroup($data['id']);
+                $userToString = null;
+                if (!empty($users)) {
+                    $userNameList = array();
+                    foreach ($users as $userData) {
+                        $userNameList[] = $userData['username'];
+                    }
+                    $userToString = implode(',', $userNameList);
+                }
+                $data['users'] = $userToString;
+                $result[] = $data;
+            }
+        }
+
+        return $result;
     }
 
     /**
@@ -753,19 +776,38 @@ class UserGroup extends Model
     /**
      * @param $params
      * @param bool $show_query
-     * @return bool|void
+     * @return bool|int
      */
     public function save($params, $show_query = false)
     {
-        $id = parent::save($params, $show_query);
-        if ($this->useMultipleUrl) {
-            $this->subscribeToUrl($id, api_get_current_access_url_id());
+        $groupExists = $this->usergroup_exists(trim($params['name']));
+        if ($groupExists == false) {
+
+            $id = parent::save($params, $show_query);
+            if ($this->useMultipleUrl) {
+                $this->subscribeToUrl($id, api_get_current_access_url_id());
+            }
+
+            return $id;
         }
-        return $id;
+
+        return false;
     }
 
     /**
-     * @param $id
+     * @inheritdoc
+     */
+    public function update($params)
+    {
+        $groupExists = $this->usergroup_exists(trim($params['name']));
+        if ($groupExists == false) {
+            return parent::update($params);
+        }
+        return false;
+    }
+
+    /**
+     * @param int $id
      * @return bool|void
      */
     public function delete($id)
@@ -794,8 +836,8 @@ class UserGroup extends Model
     }
 
     /**
-     * @param $id
-     * @param $urlId
+     * @param int $id
+     * @param int $urlId
      */
     public function unsubscribeToUrl($id, $urlId)
     {
@@ -836,24 +878,27 @@ class UserGroup extends Model
             }
         }
         $response->addAssign('ajax_list_courses','innerHTML', api_utf8_encode($return));
-        return $response;
 
+        return $response;
     }
+
     /**
-    * Add a user to a class. If the class is subscribed to a course, the new
-    * user will also be subscribed to that course.
-    * @param int $user_id The user id
-    * @param int $class_id The class id
-    */
-    public function addUser($userId, $classId)
-    {   
-        $table_rel_user = Database::get_main_table(TABLE_USERGROUP_REL_USER);
-        $userId  = intval($userId);
-        $classId = intval($classId);
-        $sql = "INSERT INTO $table_rel_user SET user_id = '".$userId."', usergroup_id='".$classId."'";
-	 Database::query($sql);
+     * Get user list by usergroup
+     * @param $id
+     * @return array
+     */
+    public function getUserListByUserGroup($id)
+    {
+        $id = intval($id);
+        $sql = "SELECT u.* FROM ".$this->table_user." u
+                INNER JOIN ".$this->usergroup_rel_user_table." c
+                ON c.user_id = u.user_id
+                WHERE c.usergroup_id = $id"
+                ;
+        $result = Database::query($sql);
+
+        return Database::store_result($result);
     }
-    
-       
+
 }
 /* CREATE TABLE IF NOT EXISTS access_url_rel_usergroup (access_url_id int unsigned NOT NULL, usergroup_id int unsigned NOT NULL, PRIMARY KEY (access_url_id, usergroup_id));*/

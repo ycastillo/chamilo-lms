@@ -10,6 +10,7 @@
 require_once '../../../../../../inc/global.inc.php';
 require_once api_get_path(LIBRARY_PATH).'fckeditor/editor/plugins/ajaxfilemanager/inc/config.php';
 
+$path = isset($_REQUEST['path'])? Security::remove_XSS($_REQUEST['path']) : null ;
 if (!isset($manager)) {
     /**
      *  this is part of  script for processing file paste
@@ -18,13 +19,13 @@ if (!isset($manager)) {
     $pagination    = new pagination(false);
     $search_folder = null;
     if (isset($_GET['search_folder'])) {
-        $search_folder = str_replace("'", "", $_GET['search_folder']); //security fix for Chamilo by cfasanando
+        $search_folder = str_replace("'", "", Security::remove_XSS($_GET['search_folder']));
     }
 
     if (!empty($_GET['search'])) {
         include_once(CLASS_SEARCH);
 
-        $search = new Search($search_folder); //security fix for Chamilo by cfasanando
+        $search = new Search($search_folder);
         $search->addSearchKeyword('recursive', @$_GET['search_recursively']);
         $search->addSearchKeyword('mtime_from', @$_GET['search_mtime_from']);
         $search->addSearchKeyword('mtime_to', @$_GET['search_mtime_to']);
@@ -41,7 +42,7 @@ if (!isset($manager)) {
         $sessionAction = new SessionAction();
         include_once(DIR_AJAX_INC."class.manager.php");
 
-        $manager = new manager();
+        $manager = new manager($path);
         $manager->setSessionAction($sessionAction);
 
         $fileList   = $manager->getFileList();

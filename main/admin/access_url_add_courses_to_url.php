@@ -17,6 +17,7 @@ require_once api_get_path(LIBRARY_PATH).'urlmanager.lib.php';
 $this_section=SECTION_PLATFORM_ADMIN;
 
 api_protect_global_admin_script();
+
 if (!api_get_multiple_access_url()) {
     header('Location: index.php');
     exit;
@@ -81,9 +82,10 @@ if (empty($first_letter_user)) {
     unset($result);
 }
 
-$first_letter_course = Database::escape_string($first_letter_course);
+$first_letter_course_lower = Database::escape_string(api_strtolower($first_letter_course));
+
 $sql = "SELECT code, title FROM $tbl_course
-		WHERE title LIKE '".$first_letter_course."%' OR title LIKE '".api_strtolower($first_letter_course)."%'
+		WHERE title LIKE '".$first_letter_course_lower."%' OR title LIKE '".$first_letter_course_lower."%'
 		ORDER BY title, code DESC ";
 
 $result = Database::query($sql);

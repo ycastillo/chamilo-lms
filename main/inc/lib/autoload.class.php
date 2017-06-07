@@ -97,6 +97,7 @@ class Autoload
         $result['AssetWikiRenderer'] = '/main/inc/lib/system/media/renderer/lab/asset_wiki_renderer.class.php';
         $result['AttendanceLink'] = '/main/gradebook/lib/be/attendancelink.class.php';
         $result['Auth'] = '/main/inc/lib/auth.lib.php';
+        $result['Thematic'] = '/main/inc/lib/thematic.lib.php';
         $result['Block'] = '/main/dashboard/block.class.php';
         $result['Blog'] = '/main/inc/lib/blog.lib.php';
         $result['Cache'] = '/main/inc/lib/cache.class.php';
@@ -109,11 +110,13 @@ class Autoload
         $result['ChamiloSession'] = '/main/inc/lib/chamilo_session.class.php';
         $result['Chat'] = '/main/inc/lib/chat.lib.php';
         $result['ClassManager'] = '/main/inc/lib/classmanager.lib.php';
+        $result['ClockworksmsPlugin'] = '/plugin/clockworksms/lib/clockworksms_plugin.class.php';
         $result['ClosureCompiler'] = '/main/inc/lib/system/closure_compiler.class.php';
         $result['ConditionalLogin'] = '/main/inc/lib/conditional_login.class.php';
         $result['Controller'] = '/main/inc/lib/controller.class.php';
         $result['Converter'] = '/main/inc/lib/system/text/converter.class.php';
         $result['Course'] = '/main/coursecopy/classes/Course.class.php';
+        $result['CoursesAndSessionsCatalog'] = '/main/inc/lib/CoursesAndSessionsCatalog.class.php';
         $result['CourseArchiver'] = '/main/coursecopy/classes/CourseArchiver.class.php';
         $result['CourseBuilder'] = '/main/coursecopy/classes/CourseBuilder.class.php';
         $result['CourseCopyLearnpath'] = '/main/coursecopy/classes/CourseCopyLearnpath.class.php';
@@ -818,7 +821,8 @@ class Autoload
         $result['ScoreDisplayForm'] = '/main/gradebook/lib/fe/scoredisplayform.class.php';
         $result['ScormDocument'] = '/main/coursecopy/classes/ScormDocument.class.php';
         $result['Security'] = '/main/inc/lib/security.lib.php';
-        $result['SessionHandler'] = '/main/inc/lib/session_handler.class.php';
+        $result['SessionHandlerDatabase'] = '/main/inc/lib/session_handler.class.php';
+        $result['SessionHandlerMemcache'] = '/main/inc/lib/session_handler_memcache.class.php';
         $result['SessionManager'] = '/main/inc/lib/sessionmanager.lib.php';
         $result['Shibboleth\Admin'] = '/main/auth/shibboleth/app/model/admin.class.php';
         $result['Shibboleth\AdminStore'] = '/main/auth/shibboleth/app/model/admin.class.php';
@@ -917,10 +921,17 @@ class Autoload
         $result['UserForm'] = '/main/gradebook/lib/fe/userform.class.php';
         $result['UserGroup'] = '/main/inc/lib/usergroup.lib.php';
         $result['UserManager'] = '/main/inc/lib/usermanager.lib.php';
+
+        $result['ExtraField'] = '/main/inc/lib/extra_field.lib.php';
+        $result['ExtraFieldOption'] = '/main/inc/lib/extra_field_option.lib.php';
+        $result['ExtraFieldValue'] = '/main/inc/lib/extra_field_value.lib.php';
+
         $result['UserTable'] = '/main/gradebook/lib/fe/usertable.class.php';
         $result['Utf8'] = '/main/inc/lib/system/text/utf8.class.php';
         $result['Utf8Decoder'] = '/main/inc/lib/system/text/utf8_decoder.class.php';
         $result['Utf8Encoder'] = '/main/inc/lib/system/text/utf8_encoder.class.php';
+        $result['WebService'] = '/main/inc/lib/webservices/WebService.class.php';
+        $result['MessagesWebService'] = '/main/inc/lib/webservices/MessagesWebService.class.php';
         $result['Wiki'] = '/main/coursecopy/classes/wiki.class.php';
         $result['Work\Access'] = '/main/work/access.class.php';
         $result['Work\AjaxController'] = '/main/work/ajax_controller.class.php';
